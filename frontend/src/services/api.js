@@ -24,6 +24,15 @@ export async function fetchCuratedVoices() {
   }
 }
 
+export async function cloneVoiceFromAudio(audio) {
+  const formData = new FormData();
+  formData.append('file', audio, audio.name || 'voice-sample.webm');
+  const res = await fetch(`${API_BASE}/voice/clone`, { method: 'POST', body: formData });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || `Voice cloning failed: ${res.status}`);
+  return data;
+}
+
 export async function getSmartSuggestions({ 
   text, 
   history = [], 

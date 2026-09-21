@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
+import { VoiceCloner } from './VoiceCloner';
 
 export function SettingsModal({
   isOpen,
@@ -8,13 +9,14 @@ export function SettingsModal({
   onUpdateSettings,
   browserVoices = [],
   edgeVoices = [],
-  onTestVoice
+  onTestVoice,
+  onVoiceCloned
 }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-left">
+    <div className="settings-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+      <div className="settings-dialog rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden text-left">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center gap-2">
@@ -31,7 +33,7 @@ export function SettingsModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 text-sm">
+        <div className="settings-body p-5 sm:p-6 overflow-y-auto space-y-6 text-sm">
           {/* 1. Voice & TTS Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -60,8 +62,8 @@ export function SettingsModal({
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Neural Edge-TTS (Recomendado)</div>
-                <div className="text-[11px] text-slate-400">Voces humanas de alta definición</div>
+                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz clonada / Neural (Recomendado)</div>
+                <div className="text-[11px] text-slate-400">Tu voz Qwen o voces Edge de respaldo</div>
               </button>
 
               <button
@@ -83,7 +85,7 @@ export function SettingsModal({
               <label className="block text-xs text-slate-400 mb-1">Voz seleccionada:</label>
               {settings.ttsMode === 'edge-tts' ? (
                 <select
-                  value={settings.edgeVoiceId || 'es-ES-AlvaroNeural'}
+                  value={settings.edgeVoiceId || 'qwen-clone'}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
                   className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
                 >
@@ -146,6 +148,8 @@ export function SettingsModal({
                 />
               </div>
             </div>
+
+            <VoiceCloner onCloned={onVoiceCloned} />
           </div>
 
           <hr className="border-slate-800" />

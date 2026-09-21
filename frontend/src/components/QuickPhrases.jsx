@@ -15,11 +15,11 @@ const ESSENTIAL_PHRASES = [
 
 export function QuickPhrases({ onSelectAndSpeak }) {
   return (
-    <div className="w-full bg-slate-900/40 rounded-xl p-3 sm:p-4 border border-slate-800/80">
+    <div className="quick-panel w-full rounded-xl p-3 sm:p-4">
       <div className="flex items-center gap-1.5 mb-2.5 px-1">
         <MessageSquareQuote className="w-3.5 h-3.5 text-slate-400" />
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Frases Rápidas de Comunicación (Toca para hablar de inmediato)
+          Frases rápidas
         </span>
       </div>
 

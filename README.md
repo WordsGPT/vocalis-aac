@@ -67,6 +67,46 @@ To launch both the backend and frontend with a single command:
   - Edge-TTS (studio-quality neural voice synthesis)
   - Ollama client (local Gemma 3 4B)
   - Google Gemini API client (optional cloud boost)
+  - Qwen3-TTS voice cloning using a saved local voice profile
+
+### Using the cloned Qwen voice
+
+Vocalis automatically looks for the existing profile at
+`../qwen3-tts-runtime/saved_voice.pt`. Run the backend with the Qwen runtime so
+the model package and GPU dependencies are available:
+
+```bash
+../qwen3-tts-runtime/.venv/bin/python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000
+```
+
+Choose **Mi voz clonada (Qwen3-TTS)** in Vocalis settings. The model loads on
+server startup; Edge-TTS and browser voices remain available as fallbacks. The
+fast 0.6B Base checkpoint is used by default. Set `QWEN_TTS_MODEL=quality` for
+the 1.7B checkpoint, or use `fast`, `0.6b`, `1.7b`, or a full Hugging Face model
+ID. Set `QWEN_VOICE_PROFILE` if the profile is stored elsewhere.
+
+Profiles saved by the 1.7B model are adapted automatically for 0.6B by decoding
+their saved reference speech codes and re-extracting the correctly sized speaker
+embedding. The original profile is never overwritten.
+
+The settings panel can record or upload a new 8–15 second voice sample. Vocalis
+uses Qwen's speaker-embedding mode, so the user does not need to type a
+transcript. Choosing **Crear y usar esta voz** intentionally replaces the active
+saved profile after the user confirms consent.
+
+For GPU attention, `QWEN_TTS_ATTENTION=auto` prefers FlashAttention 2 when the
+`flash-attn` package is installed and otherwise uses Qwen's eager path. To install
+FlashAttention in an environment with the CUDA development toolkit (`nvcc`):
+
+```bash
+MAX_JOBS=4 uv pip install --python ../qwen3-tts-runtime/.venv/bin/python \
+  flash-attn --no-build-isolation
+```
+
+The current `qwen-tts` Python generation API returns a complete waveform rather
+than incremental audio chunks. Consequently, Vocalis cannot begin cloned-voice
+playback mid-generation without a different streaming inference backend. The
+HTTP response itself is inexpensive; model generation dominates the wait.
 
 ---
 

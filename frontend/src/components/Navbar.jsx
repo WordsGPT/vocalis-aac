@@ -12,25 +12,21 @@ export function Navbar({
   onToggleAppView
 }) {
   return (
-    <header className="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-4 py-2.5 sm:px-6">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+    <header className="topbar">
+      <div className="topbar__inner">
         {/* Logo & Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold">
-            <Radio className="w-5 h-5 animate-pulse" />
+        <div className="brand">
+          <div className="brand__mark">
+            <Radio className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-white m-0">Vocalis AAC</h1>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
-                Comunicador Aumentativo
-              </span>
-            </div>
+            <h1 className="brand__name">Vocalis</h1>
+            <div className="brand__tagline">COMUNICACIÓN AUMENTATIVA</div>
           </div>
         </div>
 
         {/* View Mode Switcher (Tablero AAC vs Flujo) */}
-        <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+        <div className="view-toggle">
           <button
             onClick={() => onToggleAppView('aac-board')}
             title="Vista de Tablero de Comunicación Aumentativa (AAC)"
@@ -41,7 +37,7 @@ export function Navbar({
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Tablero AAC</span>
+            <span>Tablero</span>
           </button>
 
           <button
@@ -54,36 +50,36 @@ export function Navbar({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>Flujo Conversacional</span>
+            <span>Conversación</span>
           </button>
         </div>
 
         {/* Status Indicators & Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="topbar__actions">
           {/* Speaking Status Pill */}
           {isSpeaking && (
             <button
               onClick={onStopSpeech}
               title="Haz clic para detener la voz"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-500/40 text-xs font-semibold animate-pulse hover:bg-red-500/30 transition-colors cursor-pointer"
+              className="status-chip flex items-center gap-2 px-3 py-1.5 bg-red-500/20 text-red-300 border border-red-500/40 text-xs font-semibold animate-pulse hover:bg-red-500/30 transition-colors cursor-pointer"
             >
               <VolumeX className="w-3.5 h-3.5" />
-              <span>Hablando... (Parar)</span>
+              <span>Detener voz</span>
             </button>
           )}
 
           {/* Mic Status */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${
+          <div className={`status-chip flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border ${
             isListening 
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
               : 'bg-slate-800/80 text-slate-400 border-slate-700'
           }`}>
-            <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
-            <span className="hidden sm:inline">{isListening ? 'Escuchando' : 'Mic Silenciado'}</span>
+            <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            <span className="hidden sm:inline">{isListening ? 'Escuchando' : 'En pausa'}</span>
           </div>
 
           {/* AI Engine Badge */}
-          <div className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs font-medium">
+          <div className="engine-chip hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs font-medium">
             <Sparkles className="w-3 h-3 text-indigo-400" />
             <span className="capitalize">{aiEngine || 'Groq'}</span>
           </div>
@@ -91,11 +87,10 @@ export function Navbar({
           {/* Settings Button */}
           <button
             onClick={onOpenSettings}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+            className="settings-trigger bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/70 transition-colors cursor-pointer"
             title="Ajustes y Perfil de Voz"
           >
             <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Ajustes</span>
           </button>
         </div>
       </div>

@@ -39,7 +39,7 @@ export function ConversationStream({
   }, [history, displayLiveText]);
 
   return (
-    <div className="w-full bg-slate-900/70 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col">
+    <div className="conversation-panel w-full rounded-2xl overflow-hidden flex flex-col">
       {/* Top Header: Mic Controls, Visualizer, Demo Prompts, Clear All */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 bg-slate-900/90 border-b border-slate-800">
         <div className="flex items-center gap-3 w-full sm:w-auto">

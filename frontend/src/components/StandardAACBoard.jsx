@@ -258,14 +258,14 @@ export function StandardAACBoard({
   ];
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col gap-4 text-left select-none">
+    <div className="aac-workspace w-full mx-auto flex flex-col text-left select-none">
       
       {/* 1. TOP SECTION: LA BARRA DE FRASE AAC (Standard Message Window) */}
-      <div className="w-full bg-slate-900 border-2 border-slate-700/80 rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col gap-3">
+      <div className="composer-panel w-full rounded-2xl p-3 sm:p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between px-1">
           <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
-            Barra de Frase (Toca casillas o escribe para componer tu mensaje)
+            Tu mensaje
           </span>
           {sentenceWords.length > 0 && (
             <span className="text-[11px] text-blue-400 font-semibold font-mono">
@@ -276,7 +276,7 @@ export function StandardAACBoard({
 
         {/* Sentence accumulator display with integrated quick typing */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="flex-1 min-h-[60px] bg-slate-950 rounded-xl border-2 border-slate-800 focus-within:border-blue-500 px-3 py-2 flex items-center flex-wrap gap-2 transition-colors">
+          <div className="composer-input flex-1 min-h-[60px] rounded-xl border-2 focus-within:border-violet-500 px-3 py-2 flex items-center flex-wrap gap-2 transition-colors">
             {sentenceWords.map((word, idx) => (
               <span
                 key={idx}
@@ -295,7 +295,7 @@ export function StandardAACBoard({
                 type="text"
                 value={typedInput}
                 onChange={(e) => setTypedInput(e.target.value)}
-                placeholder={sentenceWords.length === 0 ? "Toca casillas abajo o escribe aquí..." : "Escribe más..."}
+                placeholder={sentenceWords.length === 0 ? "Toca palabras o escribe aquí…" : "Añade algo más…"}
                 className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base font-medium focus:outline-none px-1 py-1"
               />
             </form>
@@ -326,7 +326,7 @@ export function StandardAACBoard({
             <button
               onClick={handleSpeakSentence}
               disabled={sentenceWords.length === 0 && !typedInput.trim()}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black text-base tracking-wide shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-violet-500 hover:bg-violet-400 disabled:opacity-40 text-white font-black text-base tracking-wide shadow-lg shadow-violet-500/20 active:scale-95 transition-all cursor-pointer"
             >
               <Volume2 className={`w-6 h-6 ${isSpeaking ? 'animate-bounce' : ''}`} />
               <span>HABLAR</span>
@@ -336,7 +336,7 @@ export function StandardAACBoard({
       </div>
 
       {/* 2. PERSISTENT ESSENTIAL COURTESY & EMERGENCY BAR (Siempre visible en AAC) */}
-      <div className="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-2 sm:p-2.5 flex items-center gap-2 overflow-x-auto scrollbar-none">
+      <div className="quick-strip w-full rounded-xl p-2 sm:p-2.5 flex items-center gap-2 overflow-x-auto scrollbar-none">
         <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 px-1 flex items-center gap-1">
           <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
           Rápidos:
@@ -386,7 +386,7 @@ export function StandardAACBoard({
       </div>
 
       {/* 3. AMBIENT LISTENING BANNER (Qué está diciendo la persona que habla contigo) */}
-      <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl">
+      <div className="listening-panel w-full rounded-2xl p-3 sm:p-4">
         <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
             <button
@@ -486,12 +486,12 @@ export function StandardAACBoard({
       </div>
 
       {/* 4. DYNAMIC SMART AAC AI RESPONSES (Opciones contextuales inmediatas) */}
-      <div className="w-full">
+      <div className="smart-responses w-full">
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-indigo-400" />
             <h2 className="text-xs font-black uppercase tracking-wider text-indigo-300 m-0">
-              Respuestas Inteligentes en Vivo (Toca para hablar de inmediato)
+              Respuestas sugeridas
             </h2>
           </div>
           <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
@@ -547,9 +547,9 @@ export function StandardAACBoard({
       </div>
 
       {/* 5. TABLERO DE VOCABULARIO AAC COMPLETO (Sistema Fitzgerald Modificado) */}
-      <div className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl p-3 sm:p-4 shadow-2xl">
+      <div className="vocabulary-panel w-full rounded-2xl p-3 sm:p-4">
         {/* Category Navigation Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-slate-800 scrollbar-none">
+        <div className="category-tabs flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-slate-800 scrollbar-none">
           {AAC_CATEGORIES.map((cat) => (
             <button
               key={cat.id}
@@ -566,7 +566,7 @@ export function StandardAACBoard({
         </div>
 
         {/* Symbol Grid (AAC Tiles) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+        <div className="aac-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
           {AAC_VOCABULARY[activeCategory]?.map((tile, idx) => {
             const Icon = tile.icon;
             return (
@@ -574,7 +574,7 @@ export function StandardAACBoard({
                 key={idx}
                 onClick={() => handleAddWord(tile.text)}
                 onDoubleClick={() => handleInstantSpeakTile(tile.text)}
-                className={`group flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all cursor-pointer active:scale-95 shadow-md min-h-[90px] ${
+                className={`aac-tile group flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all cursor-pointer active:scale-95 min-h-[90px] ${
                   tile.color
                 } ${tile.colSpan ? tile.colSpan : ''}`}
                 title={`Toca para añadir "${tile.text}" • Doble toque para hablar ya`}

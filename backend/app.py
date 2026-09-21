@@ -1,5 +1,7 @@
 import os
 import io
+import asyncio
+import subprocess
 import tempfile
 import logging
 from typing import List, Optional, Dict, Any
@@ -10,11 +12,20 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-import edge_tts
 import torch
-import whisper
+
+try:
+    import edge_tts
+except ImportError:  # Optional when Vocalis runs in the Qwen runtime.
+    edge_tts = None
+
+try:
+    import whisper
+except ImportError:  # Browser recognition remains available without local Whisper.
+    whisper = None
 
 from backend.engine import get_smart_suggestions, OLLAMA_URL
+from backend.qwen_voice import qwen_voice
 
 logger = logging.getLogger("echo_flow_api")
 logging.basicConfig(level=logging.INFO)
@@ -29,12 +40,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_qwen_preload_task = None
+
+
+@app.on_event("startup")
+async def preload_qwen_voice():
+    """Move model/profile setup off the first press of the Speak button."""
+    global _qwen_preload_task
+    enabled = os.environ.get("QWEN_TTS_PRELOAD", "true").lower() in {"1", "true", "yes", "on"}
+    if not enabled or not qwen_voice.status().available:
+        return
+
+    async def load_in_background():
+        try:
+            await asyncio.to_thread(qwen_voice.load)
+            warmup = os.environ.get("QWEN_TTS_WARMUP", "true").lower() in {"1", "true", "yes", "on"}
+            if warmup:
+                await asyncio.to_thread(qwen_voice.synthesize, "Hola.", "Spanish")
+            status = qwen_voice.status()
+            logger.info("Qwen voice ready: model=%s attention=%s", status.model, status.attention)
+        except Exception:
+            logger.exception("Could not preload the Qwen voice; other TTS voices remain available")
+
+    _qwen_preload_task = asyncio.create_task(load_in_background())
+
 # Lazy-loaded Whisper model
 _whisper_model = None
 
 def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
+        if whisper is None:
+            raise RuntimeError("Local Whisper is not installed; use browser speech recognition")
         device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Loading Whisper tiny on {device}...")
         _whisper_model = whisper.load_model("tiny", device=device)
@@ -55,8 +92,10 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = "es-ES-AlvaroNeural"
     rate: Optional[str] = "+0%"
     pitch: Optional[str] = "+0Hz"
+    language: Optional[str] = "Spanish"
 
 CURATED_VOICES = [
+    {"id": "qwen-clone", "name": "Mi voz clonada (Qwen3-TTS)", "gender": "Custom", "lang": "es-ES"},
     {"id": "es-ES-AlvaroNeural", "name": "Álvaro (España, Natural)", "gender": "Male", "lang": "es-ES"},
     {"id": "es-ES-ElviraNeural", "name": "Elvira (España, Cálida)", "gender": "Female", "lang": "es-ES"},
     {"id": "es-MX-DaliaNeural", "name": "Dalia (México, Expresiva)", "gender": "Female", "lang": "es-MX"},
@@ -80,18 +119,68 @@ async def health():
     except Exception:
         pass
     
+    clone_status = qwen_voice.status()
     return {
         "status": "healthy",
         "cuda": cuda_available,
         "ollama": ollama_ok,
         "groq_ready": True,
         "whisper_ready": _whisper_model is not None,
-        "tts": "edge-tts ready"
+        "tts": "qwen-clone ready" if clone_status.available else "edge-tts ready",
+        "qwen_voice": clone_status.__dict__,
     }
 
 @app.get("/api/voices")
 async def list_voices():
     return CURATED_VOICES
+
+@app.post("/api/voice/clone")
+async def clone_voice(file: UploadFile = File(...)):
+    """Build a Qwen speaker profile from a short recording; no transcript required."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="La grabación está vacía")
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="La grabación no puede superar 20 MB")
+
+    input_suffix = os.path.splitext(file.filename or "voice.webm")[1] or ".webm"
+    input_path = None
+    wav_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=input_suffix) as uploaded:
+            uploaded.write(content)
+            input_path = uploaded.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as converted:
+            wav_path = converted.name
+
+        conversion = await asyncio.to_thread(
+            subprocess.run,
+            [
+                "ffmpeg", "-y", "-loglevel", "error", "-i", input_path,
+                "-ac", "1", "-ar", "24000", wav_path,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if conversion.returncode != 0:
+            raise ValueError(conversion.stderr.strip() or "Formato de audio no compatible")
+
+        await asyncio.to_thread(qwen_voice.clone_from_audio, wav_path)
+        return {
+            "status": "ready",
+            "message": "Voz clonada y lista para usar.",
+            "voice_id": "qwen-clone",
+        }
+    except Exception as exc:
+        logger.error(f"Voice cloning error: {exc}")
+        raise HTTPException(status_code=500, detail=f"No se pudo clonar la voz: {exc}")
+    finally:
+        for path in (input_path, wav_path):
+            if path:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
 
 @app.post("/api/suggest")
 async def suggest(req: SuggestRequest):
@@ -132,7 +221,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
 @app.post("/api/tts")
 async def generate_tts(req: TTSRequest):
-    """Streams synthesized MP3 audio from Edge-TTS."""
+    """Synthesizes speech with the saved Qwen clone or an Edge-TTS voice."""
     text = (req.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Text cannot be empty")
@@ -142,6 +231,20 @@ async def generate_tts(req: TTSRequest):
     pitch = req.pitch or "+0Hz"
 
     try:
+        if voice == "qwen-clone":
+            audio = await asyncio.to_thread(
+                qwen_voice.synthesize,
+                text,
+                req.language or "Spanish",
+            )
+            return StreamingResponse(
+                io.BytesIO(audio),
+                media_type="audio/wav",
+                headers={"Content-Disposition": "inline; filename=cloned-speech.wav"},
+            )
+
+        if edge_tts is None:
+            raise RuntimeError("Edge-TTS is not installed in this Python environment")
         comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
         
         async def audio_generator():

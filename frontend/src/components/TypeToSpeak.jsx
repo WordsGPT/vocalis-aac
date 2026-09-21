@@ -13,14 +13,14 @@ export function TypeToSpeak({ onSpeakText, _isSpeaking }) {
   };
 
   return (
-    <div className="w-full bg-slate-900/40 rounded-xl p-3 sm:p-4 border border-slate-800/80">
+    <div className="type-panel w-full rounded-xl p-3 sm:p-4">
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <div className="relative flex-1">
           <input
             type="text"
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
-            placeholder="Escribe cualquier frase personalizada para hablar en voz alta... (Pulsa Enter)"
+            placeholder="Escribe algo para decirlo en voz alta…"
             className="w-full bg-slate-950/80 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm border border-slate-700/80 focus:outline-none focus:border-blue-500 pr-9 transition-colors"
           />
           {customText && (
