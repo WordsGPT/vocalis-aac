@@ -9,7 +9,7 @@ export function useTTS(settings = {}) {
 
   const ttsMode = settings.ttsMode || 'browser'; // 'browser' | 'edge-tts'
   const browserVoiceURI = settings.browserVoiceURI || '';
-  const edgeVoiceId = settings.edgeVoiceId || 'en-US-GuyNeural';
+  const edgeVoiceId = settings.edgeVoiceId || 'es-ES-AlvaroNeural';
   const speechRate = settings.speechRate ?? 1.0; // 0.5 - 1.5
   const speechPitch = settings.speechPitch ?? 1.0; // 0.5 - 1.5
 
@@ -101,10 +101,13 @@ export function useTTS(settings = {}) {
       const selected = browserVoices.find((v) => v.voiceURI === browserVoiceURI);
       if (selected) utterance.voice = selected;
     } else {
-      // Pick good default English voice if available
-      const preferred = browserVoices.find((v) => v.lang.startsWith('en') && !v.name.includes('Google') || v.default);
+      // Pick Spanish voice by default if available
+      const preferred = browserVoices.find((v) => v.lang && v.lang.startsWith('es')) ||
+                        browserVoices.find((v) => v.default) ||
+                        browserVoices[0];
       if (preferred) utterance.voice = preferred;
     }
+    utterance.lang = utterance.voice?.lang || 'es-ES';
 
     utterance.onstart = () => {
       setIsSpeaking(true);

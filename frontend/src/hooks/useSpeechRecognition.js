@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { transcribeAudioBlob } from '../services/api';
 
-export function useSpeechRecognition({ onSpeechCompleted, autoTriggerDelay = 1500, sttMode = 'auto' }) {
+export function useSpeechRecognition({ onSpeechCompleted, autoTriggerDelay = 1500, sttMode = 'auto', sttLang = 'es-ES' }) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -84,7 +84,7 @@ export function useSpeechRecognition({ onSpeechCompleted, autoTriggerDelay = 150
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = sttLang || 'es-ES';
 
     recognition.onresult = (event) => {
       let interim = '';
@@ -132,7 +132,7 @@ export function useSpeechRecognition({ onSpeechCompleted, autoTriggerDelay = 150
     } catch (e) {
       console.error('Failed to start SpeechRecognition:', e);
     }
-  }, [isListening, resetSilenceTimer]);
+  }, [isListening, resetSilenceTimer, sttLang]);
 
   // 2. MediaRecorder + Whisper Fallback
   const startMediaRecorder = useCallback(async () => {

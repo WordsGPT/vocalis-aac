@@ -12,8 +12,8 @@ import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
 
 const DEFAULT_SETTINGS = {
-  ttsMode: 'browser', // 'browser' | 'edge-tts'
-  edgeVoiceId: 'en-US-GuyNeural',
+  ttsMode: 'edge-tts', // 'edge-tts' | 'browser'
+  edgeVoiceId: 'es-ES-AlvaroNeural',
   browserVoiceURI: '',
   speechRate: 1.0,
   speechPitch: 1.0,
@@ -22,13 +22,14 @@ const DEFAULT_SETTINGS = {
   tone: 'natural',
   geminiApiKey: '',
   sttMode: 'auto', // 'auto' | 'whisper'
+  sttLang: 'es-ES',
   autoTriggerDelay: 1500
 };
 
 const INITIAL_SUGGESTIONS = [
-  "Hello! How are you doing today?",
-  "Could you give me just one moment?",
-  "I'm listening, please go ahead."
+  "¡Hola! ¿Cómo estás hoy?",
+  "Un momento, por favor. Estoy usando mi comunicador.",
+  "Estoy totalmente de acuerdo, me parece bien."
 ];
 
 export function App() {
@@ -165,7 +166,8 @@ export function App() {
   const stt = useSpeechRecognition({
     onSpeechCompleted: handleSpeechCompleted,
     autoTriggerDelay: settings.autoTriggerDelay || 1500,
-    sttMode: settings.sttMode || 'auto'
+    sttMode: settings.sttMode || 'auto',
+    sttLang: settings.sttLang || 'es-ES'
   });
 
   // Action: User picks a response (or types) to speak aloud
@@ -177,7 +179,7 @@ export function App() {
   }, [tts, addToHistory, stt]);
 
   const handleTestVoice = () => {
-    tts.speak("Hello, this is a preview of my voice.");
+    tts.speak("Hola, esta es una prueba de mi voz en español.");
   };
 
   return (
@@ -219,10 +221,10 @@ export function App() {
             <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900/40 border border-blue-500/20 rounded-xl text-xs text-blue-300">
               <div className="flex items-center gap-2">
                 <span className="font-semibold bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">
-                  Quick Tip
+                  Consejo Rápido
                 </span>
                 <span>
-                  Tap any response or press keyboard keys <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[1]</span>, <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[2]</span>, or <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[3]</span> to speak instantly.
+                  Toca cualquier respuesta o presiona las teclas <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[1]</span>, <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[2]</span>, o <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[3]</span> para hablar de inmediato.
                 </span>
               </div>
               {stt.error && (

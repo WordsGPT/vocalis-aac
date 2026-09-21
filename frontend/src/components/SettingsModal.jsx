@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck } from 'lucide-react';
+import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
 
 export function SettingsModal({
   isOpen,
@@ -13,17 +13,18 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-left">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-blue-400" />
-            <h2 className="text-lg font-bold text-white m-0">Settings & Voice Profile</h2>
+            <h2 className="text-lg font-bold text-white m-0">Ajustes y Perfil de Voz</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Cerrar"
           >
             <X className="w-5 h-5" />
           </button>
@@ -36,15 +37,15 @@ export function SettingsModal({
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 m-0">
                 <Volume2 className="w-4 h-4 text-blue-400" />
-                Text-to-Speech (TTS) Voice
+                Voz del Sintetizador (TTS)
               </h3>
               <button
                 type="button"
                 onClick={onTestVoice}
-                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 cursor-pointer"
+                className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 cursor-pointer font-bold transition-colors"
               >
-                <Volume2 className="w-3 h-3" />
-                Test Voice
+                <Volume2 className="w-3.5 h-3.5" />
+                Probar Voz
               </button>
             </div>
 
@@ -52,39 +53,39 @@ export function SettingsModal({
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 type="button"
-                onClick={() => onUpdateSettings({ ttsMode: 'browser' })}
+                onClick={() => onUpdateSettings({ ttsMode: 'edge-tts' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                  settings.ttsMode === 'browser'
-                    ? 'bg-blue-600/20 border-blue-500 text-white font-medium'
+                  settings.ttsMode === 'edge-tts'
+                    ? 'bg-blue-600/20 border-blue-500 text-white font-medium ring-1 ring-blue-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Browser Native</div>
-                <div className="text-[11px] text-slate-400">Zero latency, system voices</div>
+                <div className="font-semibold text-xs text-blue-300 mb-0.5">Neural Edge-TTS (Recomendado)</div>
+                <div className="text-[11px] text-slate-400">Voces humanas de alta definición</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => onUpdateSettings({ ttsMode: 'edge-tts' })}
+                onClick={() => onUpdateSettings({ ttsMode: 'browser' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                  settings.ttsMode === 'edge-tts'
-                    ? 'bg-blue-600/20 border-blue-500 text-white font-medium'
+                  settings.ttsMode === 'browser'
+                    ? 'bg-blue-600/20 border-blue-500 text-white font-medium ring-1 ring-blue-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Neural Edge-TTS</div>
-                <div className="text-[11px] text-slate-400">Natural human studio voices</div>
+                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz Nativa del Sistema</div>
+                <div className="text-[11px] text-slate-400">Sin internet, voces del navegador</div>
               </button>
             </div>
 
             {/* Voice dropdown */}
             <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1">Select Voice:</label>
+              <label className="block text-xs text-slate-400 mb-1">Voz seleccionada:</label>
               {settings.ttsMode === 'edge-tts' ? (
                 <select
-                  value={settings.edgeVoiceId || 'en-US-GuyNeural'}
+                  value={settings.edgeVoiceId || 'es-ES-AlvaroNeural'}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
-                  className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
                 >
                   {edgeVoices.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -96,10 +97,10 @@ export function SettingsModal({
                 <select
                   value={settings.browserVoiceURI || ''}
                   onChange={(e) => onUpdateSettings({ browserVoiceURI: e.target.value })}
-                  className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
                 >
                   {browserVoices.length === 0 ? (
-                    <option value="">Default System Voice</option>
+                    <option value="">Voz por defecto del sistema</option>
                   ) : (
                     browserVoices.map((v) => (
                       <option key={v.voiceURI} value={v.voiceURI}>
@@ -115,14 +116,14 @@ export function SettingsModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Speed:</span>
-                  <span className="font-mono">{settings.speechRate || 1.0}x</span>
+                  <span>Velocidad de habla:</span>
+                  <span className="font-mono font-bold text-blue-300">{settings.speechRate || 1.0}x</span>
                 </div>
                 <input
                   type="range"
                   min="0.6"
                   max="1.5"
-                  step="0.1"
+                  step="0.05"
                   value={settings.speechRate || 1.0}
                   onChange={(e) => onUpdateSettings({ speechRate: parseFloat(e.target.value) })}
                   className="w-full accent-blue-500 cursor-pointer"
@@ -131,14 +132,14 @@ export function SettingsModal({
 
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Pitch:</span>
-                  <span className="font-mono">{settings.speechPitch || 1.0}x</span>
+                  <span>Tono de voz:</span>
+                  <span className="font-mono font-bold text-blue-300">{settings.speechPitch || 1.0}x</span>
                 </div>
                 <input
                   type="range"
                   min="0.7"
-                  max="1.4"
-                  step="0.1"
+                  max="1.3"
+                  step="0.05"
                   value={settings.speechPitch || 1.0}
                   onChange={(e) => onUpdateSettings({ speechPitch: parseFloat(e.target.value) })}
                   className="w-full accent-blue-500 cursor-pointer"
@@ -153,15 +154,15 @@ export function SettingsModal({
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-3 m-0">
               <Sparkles className="w-4 h-4 text-indigo-400" />
-              AI Suggestions Engine
+              Motor de Sugerencias Inteligentes IA
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {[
-                { id: 'groq', label: '⚡ Groq', desc: 'Ultra-fast ~100ms' },
+                { id: 'groq', label: '⚡ Groq', desc: 'Ultra-rápido (~100ms)' },
                 { id: 'ollama', label: 'Ollama', desc: 'Local Gemma 3' },
                 { id: 'gemini', label: 'Gemini', desc: 'Google Cloud' },
-                { id: 'heuristic', label: 'Heuristic', desc: 'Instant offline' }
+                { id: 'heuristic', label: 'Heurístico', desc: 'Instantáneo offline' }
               ].map((eng) => (
                 <button
                   key={eng.id}
@@ -169,7 +170,7 @@ export function SettingsModal({
                   onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
                   className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
                     settings.preferredEngine === eng.id
-                      ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10'
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 ring-1 ring-indigo-400'
                       : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                   }`}
                 >
@@ -181,17 +182,17 @@ export function SettingsModal({
 
             {/* Tone Selector */}
             <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1">Response Personality / Tone:</label>
+              <label className="block text-xs text-slate-400 mb-1">Personalidad y Tono de Respuesta:</label>
               <select
                 value={settings.tone || 'natural'}
                 onChange={(e) => onUpdateSettings({ tone: e.target.value })}
-                className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
               >
-                <option value="natural">Natural & Conversational</option>
-                <option value="casual">Casual & Relaxed</option>
-                <option value="professional">Polite & Professional</option>
-                <option value="concise">Concise & Direct (1-3 words)</option>
-                <option value="warm">Warm & Empathetic</option>
+                <option value="natural">Natural y Conversacional (Recomendado)</option>
+                <option value="casual">Informal, Cercano y Relajado</option>
+                <option value="professional">Educado, Formal y Claro</option>
+                <option value="concise">Conciso y Directo (3 a 6 palabras)</option>
+                <option value="warm">Cálido, Afectuoso y Empático</option>
               </select>
             </div>
 
@@ -200,11 +201,11 @@ export function SettingsModal({
               <label className="block text-xs text-slate-400 mb-1 flex items-center justify-between">
                 <span className="flex items-center gap-1">
                   <Key className="w-3 h-3 text-amber-400" />
-                  <span>Groq API Key (Ultra-Fast Inference):</span>
+                  <span>Clave de API de Groq (Inferencia Ultra-Rápida):</span>
                 </span>
                 {settings.groqApiKey && (
                   <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
-                    <ShieldCheck className="w-3 h-3" /> Active
+                    <ShieldCheck className="w-3 h-3" /> Activa
                   </span>
                 )}
               </label>
@@ -221,7 +222,7 @@ export function SettingsModal({
             <div>
               <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
                 <Key className="w-3 h-3 text-slate-500" />
-                <span>Optional Gemini API Key (for cloud models):</span>
+                <span>Clave opcional de Google Gemini:</span>
               </label>
               <input
                 type="password"
@@ -231,7 +232,7 @@ export function SettingsModal({
                 className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
               />
               <p className="text-[11px] text-slate-500 mt-1 mb-0">
-                Key is stored only in your local browser and used for smart cloud responses.
+                Las claves se guardan de forma privada en tu navegador y en tu archivo local .env.
               </p>
             </div>
           </div>
@@ -242,8 +243,26 @@ export function SettingsModal({
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-3 m-0">
               <Mic className="w-4 h-4 text-emerald-400" />
-              Speech-to-Text Listening
+              Reconocimiento de Voz del Interlocutor (STT)
             </h3>
+
+            {/* Language Selector */}
+            <div className="mb-3">
+              <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-blue-400" />
+                <span>Idioma de Escucha:</span>
+              </label>
+              <select
+                value={settings.sttLang || 'es-ES'}
+                onChange={(e) => onUpdateSettings({ sttLang: e.target.value })}
+                className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 font-medium"
+              >
+                <option value="es-ES">Español (España - es-ES)</option>
+                <option value="es-MX">Español (México - es-MX)</option>
+                <option value="es-US">Español (EE. UU. - es-US)</option>
+                <option value="en-US">English (United States - en-US)</option>
+              </select>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
@@ -251,12 +270,12 @@ export function SettingsModal({
                 onClick={() => onUpdateSettings({ sttMode: 'auto' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.sttMode === 'auto'
-                    ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium'
+                    ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Auto STT</div>
-                <div className="text-[11px] text-slate-400">Web Speech API + Whisper</div>
+                <div className="font-semibold text-xs text-emerald-300 mb-0.5">STT Automático (Híbrido)</div>
+                <div className="text-[11px] text-slate-400">Web Speech API nativo + Whisper</div>
               </button>
 
               <button
@@ -264,19 +283,19 @@ export function SettingsModal({
                 onClick={() => onUpdateSettings({ sttMode: 'whisper' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.sttMode === 'whisper'
-                    ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium'
+                    ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Whisper GPU Only</div>
-                <div className="text-[11px] text-slate-400">High accuracy audio upload</div>
+                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Whisper GPU Local</div>
+                <div className="text-[11px] text-slate-400">Alta precisión por audio local</div>
               </button>
             </div>
 
             <div>
               <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>Silence trigger delay (before generating suggestions):</span>
-                <span className="font-mono">{(settings.autoTriggerDelay || 1500) / 1000}s</span>
+                <span>Pausa de silencio para sugerir respuestas:</span>
+                <span className="font-mono font-bold text-emerald-300">{(settings.autoTriggerDelay || 1500) / 1000}s</span>
               </div>
               <input
                 type="range"
@@ -296,9 +315,9 @@ export function SettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs cursor-pointer shadow-md transition-colors"
+            className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-md transition-colors"
           >
-            Done
+            Guardar y Cerrar
           </button>
         </div>
       </div>

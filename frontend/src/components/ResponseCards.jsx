@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, Edit3, Check, RefreshCw, ThumbsUp, HelpCircle, XCircle, Sparkles, Send } from 'lucide-react';
+import { Volume2, Edit3, RefreshCw, ThumbsUp, HelpCircle, XCircle, Sparkles } from 'lucide-react';
 
 export function ResponseCards({
   suggestions = [],
@@ -54,7 +54,7 @@ export function ResponseCards({
 
   const CARD_STYLES = [
     {
-      role: 'Affirmative / Agree',
+      role: 'Afirmativo / Aceptar',
       icon: ThumbsUp,
       accent: 'emerald',
       bgClass: 'bg-emerald-950/20 hover:bg-emerald-950/40 border-emerald-500/30 hover:border-emerald-400/60',
@@ -63,7 +63,7 @@ export function ResponseCards({
       speakingBorder: 'border-emerald-400 ring-2 ring-emerald-400/50'
     },
     {
-      role: 'Inquire / Alternative',
+      role: 'Preguntar / Alternativa',
       icon: HelpCircle,
       accent: 'sky',
       bgClass: 'bg-sky-950/20 hover:bg-sky-950/40 border-sky-500/30 hover:border-sky-400/60',
@@ -72,7 +72,7 @@ export function ResponseCards({
       speakingBorder: 'border-sky-400 ring-2 ring-sky-400/50'
     },
     {
-      role: 'Decline / Boundary',
+      role: 'Declinar / Límite',
       icon: XCircle,
       accent: 'rose',
       bgClass: 'bg-rose-950/20 hover:bg-rose-950/40 border-rose-500/30 hover:border-rose-400/60',
@@ -89,7 +89,7 @@ export function ResponseCards({
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-blue-400" />
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300 m-0">
-            Suggested Responses <span className="text-xs text-slate-500 font-normal lowercase">(Click or press 1, 2, 3 to speak)</span>
+            Respuestas Inteligentes Sugeridas <span className="text-xs text-slate-500 font-normal lowercase">(Haz clic o pulsa 1, 2, 3 para hablar)</span>
           </h2>
         </div>
 
@@ -100,7 +100,7 @@ export function ResponseCards({
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60"
           >
             <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Regenerate</span>
+            <span>Regenerar</span>
           </button>
         )}
       </div>
@@ -127,7 +127,7 @@ export function ResponseCards({
           ))
         ) : suggestions.length === 0 ? (
           <div className="col-span-3 py-8 text-center text-slate-500 bg-slate-900/30 rounded-2xl border border-dashed border-slate-800">
-            <p className="text-sm">No suggestions yet. Speak into the mic or select a demo prompt to generate 3 smart replies.</p>
+            <p className="text-sm">Aún no hay sugerencias. Habla al micrófono o elige un ejemplo para generar 3 respuestas inteligentes.</p>
           </div>
         ) : (
           suggestions.map((text, idx) => {
@@ -160,7 +160,7 @@ export function ResponseCards({
                   {!isEditing && (
                     <button
                       onClick={(e) => handleStartEdit(idx, text, e)}
-                      title="Edit response before speaking"
+                      title="Editar respuesta antes de hablar"
                       className="opacity-60 group-hover:opacity-100 p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-opacity cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
@@ -183,14 +183,14 @@ export function ResponseCards({
                         onClick={() => setEditingIndex(null)}
                         className="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer"
                       >
-                        Cancel
+                        Cancelar
                       </button>
                       <button
                         onClick={handleSaveAndSpeak}
                         className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium flex items-center gap-1 cursor-pointer"
                       >
                         <Volume2 className="w-3 h-3" />
-                        Speak Now
+                        Hablar Ahora
                       </button>
                     </div>
                   </div>
@@ -207,17 +207,17 @@ export function ResponseCards({
                       {isCardSpeaking ? (
                         <span className="text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
                           <Volume2 className="w-3.5 h-3.5" />
-                          Speaking aloud...
+                          Hablando en voz alta...
                         </span>
                       ) : (
                         <span className="group-hover:text-slate-200 transition-colors flex items-center gap-1">
                           <Volume2 className="w-3.5 h-3.5" />
-                          Tap to speak
+                          Toca para hablar
                         </span>
                       )}
                     </span>
                     <span className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">
-                      Press [{idx + 1}]
+                      Pulsa [{idx + 1}]
                     </span>
                   </div>
                 )}

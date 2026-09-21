@@ -1,14 +1,14 @@
 import React from 'react';
-import { Volume2, Mic, Settings, Radio, Sparkles, VolumeX, LayoutGrid, MessageSquare } from 'lucide-react';
+import { Settings, Radio, Sparkles, VolumeX, LayoutGrid, MessageSquare } from 'lucide-react';
 
 export function Navbar({ 
   isListening, 
   isSpeaking, 
-  ttsMode, 
+  _ttsMode, 
   aiEngine, 
   onOpenSettings,
   onStopSpeech,
-  appView = 'flow',
+  appView = 'aac-board',
   onToggleAppView
 }) {
   return (
@@ -23,30 +23,17 @@ export function Navbar({
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white m-0">Vocalis AAC</h1>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
-                Speech Assistant
+                Comunicador Aumentativo
               </span>
             </div>
           </div>
         </div>
 
-        {/* View Mode Switcher (Flow vs AAC Board) */}
+        {/* View Mode Switcher (Tablero AAC vs Flujo) */}
         <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800">
           <button
-            onClick={() => onToggleAppView('flow')}
-            title="Switch to Conversational Flow view"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              appView === 'flow'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Flow</span>
-          </button>
-
-          <button
             onClick={() => onToggleAppView('aac-board')}
-            title="Switch to Standard AAC Symbol Board view"
+            title="Vista de Tablero de Comunicación Aumentativa (AAC)"
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
               appView === 'aac-board'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
@@ -54,7 +41,20 @@ export function Navbar({
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>AAC Board</span>
+            <span>Tablero AAC</span>
+          </button>
+
+          <button
+            onClick={() => onToggleAppView('flow')}
+            title="Vista de Flujo de Diálogo Continuo"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              appView === 'flow'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Flujo Conversacional</span>
           </button>
         </div>
 
@@ -64,11 +64,11 @@ export function Navbar({
           {isSpeaking && (
             <button
               onClick={onStopSpeech}
-              title="Click to stop speaking"
+              title="Haz clic para detener la voz"
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-500/40 text-xs font-semibold animate-pulse hover:bg-red-500/30 transition-colors cursor-pointer"
             >
               <VolumeX className="w-3.5 h-3.5" />
-              <span>Speaking... (Stop)</span>
+              <span>Hablando... (Parar)</span>
             </button>
           )}
 
@@ -79,23 +79,23 @@ export function Navbar({
               : 'bg-slate-800/80 text-slate-400 border-slate-700'
           }`}>
             <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
-            <span className="hidden sm:inline">{isListening ? 'Listening' : 'Mic Off'}</span>
+            <span className="hidden sm:inline">{isListening ? 'Escuchando' : 'Mic Silenciado'}</span>
           </div>
 
           {/* AI Engine Badge */}
           <div className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs font-medium">
             <Sparkles className="w-3 h-3 text-indigo-400" />
-            <span className="capitalize">{aiEngine || 'Ollama'}</span>
+            <span className="capitalize">{aiEngine || 'Groq'}</span>
           </div>
 
           {/* Settings Button */}
           <button
             onClick={onOpenSettings}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium"
-            title="Settings"
+            title="Ajustes y Perfil de Voz"
           >
             <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Settings</span>
+            <span className="hidden sm:inline">Ajustes</span>
           </button>
         </div>
       </div>

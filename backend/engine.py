@@ -16,69 +16,77 @@ DEFAULT_GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 DEFAULT_GROQ_MODEL = "qwen/qwen3.8-27b"
 
 HEURISTIC_TEMPLATES = [
-    # Question patterns:
+    # Question patterns in Spanish (and English):
     {
-        "patterns": [r"\bhow are you\b", r"\bhow'?s it going\b", r"\bhow do you feel\b"],
+        "patterns": [r"\bc[oó]mo est[aá]s\b", r"\bc[oó]mo va\b", r"\bc[oó]mo te sientes\b", r"\bhow are you\b", r"\bhow'?s it going\b"],
         "responses": [
-            "I'm doing well, thanks for asking! How are you?",
-            "Can't complain! Just taking things easy today.",
-            "A bit tired today, but hanging in there."
+            "¡Estoy bien, gracias por preguntar! ¿Y tú qué tal?",
+            "No me quejo, llevando el día con calma.",
+            "Un poco cansado hoy, pero todo bien."
         ]
     },
     {
-        "patterns": [r"\bwhat do you think\b", r"\bany thoughts\b", r"\bopinion\b"],
+        "patterns": [r"\bqu[eé] opinas\b", r"\bqu[eé] piensas\b", r"\btu opini[oó]n\b", r"\bwhat do you think\b"],
         "responses": [
-            "I think that sounds like a great idea!",
-            "I'm not entirely sure yet, let me think about it.",
-            "I have some reservations, could we discuss alternatives?"
+            "¡Me parece una idea estupenda, adelante!",
+            "Aún no estoy seguro, déjame pensarlo un momento.",
+            "Tengo algunas dudas, ¿podríamos buscar otra opción?"
         ]
     },
     {
-        "patterns": [r"\bcoffee\b|\btea\b|\bdrink\b|\bbeverage\b|\blunch\b|\bfood\b|\beat\b"],
+        "patterns": [r"\bcaf[eé]\b|\bt[eé]\b|\bbeber\b|\bbebida\b|\balmorzar\b|\bcomer\b|\bcomida\b|\bagua\b|\bcoffee\b|\bfood\b"],
         "responses": [
-            "That sounds delicious, count me in!",
-            "I'll just take some water, thank you.",
-            "I'm not hungry right now, but you go ahead!"
+            "¡Suena delicioso, cuenta conmigo!",
+            "Solo un poco de agua para mí, muchas gracias.",
+            "Ahora mismo no tengo apetito, pero adelante tú."
         ]
     },
     {
-        "patterns": [r"\bfree\b|\bavailable\b|\btime\b|\bjoin\b|\bmeet\b"],
+        "patterns": [r"\blibre\b|\bdisponible\b|\btiempo\b|\bunirte\b|\bquedar\b|\bvamos\b|\bfree\b|\bmeet\b"],
         "responses": [
-            "Yes, I'm completely free! Let's do it.",
-            "What time were you thinking?",
-            "Sorry, I'm tied up with something right now."
+            "¡Sí, estoy libre! Me parece perfecto.",
+            "¿A qué hora tenías pensado?",
+            "Lo siento, ahora mismo estoy ocupado con algo."
         ]
     },
     {
-        "patterns": [r"\bhelp\b|\bneed a hand\b|\bassist\b"],
+        "patterns": [r"\bayuda\b|\bechar una mano\b|\bnecesitas algo\b|\bhelp\b|\bassist\b"],
         "responses": [
-            "Yes please, I would really appreciate some help!",
-            "I might need a moment, let me see first.",
-            "I'm all good on my own, thank you though!"
+            "¡Sí por favor, te agradecería mucho la ayuda!",
+            "Dame un momento y te voy diciendo.",
+            "Estoy bien por ahora, ¡muchas gracias de todos modos!"
         ]
     },
     {
-        "patterns": [r"\bwhere\b|\blocation\b|\bplace\b"],
+        "patterns": [r"\bd[oó]nde\b|\blugar\b|\bsitio\b|\bwhere\b"],
         "responses": [
-            "Anywhere you prefer works for me!",
-            "Could we pick somewhere quiet?",
-            "I'd rather stay here if that's okay."
+            "Cualquier sitio que prefieras me viene bien.",
+            "¿Podríamos buscar un lugar tranquilo?",
+            "Prefiero quedarme por aquí si no te importa."
         ]
     },
     {
-        "patterns": [r"\bthanks\b|\bthank you\b|\bappreciate\b"],
+        "patterns": [r"\bgracias\b|\bmuchas gracias\b|\bagradezco\b|\bthanks\b|\bthank you\b"],
         "responses": [
-            "You're very welcome!",
-            "Happy to help anytime.",
-            "No problem at all!"
+            "¡De nada, no hay de qué!",
+            "Un placer ayudarte siempre.",
+            "¡Para eso estamos!"
+        ]
+    },
+    {
+        "patterns": [r"\bhola\b|\bbuenos d[ií]as\b|\bbuenas tardes\b|\bhello\b|\bhi\b"],
+        "responses": [
+            "¡Hola! Qué alegría verte, ¿cómo va todo?",
+            "¡Hola! Dame un segundo que estoy usando mi comunicador.",
+            "¡Buenas! Todo bien por aquí, cuéntame."
         ]
     }
 ]
 
 DEFAULT_FALLBACK = [
-    "Yes, absolutely, I agree!",
-    "Could you tell me a little more?",
-    "I'm not sure about that, let me think."
+    "¡Sí, totalmente de acuerdo!",
+    "¿Podrías contarme un poco más sobre eso?",
+    "No estoy muy seguro de eso, déjame pensarlo."
 ]
 
 def generate_heuristic_responses(text: str) -> List[str]:
@@ -86,9 +94,9 @@ def generate_heuristic_responses(text: str) -> List[str]:
     lower = text.lower().strip()
     if not lower:
         return [
-            "Hello! How are you?",
-            "Nice to see you!",
-            "One moment, I'm typing."
+            "¡Hola! ¿Cómo estás?",
+            "¡Qué alegría verte!",
+            "Un momento, por favor, estoy escribiendo."
         ]
     
     for entry in HEURISTIC_TEMPLATES:
@@ -96,18 +104,18 @@ def generate_heuristic_responses(text: str) -> List[str]:
             if re.search(pat, lower):
                 return entry["responses"]
     
-    # Generic question vs statement
-    if lower.endswith("?"):
+    # Generic question vs statement in Spanish
+    if lower.endswith("?") or lower.startswith("¿"):
         return [
-            "Yes, definitely!",
-            "Maybe, let's see how it goes.",
-            "Probably not right now."
+            "¡Sí, por supuesto!",
+            "Tal vez, vamos a ver cómo se da.",
+            "Creo que ahora mismo no."
         ]
     else:
         return [
-            "Sounds good to me!",
-            "That's interesting, tell me more.",
-            "I understand, thanks for letting me know."
+            "¡Me parece estupendo!",
+            "Qué interesante, cuéntame más.",
+            "Entendido, muchas gracias por avisarme."
         ]
 
 RESPONSE_SCHEMA = {
@@ -214,28 +222,28 @@ def generate_responses_ollama(
 ) -> Optional[List[str]]:
     """Calls local Ollama server with structured JSON schema for 3 complete AAC responses."""
     tone_instruction = {
-        "casual": "Keep answers relaxed, casual, and friendly.",
-        "professional": "Keep answers polite, professional, and clear.",
-        "concise": "Keep answers short (3-6 words).",
-        "warm": "Keep answers warm, enthusiastic, and empathetic."
-    }.get(tone, "Keep answers natural, conversational, and direct.")
+        "casual": "Respuestas relajadas, informales y muy amigables.",
+        "professional": "Respuestas educadas, formales y claras.",
+        "concise": "Respuestas cortas y directas (3 a 6 palabras).",
+        "warm": "Respuestas cálidas, entusiastas y empáticas."
+    }.get(tone, "Respuestas naturales, conversacionales y directas.")
 
-    prompt = f"""You are an AAC speech assistant for a non-verbal person communicating in live conversation.
-Someone just said to them:
+    prompt = f"""Eres un asistente comunicador aumentativo (AAC) para una persona que no puede hablar y se comunica en una conversación en vivo.
+Alguien le acaba de decir:
 "{partner_text}"
 
-Generate 3 natural, complete, first-person spoken responses they can choose to speak aloud:
-1. affirmative: friendly agreement, acceptance, or enthusiasm
-2. thoughtful: inquiring question, neutral remark, or alternative idea
-3. decline: polite decline, boundary, or opposite preference
+Genera exactamente 3 respuestas habladas naturales, completas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta:
+1. affirmative: acuerdo amigable, aceptación o entusiasmo
+2. thoughtful: pregunta aclaratoria, comentario reflexivo o idea alternativa
+3. decline: rechazo cortés, poner un límite o preferencia contraria
 
-Tone: {tone_instruction}
-Rules:
-- Speak directly in the first person ("I", "me", "we").
-- Each response MUST be a complete, natural sentence (4 to 12 words).
-- Never output incomplete fragments (do NOT output "I" or "I want").
-- Do NOT use brackets or placeholders like [insert topic].
-- Ready to be spoken out loud immediately via text-to-speech."""
+Tono: {tone_instruction}
+Reglas:
+- Habla directamente en primera persona ("yo", "me", "nosotros").
+- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 4 a 12 palabras).
+- No generes fragmentos incompletos (NUNCA generes solo "Yo" o "Yo quiero").
+- NUNCA uses corchetes ni marcadores como [tema].
+- Listas para ser reproducidas por un sintetizador de voz (TTS) de inmediato."""
 
     try:
         resp = requests.post(
@@ -274,16 +282,16 @@ def generate_responses_gemini(
         return None
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    prompt = f"""You are assisting a non-verbal person who uses an AAC speech device in real-time conversation.
-Someone just said to them:
+    prompt = f"""Eres un comunicador aumentativo (AAC) para una persona que no puede hablar y está conversando en vivo.
+Le acaban de decir:
 "{partner_text}"
 
-Suggest exactly 3 first-person responses they can choose between to speak aloud:
-1. (Positive/Agree)
-2. (Inquire/Neutral/Alternative)
-3. (Polite decline/Disagree)
+Sugiere exactamente 3 respuestas habladas en primera persona SIEMPRE EN ESPAÑOL:
+1. (Positiva / De acuerdo)
+2. (Pregunta / Alternativa / Neutral)
+3. (Declinar cortésmente / Desacuerdo)
 
-Respond ONLY with a valid JSON array of 3 strings. Example: ["Yes, let's do it!", "Could we do it tomorrow?", "I can't make it, sorry."]"""
+Responde ÚNICAMENTE con un array JSON válido de 3 cadenas de texto en español. Ejemplo: ["¡Sí, me parece genial!", "¿Podríamos hacerlo mañana?", "No podré en esta ocasión, lo siento."]"""
 
     try:
         payload = {
@@ -318,29 +326,30 @@ def generate_responses_groq(
         return None
 
     tone_instruction = {
-        "casual": "Keep answers relaxed, casual, and friendly.",
-        "professional": "Keep answers polite, professional, and clear.",
-        "concise": "Keep answers short (3-6 words).",
-        "warm": "Keep answers warm, enthusiastic, and empathetic."
-    }.get(tone, "Keep answers natural, conversational, and direct.")
+        "casual": "Respuestas relajadas, informales y amigables.",
+        "professional": "Respuestas educadas, formales y claras.",
+        "concise": "Respuestas muy breves (3 a 6 palabras).",
+        "warm": "Respuestas cálidas, empáticas y afectuosas."
+    }.get(tone, "Respuestas naturales, conversacionales y directas.")
 
-    system_prompt = f"""You are an assistive voice communicator for a non-verbal person in a live ongoing conversation.
-In the message history:
-- 'user' represents what the conversational partner spoke.
-- 'assistant' represents what you (the non-verbal person) previously chose to speak out loud.
+    system_prompt = f"""Eres un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
+En el historial de mensajes:
+- 'user' representa lo que dijo el interlocutor en voz alta.
+- 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
 
-The partner just spoke the latest message.
-Based on the full conversation thread and where you are right now, suggest exactly 3 natural, complete, first-person spoken responses in JSON format:
+El interlocutor acaba de decir el último mensaje.
+Basándote en el tema actual y contexto, sugiere exactamente 3 respuestas habladas naturales, completas, en primera persona y SIEMPRE EN ESPAÑOL en formato JSON:
 {{
-  "affirmative": "positive/accepting response fitting this exact moment (4-12 words)",
-  "thoughtful": "inquiring question or alternative fitting this exact moment (4-12 words)",
-  "decline": "polite decline or boundary fitting this exact moment (4-12 words)"
+  "affirmative": "respuesta positiva o de acuerdo encajando en este momento exacto (4 a 12 palabras en español)",
+  "thoughtful": "pregunta aclaratoria o alternativa encajando en este momento (4 a 12 palabras en español)",
+  "decline": "rechazo educado o límite encajando en este momento (4 a 12 palabras en español)"
 }}
-Tone: {tone_instruction}
-Rules:
-- Speak directly in the first person ("I", "me", "we").
-- Context-aware: Answer the current topic knowing what was already discussed, never repeat previous answers.
-- Complete, natural sentences ready to be spoken aloud via TTS."""
+Tono: {tone_instruction}
+Reglas estrictas:
+- Las 3 respuestas DEBEN estar en ESPAÑOL.
+- Habla en primera persona ("yo", "me", "nosotros").
+- Respuestas naturales y listas para ser reproducidas por voz artificial (TTS).
+- Frases completas, no fragmentos."""
 
     messages = [{"role": "system", "content": system_prompt}]
 
@@ -421,9 +430,9 @@ def get_smart_suggestions(
     if not partner_text:
         return {
             "suggestions": [
-                "Hello, how can I help you?",
-                "Give me just a second.",
-                "Nice to see you!"
+                "¡Hola! ¿Cómo estás hoy?",
+                "Un momento, por favor, estoy usando mi comunicador.",
+                "¡Qué alegría verte!"
             ],
             "engine": "preset"
         }

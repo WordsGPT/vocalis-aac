@@ -51,21 +51,21 @@ class SuggestRequest(BaseModel):
 
 class TTSRequest(BaseModel):
     text: str
-    voice: Optional[str] = "en-US-GuyNeural"
+    voice: Optional[str] = "es-ES-AlvaroNeural"
     rate: Optional[str] = "+0%"
     pitch: Optional[str] = "+0Hz"
 
 CURATED_VOICES = [
+    {"id": "es-ES-AlvaroNeural", "name": "Álvaro (España, Natural)", "gender": "Male", "lang": "es-ES"},
+    {"id": "es-ES-ElviraNeural", "name": "Elvira (España, Cálida)", "gender": "Female", "lang": "es-ES"},
+    {"id": "es-MX-DaliaNeural", "name": "Dalia (México, Expresiva)", "gender": "Female", "lang": "es-MX"},
+    {"id": "es-MX-JorgeNeural", "name": "Jorge (México, Amigable)", "gender": "Male", "lang": "es-MX"},
+    {"id": "es-US-PalomaNeural", "name": "Paloma (EE.UU., Clara)", "gender": "Female", "lang": "es-US"},
+    {"id": "es-US-AlonsoNeural", "name": "Alonso (EE.UU., Cercano)", "gender": "Male", "lang": "es-US"},
     {"id": "en-US-GuyNeural", "name": "Guy (US Male, Natural)", "gender": "Male", "lang": "en-US"},
     {"id": "en-US-JennyNeural", "name": "Jenny (US Female, Clear)", "gender": "Female", "lang": "en-US"},
     {"id": "en-US-AriaNeural", "name": "Aria (US Female, Expressive)", "gender": "Female", "lang": "en-US"},
-    {"id": "en-US-ChristopherNeural", "name": "Christopher (US Male, Warm)", "gender": "Male", "lang": "en-US"},
-    {"id": "en-GB-RyanNeural", "name": "Ryan (UK Male, Calm)", "gender": "Male", "lang": "en-GB"},
-    {"id": "en-GB-SoniaNeural", "name": "Sonia (UK Female, Friendly)", "gender": "Female", "lang": "en-GB"},
-    {"id": "en-AU-NatashaNeural", "name": "Natasha (AU Female)", "gender": "Female", "lang": "en-AU"},
-    {"id": "es-ES-AlvaroNeural", "name": "Álvaro (Spanish Male)", "gender": "Male", "lang": "es-ES"},
-    {"id": "fr-FR-HenriNeural", "name": "Henri (French Male)", "gender": "Male", "lang": "fr-FR"},
-    {"id": "de-DE-ConradNeural", "name": "Conrad (German Male)", "gender": "Male", "lang": "de-DE"}
+    {"id": "fr-FR-HenriNeural", "name": "Henri (French Male)", "gender": "Male", "lang": "fr-FR"}
 ]
 
 @app.get("/api/health")
