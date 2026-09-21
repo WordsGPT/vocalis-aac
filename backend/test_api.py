@@ -30,10 +30,18 @@ class TestBackendAPI(unittest.TestCase):
         data = response.json()
         self.assertIn("suggestions", data)
         self.assertIn("engine", data)
-        self.assertEqual(len(data["suggestions"]), 3)
+        self.assertEqual(len(data["suggestions"]), 6)
         for s in data["suggestions"]:
             self.assertIsInstance(s, str)
             self.assertTrue(len(s) > 0)
+
+        # Test with custom count
+        res4 = self.client.post("/api/suggest", json={
+            "text": "¿Cómo estás?",
+            "count": 4
+        })
+        self.assertEqual(res4.status_code, 200)
+        self.assertEqual(len(res4.json()["suggestions"]), 4)
 
     def test_tts(self):
         response = self.client.post("/api/tts", json={

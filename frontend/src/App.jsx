@@ -23,13 +23,17 @@ const DEFAULT_SETTINGS = {
   geminiApiKey: '',
   sttMode: 'auto', // 'auto' | 'whisper'
   sttLang: 'es-ES',
+  suggestionCount: 6,
   autoTriggerDelay: 1500
 };
 
 const INITIAL_SUGGESTIONS = [
   "¡Hola! ¿Cómo estás hoy?",
-  "Un momento, por favor. Estoy usando mi comunicador.",
-  "Estoy totalmente de acuerdo, me parece bien."
+  "Estoy totalmente de acuerdo, me parece bien.",
+  "¿Podrías contarme un poco más sobre eso?",
+  "¿Y si probamos otra alternativa diferente?",
+  "No puedo en esta ocasión, muchas gracias.",
+  "Dame un momento para pensarlo con calma."
 ];
 
 export function App() {
@@ -139,6 +143,7 @@ export function App() {
         text: heardSpeech,
         history: contextHistory,
         tone: settings.tone,
+        count: settings.suggestionCount || 6,
         geminiApiKey: settings.geminiApiKey,
         groqApiKey: settings.groqApiKey,
         preferredEngine: settings.preferredEngine
@@ -153,7 +158,7 @@ export function App() {
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [history, settings.tone, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
+  }, [history, settings.tone, settings.suggestionCount, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
 
   // Handle incoming speech recognized from partner
   const handleSpeechCompleted = useCallback((heardText) => {
@@ -224,7 +229,7 @@ export function App() {
                   Consejo Rápido
                 </span>
                 <span>
-                  Toca cualquier respuesta o presiona las teclas <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[1]</span>, <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[2]</span>, o <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[3]</span> para hablar de inmediato.
+                  Toca cualquier respuesta o presiona las teclas <span className="font-mono font-bold bg-slate-800 px-1 py-0.5 rounded text-white">[1] al [6]</span> para hablar de inmediato.
                 </span>
               </div>
               {stt.error && (

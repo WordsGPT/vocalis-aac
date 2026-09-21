@@ -45,6 +45,7 @@ class SuggestRequest(BaseModel):
     text: str
     history: Optional[List[Dict[str, str]]] = None
     tone: Optional[str] = "natural"
+    count: Optional[int] = 6
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
     preferred_engine: Optional[str] = "groq"
@@ -98,6 +99,7 @@ async def suggest(req: SuggestRequest):
         partner_text=req.text,
         history=req.history,
         tone=req.tone or "natural",
+        count=req.count or 6,
         gemini_api_key=req.gemini_api_key,
         groq_api_key=req.groq_api_key,
         preferred_engine=req.preferred_engine or "groq"

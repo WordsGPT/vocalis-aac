@@ -196,6 +196,21 @@ export function SettingsModal({
               </select>
             </div>
 
+            {/* Suggestions Count */}
+            <div className="mb-3">
+              <label className="block text-xs text-slate-400 mb-1">Cantidad de opciones sugeridas:</label>
+              <select
+                value={settings.suggestionCount || 6}
+                onChange={(e) => onUpdateSettings({ suggestionCount: parseInt(e.target.value, 10) })}
+                className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500 font-medium"
+              >
+                <option value={3}>3 opciones (Compacto: Sí, Pregunta, No)</option>
+                <option value={4}>4 opciones</option>
+                <option value={5}>5 opciones</option>
+                <option value={6}>6 opciones (Recomendado: 6 posturas conversacionales completas)</option>
+              </select>
+            </div>
+
             {/* Groq API Key */}
             <div className="mb-3">
               <label className="block text-xs text-slate-400 mb-1 flex items-center justify-between">

@@ -146,24 +146,19 @@ export function StandardAACBoard({
     setSentenceWords([phrase]);
   }, [onSelectAndSpeak]);
 
-  // Keyboard shortcut listener for options [1], [2], [3]
+  // Keyboard shortcut listener for options [1] through [6]
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-      if (e.key === '1' && suggestions[0]) {
+      const num = parseInt(e.key, 10);
+      if (!isNaN(num) && num >= 1 && num <= suggestions.length && suggestions[num - 1]) {
         e.preventDefault();
-        handleInstantSpeakTile(suggestions[0]);
-      } else if (e.key === '2' && suggestions[1]) {
-        e.preventDefault();
-        handleInstantSpeakTile(suggestions[1]);
-      } else if (e.key === '3' && suggestions[2]) {
-        e.preventDefault();
-        handleInstantSpeakTile(suggestions[2]);
+        handleInstantSpeakTile(suggestions[num - 1]);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [suggestions, onSelectAndSpeak, handleInstantSpeakTile]);
+  }, [suggestions, handleInstantSpeakTile]);
 
   // Add word or symbol to sentence builder bar
   const handleAddWord = (word) => {
@@ -221,20 +216,44 @@ export function StandardAACBoard({
       tag: 'Acuerdo'
     },
     { 
-      label: 'Opción 2: Preguntar / Alternativa', 
+      label: 'Opción 2: De acuerdo / Neutral', 
       hotkey: '2', 
+      border: 'border-teal-500/60 bg-teal-950/40 text-teal-50 hover:bg-teal-950/60 hover:border-teal-400', 
+      icon: Check, 
+      badge: 'bg-teal-400 text-slate-950',
+      tag: 'Aceptación'
+    },
+    { 
+      label: 'Opción 3: Preguntar / Consulta', 
+      hotkey: '3', 
       border: 'border-sky-500/60 bg-sky-950/40 text-sky-50 hover:bg-sky-950/60 hover:border-sky-400', 
       icon: HelpCircle, 
       badge: 'bg-sky-400 text-slate-950',
-      tag: 'Consulta'
+      tag: 'Pregunta'
     },
     { 
-      label: 'Opción 3: Declinar / Límite', 
-      hotkey: '3', 
+      label: 'Opción 4: Alternativa / Otra idea', 
+      hotkey: '4', 
+      border: 'border-indigo-500/60 bg-indigo-950/40 text-indigo-50 hover:bg-indigo-950/60 hover:border-indigo-400', 
+      icon: Sparkles, 
+      badge: 'bg-indigo-400 text-slate-950',
+      tag: 'Alternativa'
+    },
+    { 
+      label: 'Opción 5: Declinar / Límite', 
+      hotkey: '5', 
       border: 'border-rose-500/60 bg-rose-950/40 text-rose-50 hover:bg-rose-950/60 hover:border-rose-400', 
       icon: Hand, 
       badge: 'bg-rose-400 text-slate-950',
       tag: 'Rechazo'
+    },
+    { 
+      label: 'Opción 6: Pensar / Pausa / Tiempo', 
+      hotkey: '6', 
+      border: 'border-amber-500/60 bg-amber-950/40 text-amber-50 hover:bg-amber-950/60 hover:border-amber-400', 
+      icon: Clock, 
+      badge: 'bg-amber-400 text-slate-950',
+      tag: 'Pausa'
     }
   ];
 
@@ -466,7 +485,7 @@ export function StandardAACBoard({
         )}
       </div>
 
-      {/* 4. DYNAMIC SMART AAC AI RESPONSES (3 Opciones contextuales inmediatas) */}
+      {/* 4. DYNAMIC SMART AAC AI RESPONSES (Opciones contextuales inmediatas) */}
       <div className="w-full">
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-2">
@@ -476,13 +495,13 @@ export function StandardAACBoard({
             </h2>
           </div>
           <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-            Atajos de teclado: teclas <span className="text-emerald-300 font-bold">[1]</span>, <span className="text-sky-300 font-bold">[2]</span>, <span className="text-rose-300 font-bold">[3]</span>
+            Atajos de teclado: teclas del <span className="text-emerald-300 font-bold">[1]</span> al <span className="text-amber-300 font-bold">[{suggestions.length || 6}]</span>
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {isLoadingSuggestions ? (
-            [0, 1, 2].map((i) => (
+            [...Array(6)].map((_, i) => (
               <div key={i} className="h-28 rounded-2xl bg-slate-900/60 border border-slate-800 p-4 animate-pulse" />
             ))
           ) : (

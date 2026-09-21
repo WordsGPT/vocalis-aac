@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, Edit3, RefreshCw, ThumbsUp, HelpCircle, XCircle, Sparkles } from 'lucide-react';
+import { Volume2, Edit3, RefreshCw, ThumbsUp, Check, HelpCircle, Shuffle, XCircle, Clock, Sparkles } from 'lucide-react';
 
 export function ResponseCards({
   suggestions = [],
@@ -13,7 +13,7 @@ export function ResponseCards({
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedText, setEditedText] = useState('');
 
-  // Setup keyboard shortcut listener (Keys 1, 2, 3)
+  // Setup keyboard shortcut listener (Keys 1 to suggestions.length)
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't trigger if user is typing in an input or textarea
@@ -22,15 +22,10 @@ export function ResponseCards({
       }
       if (editingIndex !== null) return;
 
-      if (e.key === '1' && suggestions[0]) {
+      const num = parseInt(e.key, 10);
+      if (!isNaN(num) && num >= 1 && num <= suggestions.length && suggestions[num - 1]) {
         e.preventDefault();
-        onSelectAndSpeak(suggestions[0]);
-      } else if (e.key === '2' && suggestions[1]) {
-        e.preventDefault();
-        onSelectAndSpeak(suggestions[1]);
-      } else if (e.key === '3' && suggestions[2]) {
-        e.preventDefault();
-        onSelectAndSpeak(suggestions[2]);
+        onSelectAndSpeak(suggestions[num - 1]);
       }
     };
 
@@ -63,13 +58,31 @@ export function ResponseCards({
       speakingBorder: 'border-emerald-400 ring-2 ring-emerald-400/50'
     },
     {
-      role: 'Preguntar / Alternativa',
+      role: 'De acuerdo / Sí',
+      icon: Check,
+      accent: 'teal',
+      bgClass: 'bg-teal-950/20 hover:bg-teal-950/40 border-teal-500/30 hover:border-teal-400/60',
+      badgeClass: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+      hotkeyClass: 'bg-teal-400 text-slate-950 font-bold',
+      speakingBorder: 'border-teal-400 ring-2 ring-teal-400/50'
+    },
+    {
+      role: 'Preguntar / Consulta',
       icon: HelpCircle,
       accent: 'sky',
       bgClass: 'bg-sky-950/20 hover:bg-sky-950/40 border-sky-500/30 hover:border-sky-400/60',
       badgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
       hotkeyClass: 'bg-sky-400 text-slate-950 font-bold',
       speakingBorder: 'border-sky-400 ring-2 ring-sky-400/50'
+    },
+    {
+      role: 'Alternativa / Otra opción',
+      icon: Shuffle,
+      accent: 'indigo',
+      bgClass: 'bg-indigo-950/20 hover:bg-indigo-950/40 border-indigo-500/30 hover:border-indigo-400/60',
+      badgeClass: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+      hotkeyClass: 'bg-indigo-400 text-slate-950 font-bold',
+      speakingBorder: 'border-indigo-400 ring-2 ring-indigo-400/50'
     },
     {
       role: 'Declinar / Límite',
@@ -79,6 +92,15 @@ export function ResponseCards({
       badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
       hotkeyClass: 'bg-rose-400 text-slate-950 font-bold',
       speakingBorder: 'border-rose-400 ring-2 ring-rose-400/50'
+    },
+    {
+      role: 'Pausa / Pensar',
+      icon: Clock,
+      accent: 'amber',
+      bgClass: 'bg-amber-950/20 hover:bg-amber-950/40 border-amber-500/30 hover:border-amber-400/60',
+      badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      hotkeyClass: 'bg-amber-400 text-slate-950 font-bold',
+      speakingBorder: 'border-amber-400 ring-2 ring-amber-400/50'
     }
   ];
 
@@ -89,7 +111,7 @@ export function ResponseCards({
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-blue-400" />
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300 m-0">
-            Respuestas Inteligentes Sugeridas <span className="text-xs text-slate-500 font-normal lowercase">(Haz clic o pulsa 1, 2, 3 para hablar)</span>
+            Respuestas Inteligentes Sugeridas <span className="text-xs text-slate-500 font-normal lowercase">(Haz clic o pulsa del [1] al [{suggestions.length || 6}] para hablar)</span>
           </h2>
         </div>
 
@@ -106,10 +128,10 @@ export function ResponseCards({
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {isLoading ? (
           // Loading Skeletons
-          [0, 1, 2].map((i) => (
+          [...Array(6)].map((_, i) => (
             <div
               key={i}
               className="h-36 rounded-2xl bg-slate-900/50 border border-slate-800/80 p-5 flex flex-col justify-between animate-pulse"
@@ -126,8 +148,8 @@ export function ResponseCards({
             </div>
           ))
         ) : suggestions.length === 0 ? (
-          <div className="col-span-3 py-8 text-center text-slate-500 bg-slate-900/30 rounded-2xl border border-dashed border-slate-800">
-            <p className="text-sm">Aún no hay sugerencias. Habla al micrófono o elige un ejemplo para generar 3 respuestas inteligentes.</p>
+          <div className="col-span-full py-8 text-center text-slate-500 bg-slate-900/30 rounded-2xl border border-dashed border-slate-800">
+            <p className="text-sm">Aún no hay sugerencias. Habla al micrófono o escribe para generar respuestas inteligentes.</p>
           </div>
         ) : (
           suggestions.map((text, idx) => {

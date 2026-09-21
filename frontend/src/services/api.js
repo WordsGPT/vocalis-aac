@@ -28,6 +28,7 @@ export async function getSmartSuggestions({
   text, 
   history = [], 
   tone = 'natural', 
+  count = 6,
   geminiApiKey = null, 
   groqApiKey = null, 
   preferredEngine = 'groq' 
@@ -40,6 +41,7 @@ export async function getSmartSuggestions({
         text,
         history,
         tone,
+        count,
         gemini_api_key: geminiApiKey || null,
         groq_api_key: groqApiKey || null,
         preferred_engine: preferredEngine
@@ -49,13 +51,17 @@ export async function getSmartSuggestions({
     return await res.json();
   } catch (err) {
     console.warn('Backend suggestion call failed, using client fallback:', err);
-    // Offline client fallback
+    // Offline client fallback (Spanish)
+    const fallbackList = [
+      "¡Sí, suena genial!",
+      "De acuerdo, me parece bien.",
+      "¿Podrías contarme un poco más sobre eso?",
+      "¿Y si probamos otra alternativa diferente?",
+      "No podré en esta ocasión, muchas gracias.",
+      "Dame un momento para pensarlo con calma."
+    ];
     return {
-      suggestions: [
-        "Yes, sounds good to me!",
-        "Could you tell me a little more?",
-        "I'm not sure about that right now."
-      ],
+      suggestions: fallbackList.slice(0, count || 6),
       engine: 'client-offline'
     };
   }

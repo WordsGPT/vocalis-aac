@@ -21,111 +21,149 @@ HEURISTIC_TEMPLATES = [
         "patterns": [r"\bc[oó]mo est[aá]s\b", r"\bc[oó]mo va\b", r"\bc[oó]mo te sientes\b", r"\bhow are you\b", r"\bhow'?s it going\b"],
         "responses": [
             "¡Estoy bien, gracias por preguntar! ¿Y tú qué tal?",
-            "No me quejo, llevando el día con calma.",
-            "Un poco cansado hoy, pero todo bien."
+            "Todo tranquilo hoy, llevando el día con calma.",
+            "Un poco cansado hoy, pero todo bien.",
+            "¿Cómo ha ido tu día hasta ahora?",
+            "Con ganas de hacer cosas interesantes hoy.",
+            "Necesito descansar un poco, la verdad."
         ]
     },
     {
         "patterns": [r"\bqu[eé] opinas\b", r"\bqu[eé] piensas\b", r"\btu opini[oó]n\b", r"\bwhat do you think\b"],
         "responses": [
             "¡Me parece una idea estupenda, adelante!",
-            "Aún no estoy seguro, déjame pensarlo un momento.",
-            "Tengo algunas dudas, ¿podríamos buscar otra opción?"
+            "Me parece bien, cuenta con mi apoyo.",
+            "¿Podrías darme un poco más de detalles?",
+            "¿Y si consideramos otra alternativa diferente?",
+            "Tengo algunas dudas, ¿podríamos revisarlo?",
+            "Aún no estoy seguro, déjame pensarlo un momento."
         ]
     },
     {
         "patterns": [r"\bcaf[eé]\b|\bt[eé]\b|\bbeber\b|\bbebida\b|\balmorzar\b|\bcomer\b|\bcomida\b|\bagua\b|\bcoffee\b|\bfood\b"],
         "responses": [
             "¡Suena delicioso, cuenta conmigo!",
-            "Solo un poco de agua para mí, muchas gracias.",
-            "Ahora mismo no tengo apetito, pero adelante tú."
+            "Me apetece mucho, vamos cuando quieras.",
+            "¿Qué sitios tienes en mente para ir?",
+            "¿Prefieres que vayamos a un lugar tranquilo?",
+            "Ahora mismo no tengo apetito, pero adelante tú.",
+            "Solo un poco de agua para mí, muchas gracias."
         ]
     },
     {
         "patterns": [r"\blibre\b|\bdisponible\b|\btiempo\b|\bunirte\b|\bquedar\b|\bvamos\b|\bfree\b|\bmeet\b"],
         "responses": [
-            "¡Sí, estoy libre! Me parece perfecto.",
-            "¿A qué hora tenías pensado?",
-            "Lo siento, ahora mismo estoy ocupado con algo."
+            "¡Sí, estoy totalmente libre! Me parece perfecto.",
+            "Tengo tiempo libre, me viene genial.",
+            "¿A qué hora tenías pensado que nos veamos?",
+            "¿Podríamos dejarlo para un poco más tarde?",
+            "Lo siento, ahora mismo estoy ocupado con algo.",
+            "Te aviso en un rato en cuanto termine esto."
         ]
     },
     {
         "patterns": [r"\bayuda\b|\bechar una mano\b|\bnecesitas algo\b|\bhelp\b|\bassist\b"],
         "responses": [
             "¡Sí por favor, te agradecería mucho la ayuda!",
-            "Dame un momento y te voy diciendo.",
-            "Estoy bien por ahora, ¡muchas gracias de todos modos!"
+            "Cualquier apoyo me vendría estupendo ahora.",
+            "¿Qué necesitas exactamente que hagamos?",
+            "¿Podemos hacerlo con calma paso a paso?",
+            "Estoy bien por ahora, ¡muchas gracias de todos modos!",
+            "Dame un momento y te voy indicando cómo ayudarme."
         ]
     },
     {
         "patterns": [r"\bd[oó]nde\b|\blugar\b|\bsitio\b|\bwhere\b"],
         "responses": [
             "Cualquier sitio que prefieras me viene bien.",
-            "¿Podríamos buscar un lugar tranquilo?",
-            "Prefiero quedarme por aquí si no te importa."
+            "En casa o en un lugar tranquilo me gusta más.",
+            "¿Dónde te viene mejor a ti quedar?",
+            "¿Hay algún sitio cerca que conozcas?",
+            "Prefiero quedarme por aquí si no te importa.",
+            "Vamos a donde digas, me adapto a lo que prefieras."
         ]
     },
     {
         "patterns": [r"\bgracias\b|\bmuchas gracias\b|\bagradezco\b|\bthanks\b|\bthank you\b"],
         "responses": [
-            "¡De nada, no hay de qué!",
-            "Un placer ayudarte siempre.",
-            "¡Para eso estamos!"
+            "¡De nada, ha sido un auténtico placer!",
+            "¡Muchas gracias a ti también por todo!",
+            "¿Hay algo más en lo que pueda colaborar?",
+            "¡Para eso estamos, cuenta conmigo!",
+            "No te preocupes por nada, no tiene importancia.",
+            "Me alegro mucho de haber sido de ayuda."
         ]
     },
     {
         "patterns": [r"\bhola\b|\bbuenos d[ií]as\b|\bbuenas tardes\b|\bhello\b|\bhi\b"],
         "responses": [
             "¡Hola! Qué alegría verte, ¿cómo va todo?",
-            "¡Hola! Dame un segundo que estoy usando mi comunicador.",
-            "¡Buenas! Todo bien por aquí, cuéntame."
+            "¡Hola! Me alegro mucho de saludarte.",
+            "¿Qué tal ha ido tu semana hasta ahora?",
+            "¡Buenas! Dame un segundo que estoy usando mi comunicador.",
+            "Aquí andamos, con calma y buen ánimo.",
+            "¿De qué te gustaría que habláramos hoy?"
         ]
     }
 ]
 
 DEFAULT_FALLBACK = [
     "¡Sí, totalmente de acuerdo!",
+    "De acuerdo, me parece bien.",
     "¿Podrías contarme un poco más sobre eso?",
-    "No estoy muy seguro de eso, déjame pensarlo."
+    "¿Y si buscamos otra opción diferente?",
+    "No estoy muy seguro de eso, lo siento.",
+    "Déjame pensarlo con calma un momento."
 ]
 
-def generate_heuristic_responses(text: str) -> List[str]:
+def generate_heuristic_responses(text: str, count: int = 6) -> List[str]:
     """Pattern matching fallback when LLM is unavailable or offline."""
     lower = text.lower().strip()
     if not lower:
         return [
-            "¡Hola! ¿Cómo estás?",
-            "¡Qué alegría verte!",
-            "Un momento, por favor, estoy escribiendo."
-        ]
+            "¡Hola! ¿Cómo estás hoy?",
+            "Un momento, por favor, estoy usando mi comunicador.",
+            "¡Qué alegría verte por aquí!",
+            "¿De qué te gustaría que habláramos?",
+            "Estoy listo para conversar cuando quieras.",
+            "Gracias por tu paciencia conmigo."
+        ][:count]
     
     for entry in HEURISTIC_TEMPLATES:
         for pat in entry["patterns"]:
             if re.search(pat, lower):
-                return entry["responses"]
+                return entry["responses"][:count]
     
     # Generic question vs statement in Spanish
     if lower.endswith("?") or lower.startswith("¿"):
         return [
-            "¡Sí, por supuesto!",
-            "Tal vez, vamos a ver cómo se da.",
-            "Creo que ahora mismo no."
-        ]
+            "¡Sí, por supuesto, adelante!",
+            "Me parece que sí, suena razonable.",
+            "¿Podrías explicarme un poco más?",
+            "¿Y si lo miramos desde otro punto de vista?",
+            "Creo que en esta ocasión preferiría no hacerlo.",
+            "No lo tengo claro todavía, dame un momento."
+        ][:count]
     else:
         return [
             "¡Me parece estupendo!",
-            "Qué interesante, cuéntame más.",
-            "Entendido, muchas gracias por avisarme."
-        ]
+            "Totalmente de acuerdo contigo.",
+            "¿Qué más ocurrió después?",
+            "¿Tienes alguna otra idea sobre esto?",
+            "Entendido, muchas gracias por avisarme.",
+            "Me parece bien, tomemos nota de ello."
+        ][:count]
 
 RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
-        "affirmative": {"type": "string", "description": "Enthusiastic or friendly affirmative agreement response"},
-        "thoughtful": {"type": "string", "description": "Inquiring question, neutral remark, or alternative option"},
-        "decline": {"type": "string", "description": "Polite decline, boundary, or opposite preference"}
+        "suggestions": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Lista de opciones habladas en primera persona en español"
+        }
     },
-    "required": ["affirmative", "thoughtful", "decline"]
+    "required": ["suggestions"]
 }
 
 def sanitize_sentence(text: Any, default: str) -> str:
@@ -137,13 +175,17 @@ def sanitize_sentence(text: Any, default: str) -> str:
     t = re.sub(r'\[.*?\]', '', t)  # remove brackets / placeholders
     t = t.strip().strip('"\'').strip()
     words = t.split()
-    # Check if incomplete fragment (like "I" or "I want" or < 4 characters)
-    if len(words) < 2 or len(t) < 4 or t.lower() in ["i", "i want", "i am", "yes", "no", "ok", "null", "none"]:
+    # Check if incomplete fragment
+    if len(words) < 2 or len(t) < 4 or t.lower() in ["i", "yo", "yo quiero", "i want", "i am", "yes", "no", "ok", "null", "none"]:
         return default
     return t
 
-def clean_and_parse_responses(raw_text: str, default_fallback: List[str] = DEFAULT_FALLBACK) -> Optional[List[str]]:
-    """Extracts 3 concise, complete response strings from LLM output."""
+def clean_and_parse_responses(
+    raw_text: str,
+    default_fallback: List[str] = DEFAULT_FALLBACK,
+    target_count: int = 6
+) -> Optional[List[str]]:
+    """Extracts up to target_count concise, complete response strings from LLM output."""
     if not raw_text:
         return None
 
@@ -155,30 +197,32 @@ def clean_and_parse_responses(raw_text: str, default_fallback: List[str] = DEFAU
         try:
             data = json.loads(match_obj.group(0))
             if isinstance(data, dict):
-                # Check for affirmative, thoughtful, decline keys
-                if any(k in data for k in ["affirmative", "thoughtful", "decline"]):
-                    aff = sanitize_sentence(data.get("affirmative"), default_fallback[0])
-                    tht = sanitize_sentence(data.get("thoughtful"), default_fallback[1])
-                    dec = sanitize_sentence(data.get("decline"), default_fallback[2])
-                    return [aff, tht, dec]
-
-                # Check other list keys like responses, suggestions, options
-                for key in ["responses", "suggestions", "options", "answers", "choices"]:
+                # Check list keys like suggestions, responses, options, choices
+                for key in ["suggestions", "responses", "options", "answers", "choices"]:
                     if key in data and isinstance(data[key], list) and len(data[key]) > 0:
                         items = [sanitize_sentence(x, "") for x in data[key] if str(x).strip()]
                         valid = [x for x in items if x]
-                        if len(valid) >= 3:
-                            return valid[:3]
+                        if len(valid) >= 2:
+                            while len(valid) < target_count and len(valid) < len(default_fallback):
+                                valid.append(default_fallback[len(valid)])
+                            return valid[:target_count]
 
-                # Plain dict values
+                # Plain dict values or named stances
                 valid_vals = []
                 for val in data.values():
                     if isinstance(val, str) and val.strip():
                         s = sanitize_sentence(val, "")
                         if s:
                             valid_vals.append(s)
-                if len(valid_vals) >= 3:
-                    return valid_vals[:3]
+                    elif isinstance(val, list):
+                        for item in val:
+                            s = sanitize_sentence(item, "")
+                            if s:
+                                valid_vals.append(s)
+                if len(valid_vals) >= 2:
+                    while len(valid_vals) < target_count and len(valid_vals) < len(default_fallback):
+                        valid_vals.append(default_fallback[len(valid_vals)])
+                    return valid_vals[:target_count]
         except Exception:
             pass
 
@@ -190,9 +234,9 @@ def clean_and_parse_responses(raw_text: str, default_fallback: List[str] = DEFAU
             if isinstance(data, list) and len(data) >= 2:
                 items = [sanitize_sentence(x, "") for x in data if str(x).strip()]
                 valid = [x for x in items if x]
-                while len(valid) < 3:
+                while len(valid) < target_count and len(valid) < len(default_fallback):
                     valid.append(default_fallback[len(valid)])
-                return valid[:3]
+                return valid[:target_count]
         except Exception:
             pass
 
@@ -200,17 +244,15 @@ def clean_and_parse_responses(raw_text: str, default_fallback: List[str] = DEFAU
     lines = cleaned_raw.strip().split("\n")
     cleaned_items = []
     for line in lines:
-        cleaned = re.sub(r'^\s*(\d+[\.\)]|\-|\*|"[a-zA-Z]+":)\s*', '', line).strip().strip('"\'')
+        cleaned = re.sub(r'^\s*(\d+[\.\)]|\-|\*|"[a-zA-Z0-9_\-]+":)\s*', '', line).strip().strip('"\'')
         s = sanitize_sentence(cleaned, "")
         if s and not s.startswith("{") and not s.startswith("[") and not s.endswith(":"):
             cleaned_items.append(s)
 
-    if len(cleaned_items) >= 3:
-        return cleaned_items[:3]
-    elif len(cleaned_items) > 0:
-        while len(cleaned_items) < 3:
+    if len(cleaned_items) >= 2:
+        while len(cleaned_items) < target_count and len(cleaned_items) < len(default_fallback):
             cleaned_items.append(default_fallback[len(cleaned_items)])
-        return cleaned_items
+        return cleaned_items[:target_count]
 
     return None
 
@@ -218,9 +260,10 @@ def generate_responses_ollama(
     partner_text: str,
     history: Optional[List[Dict[str, str]]] = None,
     tone: str = "natural",
+    count: int = 6,
     model: str = DEFAULT_OLLAMA_MODEL
 ) -> Optional[List[str]]:
-    """Calls local Ollama server with structured JSON schema for 3 complete AAC responses."""
+    """Calls local Ollama server with structured JSON schema for AAC responses."""
     tone_instruction = {
         "casual": "Respuestas relajadas, informales y muy amigables.",
         "professional": "Respuestas educadas, formales y claras.",
@@ -232,16 +275,20 @@ def generate_responses_ollama(
 Alguien le acaba de decir:
 "{partner_text}"
 
-Genera exactamente 3 respuestas habladas naturales, completas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta:
-1. affirmative: acuerdo amigable, aceptación o entusiasmo
-2. thoughtful: pregunta aclaratoria, comentario reflexivo o idea alternativa
-3. decline: rechazo cortés, poner un límite o preferencia contraria
+Genera exactamente {count} respuestas habladas naturales, variadas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta:
+Incluye:
+1. Acuerdo entusiasta o positivo
+2. Acuerdo suave o neutral
+3. Pregunta aclaratoria sobre el tema
+4. Propuesta alternativa o sugerencia
+5. Rechazo cortés o límite
+6. Pedir tiempo para pensar o pausar
 
 Tono: {tone_instruction}
 Reglas:
 - Habla directamente en primera persona ("yo", "me", "nosotros").
 - Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 4 a 12 palabras).
-- No generes fragmentos incompletos (NUNCA generes solo "Yo" o "Yo quiero").
+- No generes fragmentos incompletos.
 - NUNCA uses corchetes ni marcadores como [tema].
 - Listas para ser reproducidas por un sintetizador de voz (TTS) de inmediato."""
 
@@ -256,7 +303,7 @@ Reglas:
                 "options": {
                     "temperature": 0.6,
                     "top_p": 0.9,
-                    "num_predict": 180
+                    "num_predict": 240
                 }
             },
             timeout=8
@@ -264,7 +311,7 @@ Reglas:
         if resp.status_code == 200:
             result = resp.json()
             raw = result.get("response", "")
-            parsed = clean_and_parse_responses(raw)
+            parsed = clean_and_parse_responses(raw, target_count=count)
             if parsed:
                 return parsed
     except Exception as e:
@@ -275,7 +322,8 @@ Reglas:
 def generate_responses_gemini(
     partner_text: str,
     api_key: str,
-    tone: str = "natural"
+    tone: str = "natural",
+    count: int = 6
 ) -> Optional[List[str]]:
     """Calls Gemini REST API with user's key if configured."""
     if not api_key:
@@ -286,12 +334,15 @@ def generate_responses_gemini(
 Le acaban de decir:
 "{partner_text}"
 
-Sugiere exactamente 3 respuestas habladas en primera persona SIEMPRE EN ESPAÑOL:
-1. (Positiva / De acuerdo)
-2. (Pregunta / Alternativa / Neutral)
-3. (Declinar cortésmente / Desacuerdo)
+Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL:
+- Acuerdo entusiasta
+- Aceptación suave
+- Pregunta o aclaración
+- Alternativa o sugerencia
+- Rechazo educado
+- Pedir tiempo para pensar
 
-Responde ÚNICAMENTE con un array JSON válido de 3 cadenas de texto en español. Ejemplo: ["¡Sí, me parece genial!", "¿Podríamos hacerlo mañana?", "No podré en esta ocasión, lo siento."]"""
+Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en español. Ejemplo: ["¡Sí, me parece genial!", "De acuerdo, me parece bien.", "¿Podríamos hacerlo mañana?", "¿Y si probamos otra cosa?", "No podré en esta ocasión, lo siento.", "Déjame pensarlo un momento."][:count]"""
 
     try:
         payload = {
@@ -305,7 +356,7 @@ Responde ÚNICAMENTE con un array JSON válido de 3 cadenas de texto en español
         if res.status_code == 200:
             data = res.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"]
-            parsed = clean_and_parse_responses(text)
+            parsed = clean_and_parse_responses(text, target_count=count)
             if parsed:
                 return parsed
     except Exception as e:
@@ -318,6 +369,7 @@ def generate_responses_groq(
     api_key: Optional[str] = None,
     history: Optional[List[Dict[str, str]]] = None,
     tone: str = "natural",
+    count: int = 6,
     model: str = DEFAULT_GROQ_MODEL
 ) -> Optional[List[str]]:
     """Calls Groq API for ultra-fast (100ms) high quality LLM inference."""
@@ -338,18 +390,23 @@ En el historial de mensajes:
 - 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
 
 El interlocutor acaba de decir el último mensaje.
-Basándote en el tema actual y contexto, sugiere exactamente 3 respuestas habladas naturales, completas, en primera persona y SIEMPRE EN ESPAÑOL en formato JSON:
+Basándote en el tema actual y contexto, sugiere exactamente {count} respuestas habladas naturales, completas, variadas, en primera persona y SIEMPRE EN ESPAÑOL en formato JSON con la clave "suggestions":
 {{
-  "affirmative": "respuesta positiva o de acuerdo encajando en este momento exacto (4 a 12 palabras en español)",
-  "thoughtful": "pregunta aclaratoria o alternativa encajando en este momento (4 a 12 palabras en español)",
-  "decline": "rechazo educado o límite encajando en este momento (4 a 12 palabras en español)"
+  "suggestions": [
+    "opción 1: acuerdo entusiasta o positivo",
+    "opción 2: acuerdo suave o tranquilo",
+    "opción 3: pregunta curiosa o aclaratoria",
+    "opción 4: sugerencia o alternativa diferente",
+    "opción 5: rechazo educado o límite",
+    "opción 6: pedir un momento o decir que lo va a pensar"
+  ]
 }}
 Tono: {tone_instruction}
 Reglas estrictas:
-- Las 3 respuestas DEBEN estar en ESPAÑOL.
+- Las {count} respuestas DEBEN estar en ESPAÑOL.
 - Habla en primera persona ("yo", "me", "nosotros").
-- Respuestas naturales y listas para ser reproducidas por voz artificial (TTS).
-- Frases completas, no fragmentos."""
+- Respuestas variadas cubriendo distintas intenciones (acuerdo, pregunta, alternativa, rechazo, pausa).
+- Frases completas listas para voz artificial (TTS)."""
 
     messages = [{"role": "system", "content": system_prompt}]
 
@@ -394,7 +451,7 @@ Reglas estrictas:
             if res.status_code == 200:
                 data = res.json()
                 content = data["choices"][0]["message"]["content"]
-                parsed = clean_and_parse_responses(content)
+                parsed = clean_and_parse_responses(content, target_count=count)
                 if parsed:
                     if attempt > 1:
                         logger.info(f"Groq succeeded on retry attempt {attempt} using {curr_model}")
@@ -414,53 +471,59 @@ def get_smart_suggestions(
     partner_text: str,
     history: Optional[List[Dict[str, str]]] = None,
     tone: str = "natural",
+    count: int = 6,
     gemini_api_key: Optional[str] = None,
     groq_api_key: Optional[str] = None,
     preferred_engine: str = "groq"
 ) -> Dict[str, Any]:
     """
-    Returns 3 smart responses using the best available engine.
+    Returns up to `count` (default 6) smart responses using the best available engine.
     Order of preference:
     1. Groq (ultra fast 100ms inference with user's key)
     2. Ollama (local Gemma 3)
     3. Gemini (if key provided)
     4. Heuristic (0ms offline fallback)
     """
+    target_count = max(3, min(count, 8))
     partner_text = (partner_text or "").strip()
     if not partner_text:
+        presets = [
+            "¡Hola! ¿Cómo estás hoy?",
+            "Estoy totalmente de acuerdo, me parece bien.",
+            "¿Podrías contarme un poco más sobre eso?",
+            "¿Y si buscamos otra opción diferente?",
+            "No puedo en esta ocasión, muchas gracias.",
+            "Dame un momento para pensarlo con calma."
+        ]
         return {
-            "suggestions": [
-                "¡Hola! ¿Cómo estás hoy?",
-                "Un momento, por favor, estoy usando mi comunicador.",
-                "¡Qué alegría verte!"
-            ],
+            "suggestions": presets[:target_count],
             "engine": "preset"
         }
 
     # 1. Try Groq (Default / Primary)
     if preferred_engine in ["groq", "auto"] or (groq_api_key and preferred_engine != "ollama"):
-        responses = generate_responses_groq(partner_text, groq_api_key, history, tone)
+        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count)
         if responses:
             return {"suggestions": responses, "engine": "groq"}
 
     # 2. Try Gemini if specifically requested
     if preferred_engine == "gemini" and gemini_api_key:
-        responses = generate_responses_gemini(partner_text, gemini_api_key, tone)
+        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count)
         if responses:
             return {"suggestions": responses, "engine": "gemini"}
 
     # 3. Try Ollama (local gemma3)
     if preferred_engine in ["auto", "ollama"]:
-        responses = generate_responses_ollama(partner_text, history, tone)
+        responses = generate_responses_ollama(partner_text, history, tone, count=target_count)
         if responses:
             return {"suggestions": responses, "engine": "ollama"}
 
     # 4. If Gemini key was provided in auto mode
     if preferred_engine == "auto" and gemini_api_key:
-        responses = generate_responses_gemini(partner_text, gemini_api_key, tone)
+        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count)
         if responses:
             return {"suggestions": responses, "engine": "gemini"}
 
     # 5. Instant heuristic fallback
-    responses = generate_heuristic_responses(partner_text)
+    responses = generate_heuristic_responses(partner_text, count=target_count)
     return {"suggestions": responses, "engine": "heuristic"}
