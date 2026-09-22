@@ -1,4 +1,7 @@
 import unittest
+import io
+import wave
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from backend.app import app
 
@@ -51,6 +54,29 @@ class TestBackendAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("content-type"), "audio/mpeg")
         self.assertTrue(len(response.content) > 1000)
+
+    def test_voice_sample_duration_and_shared_profile(self):
+        def sample(seconds):
+            output = io.BytesIO()
+            with wave.open(output, "wb") as recording:
+                recording.setnchannels(1)
+                recording.setsampwidth(2)
+                recording.setframerate(24000)
+                recording.writeframes(b"\x00\x00" * 24000 * seconds)
+            return output.getvalue()
+
+        headers = {"X-Vocalis-Client": "test-device"}
+        with patch("backend.app.qwen_voice.clone_from_audio") as clone:
+            short = self.client.post("/api/voice/clone", headers=headers,
+                files={"file": ("sample.wav", sample(3), "audio/wav")})
+            self.assertEqual(short.status_code, 400)
+            clone.assert_not_called()
+
+            valid = self.client.post("/api/voice/clone", headers=headers,
+                files={"file": ("sample.wav", sample(8), "audio/wav")})
+            self.assertEqual(valid.status_code, 200)
+            self.assertIn("rápido y estándar", valid.json()["message"])
+            clone.assert_called_once()
 
 if __name__ == "__main__":
     unittest.main()

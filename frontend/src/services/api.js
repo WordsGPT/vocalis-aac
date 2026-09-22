@@ -1,9 +1,10 @@
+import { personalForm } from '../utils/spanish';
 // API client for Vocalis AAC backend
 
 const API_BASE = '/api';
 const CLIENT_ID_KEY = 'vocalis_client_id';
 
-function getClientId() {
+export function getClientId() {
   let clientId = localStorage.getItem(CLIENT_ID_KEY);
   if (!clientId) {
     clientId = globalThis.crypto?.randomUUID?.()
@@ -55,7 +56,8 @@ export async function cloneVoiceFromAudio(audio) {
 export async function getSmartSuggestions({ 
   text, 
   history = [], 
-  tone = 'natural', 
+  tone = 'natural',
+  grammaticalForm = 'masculine',
   count = 6,
   geminiApiKey = null, 
   groqApiKey = null, 
@@ -69,6 +71,7 @@ export async function getSmartSuggestions({
         text,
         history,
         tone,
+        grammatical_form: grammaticalForm,
         count,
         gemini_api_key: geminiApiKey || null,
         groq_api_key: groqApiKey || null,
@@ -89,7 +92,7 @@ export async function getSmartSuggestions({
       "Dame un momento para pensarlo con calma."
     ];
     return {
-      suggestions: fallbackList.slice(0, count || 6),
+      suggestions: fallbackList.slice(0, count || 6).map(text => personalForm(text, grammaticalForm)),
       engine: 'client-offline'
     };
   }
@@ -124,8 +127,7 @@ export async function fetchEdgeTTSAudio(text, voice = 'en-US-GuyNeural', rate = 
   if (!res.ok) {
     throw new Error(`TTS generation failed: ${res.status}`);
   }
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+  return res.blob();
 }
 
 export async function fetchStreamingTTSAudio(text, signal) {

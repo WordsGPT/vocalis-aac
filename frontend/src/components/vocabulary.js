@@ -14,7 +14,11 @@ export const AAC_VOCABULARY = {
     tile('Ahora', 32747, 'adjective'), tile('¿Qué?', 22620, 'question'), tile('¿Quién?', 9853, 'question'),
     tile('¿Dónde?', 7764, 'question'), tile('¿Cuándo?', 32874, 'question'), tile('¿Por qué?', 36719, 'question'),
   ],
+  connectors: ['a', 'al', 'de', 'del', 'el', 'la', 'los', 'las', 'un', 'una', 'y', 'pero', 'porque', 'con', 'sin'].map(text => ({ text, connector: true, category: 'question' })),
   social: [
+    tile('No he terminado.', 7196, 'social'), tile('Eso no es lo que quería decir.', 5526, 'social'),
+    tile('Háblame directamente.', 6517, 'social'), tile('Más despacio, por favor.', 4676, 'social'),
+    tile('Quiero decir otra cosa.', 6517, 'social'),
     tile('Hola', 6522, 'social'), tile('Adiós', 6028, 'social'), tile('Estoy bien, gracias.', 5397, 'social'),
     tile('De nada.', 8129, 'social'), tile('De acuerdo.', 5584, 'social'), tile('No estoy de acuerdo.', 5526, 'social'),
     tile('No lo entiendo.', 11697, 'social'), tile('¿Puedes repetir, por favor?', 11752, 'social'),
@@ -135,6 +139,7 @@ export const AAC_VOCABULARY = {
 };
 
 export const BOARD_CATEGORIES = [
+  { id: 'connectors', label: 'Unir palabras', pictogram: 7064, category: 'question' },
   { id: 'social', label: 'Conversar', pictogram: 6517, category: 'social' },
   { id: 'needs', label: 'Necesidades', pictogram: 4570, category: 'priority' },
   { id: 'people', label: 'Personas', pictogram: 38351, category: 'pronoun' },
@@ -153,8 +158,8 @@ export const BOARD_CATEGORIES = [
 ];
 
 export const QUICK_PHRASES = [
-  tile('Sí', 5584, 'social'), tile('No', 5526, 'social'),
-  tile('Un momento, por favor.', 8109, 'social'), tile('Necesito ayuda.', 4570, 'priority'),
+  tile('Necesito ayuda.', 4570, 'priority'), tile('Sí', 5584, 'social'),
+  tile('No', 5526, 'social'), tile('Un momento, por favor.', 8109, 'social'),
 ];
 
 export const CORE_STRIP = ['Yo', 'Quiero', 'Necesito', 'No', 'Más', 'Por favor']

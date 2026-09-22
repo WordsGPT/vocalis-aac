@@ -27,7 +27,14 @@ from faster_qwen3_tts import FasterQwen3TTS
 logger = logging.getLogger("vocalis_streaming_tts")
 logging.basicConfig(level=logging.INFO)
 
-MODEL_ID = os.environ.get("QWEN_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-Base")
+MODEL_ALIASES = {
+    "fast": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+    "0.6b": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+    "quality": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "1.7b": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+}
+_configured_model = os.environ.get("QWEN_TTS_MODEL", "fast").strip()
+MODEL_ID = MODEL_ALIASES.get(_configured_model.lower(), _configured_model)
 PROFILE_DIRECTORY = Path(os.environ.get(
     "QWEN_VOICE_PROFILE_DIRECTORY",
     Path(__file__).resolve().parents[2] / "qwen3-tts-runtime" / "voice_profiles",

@@ -2,6 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight, CircleStop, Delete, Folder, Grid2X2, Heart, History, Keyboard, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Trash2, Volume2, X } from 'lucide-react';
 import { AAC_VOCABULARY, BOARD_CATEGORIES, CORE_STRIP, QUICK_PHRASES, pictogramPath } from './vocabulary';
 import './communication.css';
+import { personalForm, suggestSentence } from '../utils/spanish';
+
+function readQuick() {
+  try {
+    const value = JSON.parse(localStorage.getItem('vocalis_quick_phrases'));
+    if (Array.isArray(value) && value.every(item => typeof item?.text === 'string' && item.text.trim())) return value;
+  } catch { /* Use default phrases. */ }
+  return QUICK_PHRASES;
+}
 
 function readSaved() {
   try {
@@ -24,7 +33,11 @@ function Credits() {
   return <p className="pictogram-credit">Pictogramas: Sergio Palao · Gobierno de Aragón · <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA</a></p>;
 }
 
-export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, onSettings, onRegenerate, history, onClearHistory, voiceLabel, engine }) {
+export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onRegenerate, history, onClearHistory, voiceLabel, engine }) {
+  const [quick, setQuick] = useState(readQuick);
+  const [quickText, setQuickText] = useState('');
+  const [editingQuick, setEditingQuick] = useState(null);
+  const adapt = tile => ({ ...tile, text: personalForm(tile.text, settings.grammaticalForm) });
   const [category, setCategory] = useState('core');
   const [showFolders, setShowFolders] = useState(false);
   const [view, setView] = useState('board');
@@ -40,13 +53,14 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
   const sentenceStrip = useRef(null);
   const tabButtons = useRef([]);
   const draft = segments.map(item => item.text).join(' ');
+  const improvedSentence = suggestSentence(segments);
   const heard = [stt.transcript, stt.interimTranscript].filter(Boolean).join(' ');
   const search = normalize(query.trim());
   const activeCategory = BOARD_CATEGORIES.find(item => item.id === category);
-  const allTiles = [...Object.values(AAC_VOCABULARY).flat(), ...saved.map(text => ({ text, pictogram: 9837, category: 'social' }))];
+  const allTiles = [...Object.values(AAC_VOCABULARY).flat().map(adapt), ...saved.map(text => ({ text, pictogram: 9837, category: 'social' }))];
   const tiles = search
     ? allTiles.filter((tile, i) => normalize(tile.text).includes(search) && allTiles.findIndex(other => other.text === tile.text) === i)
-    : category === 'saved' ? saved.map(text => ({ text, pictogram: 9837, category: 'social' })) : AAC_VOCABULARY[category];
+    : category === 'saved' ? saved.map(text => ({ text, pictogram: 9837, category: 'social' })) : AAC_VOCABULARY[category].map(adapt);
 
   useEffect(() => {
     try { sessionStorage.setItem('vocalis_draft', JSON.stringify(segments)); } catch { /* Draft remains available in memory. */ }
@@ -72,7 +86,11 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
     setNotice('');
   }
   function append(tile) {
-    updateMessage([...segments.filter(item => item.text.trim()), { text: tile.text, pictogram: tile.pictogram }]);
+    updateMessage([...segments.filter(item => item.text.trim()), { text: tile.text, pictogram: tile.pictogram, connector: tile.connector }]);
+    if (settings.speakTiles !== false) {
+      if (stt.isListening) stt.stopListening();
+      tts.speak(tile.text, { prepared: true });
+    }
   }
   function undoMessage() {
     if (!undo.length) return;
@@ -112,6 +130,22 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
     try { localStorage.setItem('vocalis_saved_phrases', JSON.stringify(next)); setSaved(next); }
     catch { setNotice('No se pudo eliminar la frase.'); }
   }
+  function saveQuick(next) {
+    try {
+      localStorage.setItem('vocalis_quick_phrases', JSON.stringify(next));
+      setQuick(next); setNotice('Frases rápidas guardadas.');
+      return true;
+    } catch { setNotice('No se pudieron guardar las frases rápidas.'); return false; }
+  }
+  function submitQuick(event) {
+    event.preventDefault();
+    const text = quickText.trim();
+    if (!text) return;
+    const next = [...quick];
+    if (editingQuick === null) next.push({ text, pictogram: 9837, category: 'social' });
+    else next[editingQuick] = { ...next[editingQuick], text };
+    if (saveQuick(next)) { setQuickText(''); setEditingQuick(null); }
+  }
   function openSettings() {
     if (stt.isListening) stt.stopListening();
     onSettings();
@@ -142,12 +176,13 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
         <div className="aac-sentence-strip" ref={sentenceStrip} aria-label="Pictogramas del mensaje">
           {segments.some(item => item.pictogram) ? segments.map((item, index) => <button key={index} className="aac-sentence-symbol" onClick={() => updateMessage(segments.filter((_, i) => i !== index))} aria-label={'Quitar del mensaje: ' + item.text}>
             {item.pictogram && <Picto id={item.pictogram} />}<span>{item.text}</span><X size={12} />
-          </button>) : <span className="aac-compose-hint">Construye tu frase y pulsa Hablar.</span>}
+          </button>) : <span className="aac-compose-hint">{settings.speakTiles !== false ? 'Toca palabras para escucharlas. Hablar dirá la frase completa.' : 'Construye tu frase y pulsa Hablar.'}</span>}
         </div>
         <button className="aac-icon-tool" disabled={!undo.length} onClick={undoMessage} aria-label="Deshacer último cambio" title="Deshacer"><RotateCcw size={19} /></button>
         <button className="aac-icon-tool" onClick={() => input.current?.focus()} aria-label="Escribir con el teclado" title="Escribir"><Keyboard size={21} /></button>
         <button className="aac-icon-tool" disabled={!draft.trim()} onClick={savePhrase} aria-label="Guardar frase" title="Guardar en Mis frases"><Heart size={20} /></button>
       </div>
+      {improvedSentence && <div className="aac-sentence-suggestion"><span>Podrías decir: <strong>{improvedSentence}</strong></span><button className="aac-tool" onClick={() => updateMessage([{ text: improvedSentence }])}>Usar esta frase</button><span className="sr-only">Puedes deshacer el cambio. No se hablará automáticamente.</span></div>}
       {(notice || tts.error) && <p className={tts.error ? 'aac-error' : 'aac-notice'} role="status">{tts.error || notice}</p>}
       {tts.isSpeaking && <p className="sr-only" role="status">{tts.isLoading ? 'Preparando la voz.' : 'Hablando.'}</p>}
     </section>
@@ -166,7 +201,7 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
         </button>)}
       </nav>
       <div className="aac-quick" aria-label="Hablar inmediatamente">
-        {QUICK_PHRASES.map(tile => <button key={tile.text} onClick={() => onSpeak(tile.text)} aria-label={'Decir: ' + tile.text} className={tile.category === 'priority' ? 'aac-help' : ''}><Picto id={tile.pictogram} /><span>{tile.text}</span><Volume2 size={13} /></button>)}
+        {quick.map((tile, index) => <button key={index} onClick={() => onSpeak(tile.text, { prepared: true })} aria-label={'Decir: ' + tile.text} className={tile.category === 'priority' ? 'aac-help' : ''}><Picto id={tile.pictogram} /><span>{tile.text}</span><Volume2 size={13} /></button>)}
       </div>
     </div>
 
@@ -177,12 +212,13 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
             <div className="aac-breadcrumb">{(category !== 'core' || showFolders) && <button className="aac-tool" onClick={() => openCategory('core')}><ArrowLeft size={20} /><span>Inicio</span></button>}<h1>{search ? 'Buscar palabras' : showFolders ? 'Categorías' : category === 'core' ? 'Mi tablero' : activeCategory.label}</h1></div>
             <div className="aac-board-actions"><button className="aac-tool" aria-pressed={showFolders} onClick={() => { setShowFolders(value => !value); setQuery(''); scrollArea.current?.scrollTo({ top: 0 }); }}><Folder size={20} /><span>Categorías</span></button><label className="aac-search"><Search size={18} /><input aria-label="Buscar palabras y frases" placeholder="Buscar palabras" value={query} onChange={event => { setQuery(event.target.value); setShowFolders(false); }} />{query && <button aria-label="Borrar búsqueda" onClick={() => setQuery('')}><X size={18} /></button>}</label></div>
           </div>
-          {category !== 'core' && !search && <nav className="aac-core-strip" aria-label="Palabras esenciales">{CORE_STRIP.map(tile => <button key={tile.text} className={'tone-' + tile.category} onClick={() => append(tile)} aria-label={'Añadir: ' + tile.text}><Picto id={tile.pictogram} /><span>{tile.text}</span></button>)}</nav>}
-          {category === 'saved' && !search && <div className="aac-saved-controls"><p>Guarda cualquier mensaje con el corazón de arriba.</p><button className="aac-tool" aria-pressed={manageSaved} onClick={() => setManageSaved(value => !value)}>{manageSaved ? 'Terminar' : 'Organizar frases'}</button></div>}
+          {category === 'core' && !search && !showFolders && <button className="aac-tool aac-connectors-link" onClick={() => openCategory('connectors')}>Unir palabras: a, el, la, y…</button>}
+          {category !== 'core' && !search && <nav className="aac-core-strip" aria-label="Palabras esenciales">{CORE_STRIP.map(tile => <button key={tile.text} className={'tone-' + tile.category} onClick={() => append(tile)} aria-label={(settings.speakTiles !== false ? 'Añadir y decir: ' : 'Añadir: ') + tile.text}><Picto id={tile.pictogram} /><span>{tile.text}</span></button>)}</nav>}
+          {category === 'saved' && !search && <div className="aac-saved-controls"><p>Guarda un mensaje con el corazón. Abajo puedes personalizar las frases rápidas.</p><button className="aac-tool" aria-pressed={manageSaved} onClick={() => setManageSaved(value => !value)}>{manageSaved ? 'Terminar' : 'Organizar frases'}</button></div>}
           <div hidden={showFolders} className="aac-tile-grid" aria-label={search ? 'Resultados' : 'Palabras'}>
             {tiles.map(tile => <div className="aac-tile-wrap" key={tile.text}>
-              <button className={'aac-tile tone-' + tile.category} onClick={() => append(tile)} aria-label={'Añadir: ' + tile.text}>
-                <Picto id={tile.pictogram} /><span>{tile.text}</span>
+              <button className={'aac-tile tone-' + tile.category} onClick={() => append(tile)} aria-label={(settings.speakTiles !== false ? 'Añadir y decir: ' : 'Añadir: ') + tile.text}>
+                {tile.pictogram ? <Picto id={tile.pictogram} /> : <span className="aac-word-symbol" aria-hidden="true">{tile.text}</span>}<span>{tile.text}</span>
               </button>
               {category === 'saved' && !search && manageSaved && <button className="aac-remove-saved" aria-label={'Eliminar frase: ' + tile.text} onClick={() => removePhrase(tile.text)}><Trash2 size={18} /></button>}
             </div>)}
@@ -193,6 +229,14 @@ export function CommunicationBoard({ tts, stt, suggestions, loading, onSpeak, on
               <Folder className="aac-folder-mark" size={17} /><Picto id={item.pictogram} /><span>{item.label}</span><ChevronRight size={18} />
             </button>)}
           </nav>}
+          {category === 'saved' && !search && <details className="aac-quick-editor">
+            <summary>Personalizar frases rápidas</summary>
+            <p>Se hablan con un toque. Se mantienen en el orden que elijas. Puedes añadir nombres, lugares o mensajes.</p>
+            <form onSubmit={submitQuick}><label htmlFor="quick-text">{editingQuick === null ? 'Nueva frase rápida' : 'Editar frase rápida'}</label><input id="quick-text" value={quickText} maxLength={200} onChange={event => setQuickText(event.target.value)} required /><button className="aac-tool">{editingQuick === null ? 'Añadir' : 'Guardar cambio'}</button>{editingQuick !== null && <button type="button" className="aac-tool" onClick={() => { setEditingQuick(null); setQuickText(''); }}>Cancelar</button>}</form>
+            <button className="aac-tool" disabled={!draft.trim()} onClick={() => { setQuickText(draft); setEditingQuick(null); }}>Añadir mi mensaje</button>
+            <ol>{quick.map((tile, index) => <li key={index}><span>{tile.text}</span><button className="aac-tool" onClick={() => { setEditingQuick(index); setQuickText(tile.text); }}>Editar<span className="sr-only">: {tile.text}</span></button><button className="aac-tool" disabled={index === 0} aria-label={'Mover antes: ' + tile.text} onClick={() => { const next = [...quick]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; if (saveQuick(next)) { setEditingQuick(null); setQuickText(''); } }}>↑</button><button className="aac-tool" aria-label={'Quitar frase rápida: ' + tile.text} onClick={() => { if (saveQuick(quick.filter((_, i) => i !== index))) { setEditingQuick(null); setQuickText(''); } }}>Quitar</button></li>)}</ol>
+            <p>Añadir una frase habitual:</p><div className="aac-phrase-presets">{AAC_VOCABULARY.social.slice(0, 5).map(tile => <button key={tile.text} className="aac-tool" disabled={quick.some(item => item.text === tile.text)} onClick={() => saveQuick([...quick, tile])}>{tile.text}</button>)}</div>
+          </details>}
           <Credits />
         </>}
 

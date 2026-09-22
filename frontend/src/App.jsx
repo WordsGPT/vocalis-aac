@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CommunicationBoard } from './components/CommunicationBoard';
 import { SettingsModal } from './components/SettingsModal';
+import { AAC_VOCABULARY, CORE_STRIP, QUICK_PHRASES } from './components/vocabulary';
+import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
 
 const DEFAULT_SETTINGS = {
+  grammaticalForm: 'masculine',
+  speakTiles: true,
   ttsMode: 'edge-tts', // 'edge-tts' | 'browser'
   edgeVoiceId: 'qwen-clone',
-  qwenEngine: 'standard', // 'standard' | 'streaming'
+  qwenEngine: 'streaming', // 'streaming' | 'standard'
   browserVoiceURI: '',
   speechRate: 1.0,
   speechPitch: 1.0,
@@ -22,6 +26,31 @@ const DEFAULT_SETTINGS = {
   suggestionCount: 6,
   autoTriggerDelay: 1500
 };
+
+function preparationPhrases(form) {
+  let quick = QUICK_PHRASES;
+  let saved = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem('vocalis_quick_phrases'));
+    if (Array.isArray(stored)) quick = stored.filter(item => typeof item?.text === 'string');
+  } catch { /* Use the built-in quick phrases. */ }
+  try {
+    const stored = JSON.parse(localStorage.getItem('vocalis_saved_phrases'));
+    if (Array.isArray(stored)) saved = stored.filter(text => typeof text === 'string' && text.trim());
+  } catch { /* No saved phrases yet. */ }
+  const frequent = [...new Set([
+    ...quick.map(item => item.text),
+    ...CORE_STRIP.map(item => item.text),
+    ...AAC_VOCABULARY.needs.slice(0, 4).map(item => item.text),
+    ...AAC_VOCABULARY.social.slice(0, 4).map(item => item.text),
+  ].map(text => personalForm(text, form)))];
+  const all = [...new Set([
+    ...frequent,
+    ...Object.values(AAC_VOCABULARY).flat().map(item => personalForm(item.text, form)),
+    ...saved,
+  ])];
+  return { frequent, all };
+}
 
 export function App() {
   // Load saved settings or defaults
@@ -89,6 +118,7 @@ export function App() {
 
   // TTS Hook
   const tts = useTTS(settings);
+  const phrasesToPrepare = preparationPhrases(settings.grammaticalForm);
 
   // Fetch Server Edge-TTS voices on mount
   useEffect(() => {
@@ -116,6 +146,7 @@ export function App() {
         text: heardSpeech,
         history: contextHistory,
         tone: settings.tone,
+        grammaticalForm: settings.grammaticalForm,
         count: settings.suggestionCount || 6,
         geminiApiKey: settings.geminiApiKey,
         groqApiKey: settings.groqApiKey,
@@ -131,7 +162,7 @@ export function App() {
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
     }
-  }, [history, settings.tone, settings.suggestionCount, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
+  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
 
   // Handle incoming speech recognized from partner
   const handleSpeechCompleted = useCallback((heardText) => {
@@ -149,10 +180,10 @@ export function App() {
   });
 
   // Action: User picks a response (or types) to speak aloud
-  const handleSelectAndSpeak = useCallback((text) => {
+  const handleSelectAndSpeak = useCallback((text, options) => {
     if (!text || !text.trim()) return;
     if (stt.isListening) stt.stopListening();
-    tts.speak(text.trim());
+    tts.speak(text.trim(), options);
     addToHistory('user', text.trim());
   }, [tts, addToHistory, stt]);
 
@@ -163,6 +194,7 @@ export function App() {
   return (
     <div className="vocalis-redesign">
       <CommunicationBoard
+        settings={settings}
         tts={tts}
         stt={stt}
         suggestions={suggestions}
@@ -185,10 +217,17 @@ export function App() {
         browserVoices={tts.browserVoices}
         edgeVoices={edgeVoices}
         onTestVoice={handleTestVoice}
-        onVoiceCloned={(voiceId) => handleUpdateSettings({
-          ttsMode: 'edge-tts',
-          edgeVoiceId: voiceId || 'qwen-clone'
-        })}
+        preparationCounts={{ frequent: phrasesToPrepare.frequent.length, all: phrasesToPrepare.all.length }}
+        onPreparePhrases={(scope, onProgress) => tts.preparePhrases(phrasesToPrepare[scope], onProgress)}
+        onCancelPreparation={tts.cancelPreparation}
+        onVoiceCloned={(voiceId) => {
+          tts.clearCache();
+          handleUpdateSettings({
+            ttsMode: 'edge-tts',
+            edgeVoiceId: voiceId || 'qwen-clone',
+            voiceRevision: String(Date.now())
+          });
+        }}
       />
     </div>
   );

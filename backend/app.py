@@ -4,6 +4,7 @@ import asyncio
 import subprocess
 import tempfile
 import logging
+import wave
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -96,6 +97,7 @@ def get_whisper_model():
 class SuggestRequest(BaseModel):
     text: str
     history: Optional[List[Dict[str, str]]] = None
+    grammatical_form: str = "masculine"
     tone: Optional[str] = "natural"
     count: Optional[int] = 6
     gemini_api_key: Optional[str] = None
@@ -188,12 +190,21 @@ async def clone_voice(
         if conversion.returncode != 0:
             raise ValueError(conversion.stderr.strip() or "Formato de audio no compatible")
 
+        with wave.open(wav_path, "rb") as sample_wav:
+            duration = sample_wav.getnframes() / sample_wav.getframerate()
+        if duration < 6:
+            raise ValueError("La muestra debe durar al menos 6 segundos. Recomendamos entre 8 y 15.")
+        if duration > 30:
+            raise ValueError("La muestra no puede durar más de 30 segundos.")
+
         await asyncio.to_thread(qwen_voice.clone_from_audio, wav_path, x_vocalis_client)
         return {
             "status": "ready",
-            "message": "Voz clonada y lista para usar.",
+            "message": "Perfil guardado para los modos rápido y estándar.",
             "voice_id": "qwen-clone",
         }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         logger.error(f"Voice cloning error: {exc}")
         raise HTTPException(status_code=500, detail=f"No se pudo clonar la voz: {exc}")
@@ -211,6 +222,7 @@ async def suggest(req: SuggestRequest):
         partner_text=req.text,
         history=req.history,
         tone=req.tone or "natural",
+        grammatical_form=req.grammatical_form,
         count=req.count or 6,
         gemini_api_key=req.gemini_api_key,
         groq_api_key=req.groq_api_key,

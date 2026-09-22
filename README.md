@@ -89,10 +89,27 @@ Profiles saved by the 1.7B model are adapted automatically for 0.6B by decoding
 their saved reference speech codes and re-extracting the correctly sized speaker
 embedding. The original profile is never overwritten.
 
-The settings panel can record or upload a new 8–15 second voice sample. Vocalis
-uses Qwen's speaker-embedding mode, so the user does not need to type a
-transcript. Choosing **Crear y usar esta voz** intentionally replaces the active
+The settings panel can record or upload a new voice sample. Recording stops
+automatically after 15 seconds; 8–15 seconds is recommended, and samples must
+be 6–30 seconds long. Vocalis uses Qwen's speaker-embedding mode, so the user
+does not need to type a transcript. One saved profile is shared by the standard
+and streaming modes. Choosing **Crear y usar esta voz** replaces the active
 saved profile after the user confirms consent.
+
+Completed phrases are kept in a bounded in-memory audio cache for immediate
+replay in the same tab. The cache covers both Qwen modes and Edge-TTS, and is
+cleared when a new voice profile is created. Reloading the page starts a fresh
+cache; browser system voices continue to use the browser's own synthesis.
+
+For the AAC board, tapping a pictogram adds and speaks that segment. This can be
+turned off in voice settings. **Hablar** always speaks the whole composed
+sentence as one utterance. Voice settings offer two preparation choices:
+frequent phrases, or the full board (including unique tile texts, custom quick
+phrases, and saved phrases). Clips are generated one at a time and saved on this
+device for fast playback after a reload. A full-board pass can take a long time;
+progress is shown, it can be stopped and resumed, and preparation stops when
+the user starts speaking. Available device storage may limit how many clips
+can be kept. A new cloned voice clears the saved clips.
 
 For GPU attention, `QWEN_TTS_ATTENTION=auto` prefers FlashAttention 2 when the
 `flash-attn` package is installed and otherwise uses Qwen's eager path. To install

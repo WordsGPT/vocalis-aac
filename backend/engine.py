@@ -29,6 +29,22 @@ def get_server_groq_api_key() -> str:
     except OSError:
         return ""
 
+def grammatical_instruction(form: str) -> str:
+    if form == "feminine":
+        return "Al describirme usa el femenino singular (estoy cansada, estoy segura). No cambies el género de otras personas."
+    return "Al describirme usa el masculino singular (estoy cansado, estoy seguro). No cambies el género de otras personas."
+
+
+def personal_form(text: str, form: str) -> str:
+    if form != "feminine":
+        return text
+    adjectives = "contento|enfadado|nervioso|tranquilo|sorprendido|aburrido|preocupado|emocionado|solo|cansado|mareado|seguro|ocupado|listo"
+    return re.sub(
+        rf"(\b(?:estoy|me siento|no estoy|aún no estoy|^un poco)\s+(?:(?:muy|totalmente|un poco)\s+)?)({adjectives})\b",
+        lambda match: match[1] + match[2][:-1] + "a", text, flags=re.IGNORECASE,
+    )
+
+
 HEURISTIC_TEMPLATES = [
     # Question patterns in Spanish (and English):
     {
@@ -275,7 +291,8 @@ def generate_responses_ollama(
     history: Optional[List[Dict[str, str]]] = None,
     tone: str = "natural",
     count: int = 6,
-    model: str = DEFAULT_OLLAMA_MODEL
+    model: str = DEFAULT_OLLAMA_MODEL,
+    grammatical_form: str = "masculine"
 ) -> Optional[List[str]]:
     """Calls local Ollama server with structured JSON schema for AAC responses."""
     tone_instruction = {
@@ -299,6 +316,7 @@ Incluye:
 6. Pedir tiempo para pensar o pausar
 
 Tono: {tone_instruction}
+{grammatical_instruction(grammatical_form)}
 Reglas:
 - Habla directamente en primera persona ("yo", "me", "nosotros").
 - Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 4 a 12 palabras).
@@ -337,7 +355,8 @@ def generate_responses_gemini(
     partner_text: str,
     api_key: str,
     tone: str = "natural",
-    count: int = 6
+    count: int = 6,
+    grammatical_form: str = "masculine"
 ) -> Optional[List[str]]:
     """Calls Gemini REST API with user's key if configured."""
     if not api_key:
@@ -348,6 +367,7 @@ def generate_responses_gemini(
 Le acaban de decir:
 "{partner_text}"
 
+{grammatical_instruction(grammatical_form)}
 Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL:
 - Acuerdo entusiasta
 - Aceptación suave
@@ -384,7 +404,8 @@ def generate_responses_groq(
     history: Optional[List[Dict[str, str]]] = None,
     tone: str = "natural",
     count: int = 6,
-    model: str = DEFAULT_GROQ_MODEL
+    model: str = DEFAULT_GROQ_MODEL,
+    grammatical_form: str = "masculine"
 ) -> Optional[List[str]]:
     """Calls Groq API for ultra-fast (100ms) high quality LLM inference."""
     key = (api_key or "").strip() or get_server_groq_api_key()
@@ -406,6 +427,7 @@ En el historial de mensajes:
 El interlocutor acaba de decir el último mensaje.
 Sugiere exactamente {count} respuestas que la persona no verbal podría decir ahora. Devuelve JSON con la clave "suggestions".
 Tono: {tone_instruction}
+{grammatical_instruction(grammatical_form)}
 Reglas estrictas:
 - Las {count} respuestas DEBEN estar en ESPAÑOL.
 - Cada opción debe responder directamente al significado del ÚLTIMO mensaje y conservar su tema concreto.
@@ -482,7 +504,8 @@ def get_smart_suggestions(
     count: int = 6,
     gemini_api_key: Optional[str] = None,
     groq_api_key: Optional[str] = None,
-    preferred_engine: str = "groq"
+    preferred_engine: str = "groq",
+    grammatical_form: str = "masculine"
 ) -> Dict[str, Any]:
     """
     Returns up to `count` (default 6) smart responses using the best available engine.
@@ -510,28 +533,28 @@ def get_smart_suggestions(
 
     # 1. Try Groq (Default / Primary)
     if preferred_engine in ["groq", "auto"] or (groq_api_key and preferred_engine != "ollama"):
-        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count)
+        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form)
         if responses:
-            return {"suggestions": responses, "engine": "groq"}
+            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "groq"}
 
     # 2. Try Gemini if specifically requested
     if preferred_engine == "gemini" and gemini_api_key:
-        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count)
+        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count, grammatical_form=grammatical_form)
         if responses:
-            return {"suggestions": responses, "engine": "gemini"}
+            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "gemini"}
 
     # 3. Try Ollama (local gemma3)
     if preferred_engine in ["auto", "ollama"]:
-        responses = generate_responses_ollama(partner_text, history, tone, count=target_count)
+        responses = generate_responses_ollama(partner_text, history, tone, count=target_count, grammatical_form=grammatical_form)
         if responses:
-            return {"suggestions": responses, "engine": "ollama"}
+            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "ollama"}
 
     # 4. If Gemini key was provided in auto mode
     if preferred_engine == "auto" and gemini_api_key:
-        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count)
+        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count, grammatical_form=grammatical_form)
         if responses:
-            return {"suggestions": responses, "engine": "gemini"}
+            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "gemini"}
 
     # 5. Instant heuristic fallback
     responses = generate_heuristic_responses(partner_text, count=target_count)
-    return {"suggestions": responses, "engine": "heuristic"}
+    return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "heuristic"}

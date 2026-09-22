@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
 
@@ -10,9 +10,33 @@ export function SettingsModal({
   browserVoices = [],
   edgeVoices = [],
   onTestVoice,
+  preparationCounts = { frequent: 0, all: 0 },
+  onPreparePhrases,
+  onCancelPreparation,
   onVoiceCloned
 }) {
   const dialogRef = useRef(null);
+  const [preparing, setPreparing] = useState(false);
+  const [preparingScope, setPreparingScope] = useState(null);
+  const [preparationStatus, setPreparationStatus] = useState('');
+  const preparePhrases = async (scope) => {
+    setPreparing(true);
+    setPreparingScope(scope);
+    setPreparationStatus(scope === 'all' ? 'Preparando todo el tablero…' : 'Preparando frases frecuentes…');
+    try {
+      const result = await onPreparePhrases(scope, (completed, total) => setPreparationStatus(`Preparadas ${completed} de ${total} frases…`));
+      setPreparationStatus(result.cancelled
+        ? `Preparación detenida. ${result.completed} frases listas.`
+        : result.failed
+          ? `Preparadas ${result.completed} de ${result.total}. No se pudo continuar; comprueba la voz y el espacio disponible.`
+          : `Listas ${result.completed} de ${result.total} frases para reproducir al instante.`);
+    } catch {
+      setPreparationStatus('No se pudieron preparar las frases. Comprueba la conexión de voz.');
+    } finally {
+      setPreparing(false);
+      setPreparingScope(null);
+    }
+  };
   useEffect(() => {
     if (!isOpen) return;
     const previous = document.activeElement;
@@ -22,7 +46,7 @@ export function SettingsModal({
     const handleKey = (event) => {
       if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
       if (event.key !== 'Tab') return;
-      const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter(node => node.getClientRects().length);
+      const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]')].filter(node => node.getClientRects().length);
       const first = nodes[0]; const last = nodes[nodes.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -40,7 +64,7 @@ export function SettingsModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-blue-400" />
-            <h2 id="voice-settings-title" className="text-lg font-bold text-white m-0">Ajustes y Perfil de Voz</h2>
+            <h2 id="voice-settings-title" className="text-lg font-bold text-white m-0">Ajustes y voz</h2>
           </div>
           <button
             onClick={onClose}
@@ -53,12 +77,20 @@ export function SettingsModal({
 
         {/* Modal Body */}
         <div className="settings-body p-5 sm:p-6 overflow-y-auto space-y-6 text-sm">
+          <div>
+            <label htmlFor="grammatical-form" className="block text-sm font-semibold mb-2">Cómo hablo de mí</label>
+            <select id="grammatical-form" className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700" value={settings.grammaticalForm || 'masculine'} onChange={event => onUpdateSettings({ grammaticalForm: event.target.value })}>
+              <option value="masculine">Masculino: estoy cansado</option>
+              <option value="feminine">Femenino: estoy cansada</option>
+            </select>
+            <p className="text-xs text-slate-400 mt-2">Se aplica al tablero y a las nuevas respuestas sugeridas. Tus mensajes escritos y guardados conservan tus palabras.</p>
+          </div>
           {/* 1. Voice & TTS Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 m-0">
                 <Volume2 className="w-4 h-4 text-blue-400" />
-                Voz del Sintetizador (TTS)
+                Mi voz
               </h3>
               <button
                 type="button"
@@ -66,7 +98,7 @@ export function SettingsModal({
                 className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 cursor-pointer font-bold transition-colors"
               >
                 <Volume2 className="w-3.5 h-3.5" />
-                Probar Voz
+                Probar voz
               </button>
             </div>
 
@@ -81,8 +113,8 @@ export function SettingsModal({
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz clonada / Neural (Recomendado)</div>
-                <div className="text-[11px] text-slate-400">Tu voz Qwen o voces Edge de respaldo</div>
+                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz personal o del catálogo</div>
+                <div className="text-[11px] text-slate-400">Elige tu voz guardada u otra voz</div>
               </button>
 
               <button
@@ -94,15 +126,15 @@ export function SettingsModal({
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz Nativa del Sistema</div>
-                <div className="text-[11px] text-slate-400">Sin internet, voces del navegador</div>
+                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz del dispositivo</div>
+                <div className="text-[11px] text-slate-400">Usa las voces disponibles en este dispositivo</div>
               </button>
             </div>
 
             {/* Voice dropdown */}
             <div className="mb-3">
               <label className="block text-xs text-slate-400 mb-1">Voz seleccionada:</label>
-              {settings.ttsMode === 'edge-tts' ? (
+            {settings.ttsMode === 'edge-tts' ? (
                 <select
                   value={settings.edgeVoiceId || 'qwen-clone'}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
@@ -132,39 +164,6 @@ export function SettingsModal({
                 </select>
               )}
             </div>
-
-            {settings.ttsMode === 'edge-tts' && (settings.edgeVoiceId || 'qwen-clone') === 'qwen-clone' && (
-              <div className="mb-4">
-                <label className="block text-xs text-slate-400 mb-1.5">Motor de la voz clonada:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onUpdateSettings({ qwenEngine: 'streaming' })}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                      settings.qwenEngine === 'streaming'
-                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
-                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Rápido · streaming</div>
-                    <div className="text-[11px] text-slate-400">Empieza a hablar mientras genera</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateSettings({ qwenEngine: 'standard' })}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                      settings.qwenEngine !== 'streaming'
-                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
-                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Estándar · WAV completo</div>
-                    <div className="text-[11px] text-slate-400">Motor anterior, más lento y conservador</div>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1.5 mb-0">Ambos motores usan la misma voz guardada en este dispositivo.</p>
-              </div>
-            )}
 
             {/* Sliders for rate and pitch */}
             <div className="grid grid-cols-2 gap-4">
@@ -201,6 +200,29 @@ export function SettingsModal({
               </div>
             </div>
 
+            <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
+              <label className="flex items-start gap-3 cursor-pointer text-sm text-slate-200">
+                <input type="checkbox" checked={settings.speakTiles !== false}
+                  onChange={(event) => onUpdateSettings({ speakTiles: event.target.checked })}
+                  className="mt-1 accent-blue-600" />
+                <span><strong>Leer pictogramas al tocarlos</strong><br />Cada toque añade y dice esa palabra o frase. «Hablar» dice el mensaje completo con entonación natural.</span>
+              </label>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <button type="button" onClick={() => preparePhrases('frequent')} disabled={preparing || settings.ttsMode === 'browser'}
+                  className="px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold disabled:opacity-50">
+                  {preparingScope === 'frequent' ? 'Preparando…' : `Preparar frecuentes (${preparationCounts.frequent})`}
+                </button>
+                <button type="button" onClick={() => preparePhrases('all')} disabled={preparing || settings.ttsMode === 'browser'}
+                  className="px-3 py-2 rounded-lg border border-blue-500 text-blue-800 font-semibold disabled:opacity-50">
+                  {preparingScope === 'all' ? 'Preparando todo…' : `Preparar todo el tablero (${preparationCounts.all})`}
+                </button>
+                {preparing && <button type="button" onClick={() => onCancelPreparation?.()}
+                  className="px-3 py-2 rounded-lg border border-slate-600 text-slate-200">Detener</button>}
+              </div>
+              <p className="text-xs text-slate-400 mt-2 mb-0">Las frases rápidas van primero. Preparar todo incluye palabras, frases del tablero y tus frases guardadas; puede tardar bastante y necesita espacio en este dispositivo. Puedes detenerlo y reanudarlo después. Se interrumpe al hablar.</p>
+              {preparationStatus && <p className="text-xs text-slate-300 mt-2 mb-0" role="status">{preparationStatus}</p>}
+            </div>
+
             <VoiceCloner onCloned={onVoiceCloned} />
           </div>
 
@@ -210,45 +232,22 @@ export function SettingsModal({
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-3 m-0">
               <Sparkles className="w-4 h-4 text-indigo-400" />
-              Motor de Sugerencias Inteligentes IA
+              Respuestas sugeridas
             </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              {[
-                { id: 'groq', label: 'Groq', desc: 'Respuestas en la nube' },
-                { id: 'ollama', label: 'Ollama', desc: 'Local Gemma 3' },
-                { id: 'gemini', label: 'Gemini', desc: 'Google Cloud' },
-                { id: 'heuristic', label: 'Heurístico', desc: 'Instantáneo offline' }
-              ].map((eng) => (
-                <button
-                  key={eng.id}
-                  type="button"
-                  onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
-                  className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
-                    settings.preferredEngine === eng.id
-                      ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 ring-1 ring-indigo-400'
-                      : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="font-semibold text-xs text-indigo-300">{eng.label}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{eng.desc}</div>
-                </button>
-              ))}
-            </div>
 
             {/* Tone Selector */}
             <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1">Personalidad y Tono de Respuesta:</label>
+              <label className="block text-xs text-slate-400 mb-1">Estilo de las respuestas:</label>
               <select
                 value={settings.tone || 'natural'}
                 onChange={(e) => onUpdateSettings({ tone: e.target.value })}
                 className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
               >
-                <option value="natural">Natural y Conversacional (Recomendado)</option>
-                <option value="casual">Informal, Cercano y Relajado</option>
-                <option value="professional">Educado, Formal y Claro</option>
-                <option value="concise">Conciso y Directo (3 a 6 palabras)</option>
-                <option value="warm">Cálido, Afectuoso y Empático</option>
+                <option value="natural">Natural (recomendado)</option>
+                <option value="casual">Informal y cercano</option>
+                <option value="professional">Formal y claro</option>
+                <option value="concise">Breve y directo</option>
+                <option value="warm">Cálido y afectuoso</option>
               </select>
             </div>
 
@@ -260,52 +259,14 @@ export function SettingsModal({
                 onChange={(e) => onUpdateSettings({ suggestionCount: parseInt(e.target.value, 10) })}
                 className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500 font-medium"
               >
-                <option value={3}>3 opciones (Compacto: Sí, Pregunta, No)</option>
+                <option value={3}>3 opciones</option>
                 <option value={4}>4 opciones</option>
                 <option value={5}>5 opciones</option>
-                <option value={6}>6 opciones (Recomendado: 6 posturas conversacionales completas)</option>
+                <option value={6}>6 opciones</option>
               </select>
             </div>
 
-            {/* Groq API Key */}
-            <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1 flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <Key className="w-3 h-3 text-amber-400" />
-                  <span>Clave de API de Groq (Inferencia Ultra-Rápida):</span>
-                </span>
-                {settings.groqApiKey && (
-                  <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
-                    <ShieldCheck className="w-3 h-3" /> Activa
-                  </span>
-                )}
-              </label>
-              <input
-                type="password"
-                value={settings.groqApiKey || ''}
-                onChange={(e) => onUpdateSettings({ groqApiKey: e.target.value })}
-                placeholder="gsk_..."
-                className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
 
-            {/* Optional Gemini API Key */}
-            <div>
-              <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
-                <Key className="w-3 h-3 text-slate-500" />
-                <span>Clave opcional de Google Gemini:</span>
-              </label>
-              <input
-                type="password"
-                value={settings.geminiApiKey || ''}
-                onChange={(e) => onUpdateSettings({ geminiApiKey: e.target.value })}
-                placeholder="AIzaSy..."
-                className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
-              />
-              <p className="text-[11px] text-slate-500 mt-1 mb-0">
-                Las claves se guardan de forma privada en tu navegador y en tu archivo local .env.
-              </p>
-            </div>
           </div>
 
           <hr className="border-slate-800" />
@@ -314,14 +275,14 @@ export function SettingsModal({
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-3 m-0">
               <Mic className="w-4 h-4 text-emerald-400" />
-              Reconocimiento de Voz del Interlocutor (STT)
+              Escuchar a la otra persona
             </h3>
 
             {/* Language Selector */}
             <div className="mb-3">
               <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
                 <Globe className="w-3.5 h-3.5 text-blue-400" />
-                <span>Idioma de Escucha:</span>
+                <span>Idioma de escucha:</span>
               </label>
               <select
                 value={settings.sttLang || 'es-ES'}
@@ -346,7 +307,7 @@ export function SettingsModal({
                 }`}
               >
                 <div className="font-semibold text-xs text-emerald-300 mb-0.5">Automático (recomendado)</div>
-                <div className="text-[11px] text-slate-400">Detecta cuándo hablas y transcribe al terminar</div>
+                <div className="text-[11px] text-slate-400">Detecta cuándo habla la otra persona y escribe al terminar</div>
               </button>
 
               <button
@@ -379,6 +340,101 @@ export function SettingsModal({
               />
             </div>
           </div>
+          <details className="settings-advanced"><summary>Ajustes avanzados</summary><div className="space-y-4 pt-4"><h3>Motor de respuestas</h3>            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {[
+                { id: 'groq', label: 'Groq', desc: 'Respuestas en la nube' },
+                { id: 'ollama', label: 'Ollama', desc: 'Local Gemma 3' },
+                { id: 'gemini', label: 'Gemini', desc: 'Google Cloud' },
+                { id: 'heuristic', label: 'Respuestas básicas', desc: 'Sin esperar a la IA' }
+              ].map((eng) => (
+                <button
+                  key={eng.id}
+                  type="button"
+                  onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
+                  className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
+                    settings.preferredEngine === eng.id
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 ring-1 ring-indigo-400'
+                      : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="font-semibold text-xs text-indigo-300">{eng.label}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{eng.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            {settings.ttsMode === 'edge-tts' && (settings.edgeVoiceId || 'qwen-clone') === 'qwen-clone' && (
+              <div className="mb-4">
+                <label className="block text-xs text-slate-400 mb-1.5">Motor de la voz clonada:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSettings({ qwenEngine: 'streaming' })}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
+                      settings.qwenEngine === 'streaming'
+                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
+                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz rápida</div>
+                    <div className="text-[11px] text-slate-400">Empieza a hablar mientras genera</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSettings({ qwenEngine: 'standard' })}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
+                      settings.qwenEngine === 'standard'
+                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
+                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz estándar</div>
+                    <div className="text-[11px] text-slate-400">Prepara el mensaje completo antes de hablar</div>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5 mb-0">Ambos motores usan la misma voz guardada en este dispositivo.</p>
+              </div>
+            )}
+
+            {/* Groq API Key */}
+            <div className="mb-3">
+              <label className="block text-xs text-slate-400 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Key className="w-3 h-3 text-amber-400" />
+                  <span>Clave de API de Groq:</span>
+                </span>
+                {settings.groqApiKey && (
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
+                    <ShieldCheck className="w-3 h-3" /> Activa
+                  </span>
+                )}
+              </label>
+              <input
+                type="password"
+                value={settings.groqApiKey || ''}
+                onChange={(e) => onUpdateSettings({ groqApiKey: e.target.value })}
+                placeholder="gsk_..."
+                className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
+              />
+            </div>
+
+            {/* Optional Gemini API Key */}
+            <div>
+              <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
+                <Key className="w-3 h-3 text-slate-500" />
+                <span>Clave opcional de Google Gemini:</span>
+              </label>
+              <input
+                type="password"
+                value={settings.geminiApiKey || ''}
+                onChange={(e) => onUpdateSettings({ geminiApiKey: e.target.value })}
+                placeholder="AIzaSy..."
+                className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
+              />
+              <p className="text-[11px] text-slate-500 mt-1 mb-0">
+                Las claves se guardan de forma privada en tu navegador y en tu archivo local .env.
+              </p>
+            </div></div></details>
         </div>
 
         {/* Modal Footer */}
@@ -388,7 +444,7 @@ export function SettingsModal({
             onClick={onClose}
             className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-md transition-colors"
           >
-            Guardar y Cerrar
+            Guardar y cerrar
           </button>
         </div>
       </div>
