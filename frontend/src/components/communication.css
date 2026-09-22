@@ -1,0 +1,154 @@
+/* Communication is a viewport workspace. Only .aac-scroll-area scrolls. */
+.vocalis-redesign { color-scheme: light; color: #25364b; background: #eef1f5; --focus: #244da8; }
+body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
+.aac-app { height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr); overflow: hidden; font-family: 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.4; }
+.aac-app > * { min-width: 0; }
+.aac-app * { box-sizing: border-box; }
+.aac-app [hidden] { display: none !important; }
+.aac-app h1, .aac-app h2, .aac-app p { margin: 0; }
+.aac-app button { cursor: pointer; touch-action: manipulation; }
+.aac-app button:disabled { opacity: .45; cursor: default; }
+.aac-app :is(button, a, input, textarea, summary):focus-visible { outline: 3px solid #254faf; outline-offset: 2px; }
+.aac-header { display: flex; align-items: center; gap: 18px; min-height: 54px; padding: 4px 22px; background: #fff; border-bottom: 1px solid #d8e0eb; }
+.aac-brand { display: flex; align-items: center; gap: 8px; color: #2853a3; font-size: 23px; font-weight: 750; letter-spacing: -.8px; }
+.aac-brand svg { width: 28px; height: 28px; }
+.aac-voice-label { margin-left: auto; font-size: 13px; color: #52647b; }
+.aac-tool, .aac-icon-tool { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #cad5e4; border-radius: 8px; background: #fff; color: #324b6b; font-size: 14px; font-weight: 600; padding: 8px 13px; }
+.aac-tool:hover, .aac-icon-tool:hover { background: #eaf0fb; }
+.aac-icon-tool { min-width: 44px; flex-shrink: 0; padding: 9px; }
+.aac-composer { background: #fff; padding: 12px 22px 7px; border-bottom: 1px solid #ced8e5; box-shadow: 0 3px 9px #21344c0a; z-index: 3; }
+.aac-message-line { display: flex; gap: 10px; align-items: stretch; }
+.aac-message-line textarea { flex: 1; min-width: 0; height: 74px; resize: none; padding: 11px 15px; border: 2px solid #afbed4; border-radius: 10px; background: #fbfcfe; font-size: 24px; line-height: 1.35; color: #203750; }
+.aac-message-line textarea::placeholder { color: #63758d; font-size: 20px; }
+.aac-edit-tools { display: flex; gap: 7px; }
+.aac-edit-tools .aac-tool { flex-direction: column; gap: 4px; width: 70px; font-size: 12px; }
+.aac-speak { display: flex; align-items: center; justify-content: center; gap: 12px; background: #2a56ad; color: #fff; border-radius: 10px; min-width: 150px; padding: 10px 22px; font-size: 23px; font-weight: 700; }
+.aac-speak:disabled { background: #b8c7e3; opacity: 1; color: #344f7c; }
+.aac-speak:hover:not(:disabled) { background: #1e448d; }
+.aac-speak.is-speaking { background: #a9383e; }
+.aac-sentence-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; min-height: 50px; }
+.aac-sentence-strip { display: flex; gap: 7px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding: 3px; align-items: center; height: 57px; }
+.aac-sentence-symbol { display: flex; align-items: center; flex-shrink: 0; gap: 6px; min-height: 44px; max-width: 240px; padding: 4px 8px; border: 1px solid #bacde7; border-radius: 7px; background: #eff5ff; font-size: 13px; }
+.aac-sentence-symbol img { width: 34px; height: 34px; object-fit: contain; background: white; border-radius: 4px; }
+.aac-sentence-symbol span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aac-sentence-symbol svg { flex-shrink: 0; }
+.aac-compose-hint { font-size: 13px; color: #5d6f86; }
+.aac-notice, .aac-error { font-size: 13px; padding: 5px 0; color: #2e684e; }
+.aac-error { color: #a02d36; }
+.aac-navigation { background: #f8fafd; border-bottom: 1px solid #d2dce9; padding: 0 22px; display: flex; align-items: center; gap: 20px; justify-content: space-between; z-index: 2; }
+.aac-tabs { display: flex; flex-shrink: 0; gap: 4px; }
+.aac-tabs button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 59px; padding: 10px 17px; border-bottom: 4px solid transparent; color: #526780; font-size: 15px; font-weight: 650; }
+.aac-tabs button[aria-selected=true] { color: #204994; border-bottom-color: #2855ac; background: #e8eef9; }
+.aac-mic-dot { width: 8px; height: 8px; border-radius: 50%; background: #bf363a; }
+.aac-quick { display: flex; gap: 6px; padding: 6px 0; }
+.aac-quick button { display: flex; gap: 6px; align-items: center; min-width: 0; min-height: 45px; padding: 4px 9px; border: 1px solid #cbd7e6; border-radius: 7px; background: white; font-size: 12px; font-weight: 650; color: #324b6b; }
+.aac-quick img { width: 30px; height: 30px; object-fit: contain; }
+.aac-quick .aac-help { border-color: #d9999b; color: #8b2329; background: #fff5f5; }
+.aac-scroll-area { overflow-y: auto; overscroll-behavior: contain; min-height: 0; scrollbar-color: #b0bfd1 #edf1f6; scroll-padding: 15px; }
+.aac-tab-content { max-width: 1500px; margin: 0 auto; padding: 18px 22px 24px; }
+.aac-board-toolbar { position: sticky; top: -1px; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 8px 0; margin-bottom: 12px; background: #eef1f5; }
+.aac-board-actions { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.aac-breadcrumb { display: flex; align-items: center; gap: 13px; }
+.aac-breadcrumb h1 { font-size: 22px; font-weight: 700; }
+.aac-search { display: flex; align-items: center; gap: 8px; background: white; border: 1px solid #c5d1e2; border-radius: 8px; padding: 0 10px; max-width: 280px; }
+.aac-search input { min-width: 0; width: 100%; height: 44px; border: 0; background: none; color: #263f5c; font-size: 14px; }
+.aac-search button { min-width: 40px; min-height: 44px; display: grid; place-items: center; }
+.aac-core-strip { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; margin-bottom: 18px; }
+.aac-core-strip button { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 5px; min-height: 62px; background: var(--tile-bg); border: 2px solid var(--tile-border); border-radius: 8px; font-weight: 650; }
+.aac-core-strip img { width: 44px; height: 44px; object-fit: contain; background: white; border-radius: 4px; }
+.aac-tile-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 12px; }
+.aac-tile-wrap { position: relative; min-width: 0; }
+.aac-app .aac-tile { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 163px !important; height: 100%; padding: 12px 8px 9px; background: var(--tile-bg, #fff); border: 2px solid var(--tile-border, #b2c6df); border-bottom-width: 5px; border-radius: 10px; color: #1d2c3e; box-shadow: none !important; transform: none !important; filter: none !important; }
+.aac-tile img { width: 96px; height: 96px; object-fit: contain; background: white; border-radius: 5px; }
+.aac-tile span { font-size: 18px; font-weight: 650; text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
+.aac-tile:hover, .aac-folder:hover { box-shadow: inset 0 0 0 2px #3a5c85; }
+.aac-tile:active { background: #d5e4fa; }
+.tone-pronoun { --tile-bg: #fff7d8; --tile-border: #d2b33c; }
+.tone-verb { --tile-bg: #e9f5e7; --tile-border: #81ae77; }
+.tone-social { --tile-bg: #f4eafb; --tile-border: #b492c9; }
+.tone-adjective { --tile-bg: #eaf3ff; --tile-border: #83abdc; }
+.tone-question { --tile-bg: #e7f7f5; --tile-border: #69aaa5; }
+.tone-priority { --tile-bg: #fff0ed; --tile-border: #cf887c; }
+.tone-noun { --tile-bg: #fff1df; --tile-border: #c9a36c; }
+.aac-folders { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; margin-top: 23px; border-top: 1px solid #cbd6e3; padding-top: 22px; }
+.aac-folders { margin-top: 0; border-top: 0; padding-top: 0; }
+.aac-folder { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 140px; padding: 10px; background: white; border: 2px solid var(--tile-border); border-top: 8px solid var(--tile-border); border-radius: 10px; color: #2b4059; font-weight: 650; font-size: 16px; }
+.aac-folder img { width: 65px; height: 65px; object-fit: contain; }
+.aac-folder>svg:last-child { position: absolute; bottom: 10px; right: 5px; }
+.aac-folder-mark { position: absolute; top: 8px; left: 8px; color: #61748a; }
+.pictogram-credit { color: #556980; font-size: 11px; text-align: center; padding-top: 20px; line-height: 1.8; }
+.pictogram-credit a { text-decoration: underline; }
+.aac-saved-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; font-size: 14px; color: #526880; }
+.aac-remove-saved { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #d0989e; border-radius: 7px; color: #9e343d; background: white; }
+.aac-empty { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; text-align: center; color: #526980; padding: 20px; }
+.aac-empty h2 { font-size: 21px; font-weight: 650; }
+.aac-conversation, .aac-history { max-width: 1100px; margin: auto; }
+.aac-section-heading { display: flex; justify-content: space-between; gap: 15px; align-items: center; margin: 4px 0 20px; }
+.aac-section-heading h1 { font-size: 25px; font-weight: 700; }.aac-section-heading p { margin-top: 5px; color: #526980; font-size: 15px; }
+.aac-hearing { border: 1px solid #c8d4e4; border-radius: 12px; padding: 20px; background: white; }
+.aac-hearing-controls { display: flex; align-items: center; gap: 20px; }
+.aac-listen { display: flex; align-items: center; gap: 10px; justify-content: center; min-height: 54px; min-width: 150px; padding: 10px 20px; background: #2753aa; color: white; border-radius: 8px; font-size: 18px; font-weight: 650; }
+.aac-listen.active { background: #a5363d; }
+.aac-hearing-status { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #566c84; }
+.aac-hearing-status meter { width: 140px; height: 12px; }
+.aac-heard { font-size: 22px; line-height: 1.5; padding: 20px 0; overflow-wrap: anywhere; }
+.aac-partner-input { border-top: 1px solid #dce3ed; padding-top: 8px; color: #445e7e; font-size: 14px; }
+.aac-partner-input summary { cursor: pointer; padding: 10px 0; min-height: 44px; }
+.aac-partner-input form { display: grid; gap: 9px; padding: 10px 0; }
+.aac-partner-input input { background: #f8fafd; color: #233d5a; padding: 12px; min-width: 0; border: 1px solid #b2c2d8; border-radius: 8px; }
+.aac-reply-heading { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 14px; gap: 10px; }
+.aac-reply-heading h2 { font-size: 20px; font-weight: 650; }
+.aac-replies { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
+.aac-reply { background: white; border: 2px solid #bacce5; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.aac-reply-speak { display: flex; align-items: center; flex: 1; gap: 10px; min-height: 125px; padding: 18px 15px; text-align: left; font-size: 19px; color: #243b58; }
+.aac-reply-speak:hover { background: #edf3ff; }
+.aac-reply-speak svg { flex-shrink: 0; color: #365fa4; margin-left: auto; }
+.aac-reply-number { font-size: 12px; color: #526c8d; align-self: flex-start; border: 1px solid #c7d3e4; border-radius: 4px; padding: 2px 5px; }
+.aac-reply-edit { display: flex; align-items: center; gap: 9px; padding: 10px 14px; min-height: 44px; border-top: 1px solid #d9e1ec; background: #f4f7fc; color: #3c587c; font-size: 13px; }
+.aac-conversation-note, .aac-empty-replies { font-size: 14px; color: #516780; margin: 17px 0 !important; }
+.aac-loading { padding: 30px; background: #e7efff; border-radius: 10px; color: #2c5297; margin-bottom: 15px !important; }
+.aac-history ol { padding: 0; list-style: none; display: grid; gap: 13px; }
+.aac-history li { display: flex; gap: 10px; align-items: center; background: white; border: 1px solid #cbd8e8; border-radius: 10px; padding: 17px; }
+.aac-history li>div { flex: 1; min-width: 0; }.aac-history li small { color: #566c87; }.aac-history li p { font-size: 19px; margin-top: 6px; overflow-wrap: anywhere; }
+.aac-history li.aac-history-self { background: #edf3ff; margin-left: 25px; }
+/* Existing settings and clone controls remain functional inside the new workspace. */
+.vocalis-redesign .settings-backdrop { background: #1b2c4c66 !important; backdrop-filter: blur(5px) !important; }
+.vocalis-redesign .settings-dialog { background: white !important; color: #30425d; box-shadow: 0 25px 100px #12234340 !important; border: 1px solid #dae2ed; }
+.vocalis-redesign .settings-dialog [class*="bg-slate-"] { background-color: #f3f6fa; }
+.vocalis-redesign .settings-dialog [class*="border-slate-"] { border-color: #dce3ee; }
+.vocalis-redesign .settings-dialog [class*="text-slate-"], .vocalis-redesign .settings-dialog h2 { color: #4b5d77; }
+.vocalis-redesign .settings-dialog :is([class*="text-blue-"], [class*="text-violet-"], [class*="text-emerald-"], [class*="text-purple-"], [class*="text-indigo-"]) { color: #3c539a; }
+.vocalis-redesign .settings-dialog input:not([type=checkbox]):not([type=range]), .vocalis-redesign .settings-dialog select { color: #2f405b; background: #fff; }
+.vocalis-redesign .settings-dialog button { min-height: 44px; }
+.vocalis-redesign .settings-dialog button[class*="text-white"] { color: #2f405b; }
+.vocalis-redesign .settings-dialog button.bg-blue-600, .vocalis-redesign .settings-dialog button.bg-violet-600 { color: white; }
+.vocalis-redesign .voice-cloner { background: #f4f2fc; border-color: #d9d4ee; }
+.vocalis-redesign .settings-dialog [class*="text-red-"] { color: #9d3d3d; }
+@media (max-width: 1100px) {
+  .aac-navigation { flex-wrap: wrap; gap: 0; }.aac-tabs { width: 100%; }.aac-tabs button { flex: 1; justify-content: center; min-height: 49px; }
+  .aac-quick { width: 100%; }.aac-quick button { flex: 1; justify-content: center; }
+  .aac-tile-grid { grid-template-columns: repeat(5,minmax(0,1fr)); }.aac-folders { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 700px) {
+  .aac-header { padding: 3px 12px; min-height: 45px; gap: 8px; }.aac-header .aac-tool { border: 0; padding: 7px; }.aac-header .aac-tool span { display: none; }.aac-brand { font-size: 21px; }.aac-voice-label { font-size: 11px; }
+  .aac-composer { padding: 8px 10px 4px; }.aac-message-line { gap: 6px; }.aac-message-line textarea { font-size: 20px; height: 92px; padding: 8px; }.aac-message-line textarea::placeholder { font-size: 16px; }
+  .aac-edit-tools { flex-direction: column; gap: 4px; }.aac-edit-tools .aac-tool { width: 44px; min-height: 44px; padding: 5px; }.aac-edit-tools span { display: none; }.aac-edit-tools svg { width: 21px; height: 21px; }
+  .aac-speak { min-width: 76px; padding: 8px; flex-direction: column; gap: 4px; font-size: 14px; }.aac-speak svg { width: 24px; height: 24px; }
+  .aac-sentence-row { gap: 3px; min-height: 45px; margin-top: 2px; }.aac-sentence-strip { height: 48px; }.aac-sentence-symbol { font-size: 11px; min-height: 40px; }.aac-sentence-symbol img { width: 28px; height: 28px; }.aac-compose-hint { font-size: 11px; }.aac-icon-tool { min-width: 40px; min-height: 42px; padding: 8px; }
+  .aac-navigation { padding: 0 10px; }.aac-tabs button { font-size: 13px; min-height: 46px; padding: 9px 5px; gap: 6px; }.aac-tabs svg { width: 18px; }
+  .aac-quick { gap: 4px; padding: 5px 0; }.aac-quick button { font-size: 11px; padding: 3px 5px; gap: 4px; }.aac-quick button svg { display: none; }.aac-quick img { width: 24px; height: 24px; }.aac-quick button:nth-child(-n+2) { flex: 0 0 49px; }
+  .aac-tab-content { padding: 12px 10px 20px; }.aac-board-toolbar { flex-wrap: wrap; margin-bottom: 12px; gap: 10px; }.aac-breadcrumb h1 { font-size: 19px; }.aac-search { max-width: 170px; padding: 0 6px; }.aac-search input { font-size: 12px; height: 40px; }
+  .aac-tile-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }.aac-app .aac-tile { min-height: 130px !important; padding: 8px 4px; gap: 5px; }.aac-tile img { width: 75px; height: 75px; }.aac-tile span { font-size: 15px; }
+  .aac-core-strip { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin-bottom: 12px; }.aac-core-strip button { min-height: 48px; gap: 4px; font-size: 12px; }.aac-core-strip img { width: 32px; height: 32px; }
+  .aac-folders { gap: 8px; margin-top: 15px; padding-top: 15px; }.aac-folder { min-height: 125px; padding: 8px 5px; font-size: 13px; }.aac-folder img { width: 61px; height: 61px; }.aac-folder>svg:last-child { display: none; }.pictogram-credit { font-size: 10px; }
+  .aac-section-heading { flex-wrap: wrap; margin-bottom: 15px; }.aac-section-heading h1 { font-size: 22px; }.aac-section-heading p { font-size: 13px; }
+  .aac-hearing { padding: 14px; }.aac-hearing-controls { gap: 12px; }.aac-listen { font-size: 16px; min-width: 135px; padding: 10px; }.aac-hearing-status { font-size: 11px; }.aac-hearing-status meter { width: 95px; }.aac-heard { font-size: 19px; }
+  .aac-replies { grid-template-columns: 1fr; gap: 10px; }.aac-reply-speak { min-height: 92px; font-size: 19px; }.aac-reply-heading h2 { font-size: 18px; }.aac-conversation-note { font-size: 12px; }
+  .aac-history li { padding: 12px; gap: 6px; }.aac-history li p { font-size: 17px; }.aac-history li.aac-history-self { margin-left: 10px; }
+}
+@media (max-width: 360px) { .aac-search { max-width: 135px; }.aac-quick button { font-size: 10px; }.aac-quick img { width: 20px; }.aac-voice-label { display: none; }.aac-header .aac-tool { margin-left: auto; } }
+@media (max-width: 700px) { .aac-board-actions { width: 100%; }.aac-board-actions .aac-search { flex: 1; max-width: none; }.aac-board-toolbar { gap: 6px; }.aac-breadcrumb h1 { font-size: 17px; } }
+@media (max-height: 520px) {
+  .aac-header { min-height: 36px; }.aac-composer { padding-top: 4px; }.aac-message-line textarea { height: 49px; }.aac-edit-tools { flex-direction: row; }.aac-edit-tools .aac-tool { min-height: 42px; }.aac-edit-tools span { display: none; }.aac-sentence-row { min-height: 35px; }.aac-sentence-strip { height: 36px; }.aac-sentence-symbol { min-height: 30px; }.aac-sentence-symbol img { width: 24px; height: 24px; }.aac-sentence-row .aac-icon-tool { min-height: 32px; }.aac-navigation { flex-wrap: nowrap; gap: 8px; }.aac-tabs { width: auto; }.aac-tabs button { min-height: 43px; }.aac-quick { width: auto; }.aac-quick button { min-height: 37px; }.aac-quick button span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .aac-app * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

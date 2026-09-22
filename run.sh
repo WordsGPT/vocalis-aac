@@ -39,14 +39,38 @@ fi
 
 # Function to kill child processes on exit
 cleanup() {
+    trap - SIGINT SIGTERM EXIT
     echo ""
     echo "Shutting down Vocalis AAC..."
-    kill $(jobs -p) 2>/dev/null || true
+    CHILD_PIDS="$(jobs -p)"
+    if [ -n "$CHILD_PIDS" ]; then
+        kill $CHILD_PIDS 2>/dev/null || true
+        for _ in {1..25}; do
+            REMAINING=""
+            for pid in $CHILD_PIDS; do
+                if kill -0 "$pid" 2>/dev/null; then REMAINING="$REMAINING $pid"; fi
+            done
+            [ -z "$REMAINING" ] && break
+            sleep 0.2
+        done
+        [ -n "$REMAINING" ] && kill -KILL $REMAINING 2>/dev/null || true
+    fi
     exit
 }
 trap cleanup SIGINT SIGTERM EXIT
 
 # Start Backend
+FAST_TTS_PYTHON="$DIR/../faster-qwen3-tts/.venv/bin/python"
+if [ -x "$FAST_TTS_PYTHON" ]; then
+    echo "⚡ Starting low-latency Qwen worker on http://127.0.0.1:8002..."
+    HF_HOME="${HF_HOME:-$DIR/../qwen3-tts-runtime/huggingface}" \
+        "$FAST_TTS_PYTHON" -m uvicorn backend.streaming_voice_server:app \
+        --host 127.0.0.1 --port 8002 &
+    STREAMING_TTS_PID=$!
+else
+    echo "⚠️  Low-latency Qwen environment is not installed; standard voice remains available."
+fi
+
 echo "🚀 Starting Python FastAPI backend on http://localhost:8000..."
 "$PYTHON_BIN" -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!

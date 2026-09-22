@@ -118,3 +118,22 @@ Open the **Settings** modal in the top right to customize:
 - **AI Tone**: Natural, Casual & Friendly, Professional, Concise (1-3 words), or Warm & Empathetic.
 - **AI Engine**: Auto, Local Ollama Gemma 3, Cloud Gemini, or Instant Heuristic.
 - **STT Engine**: Auto (Web Speech with Whisper fallback) or Dedicated Whisper GPU.
+### Optional low-latency cloned voice
+
+Vocalis can keep the original whole-WAV Qwen engine and run a second, isolated
+CUDA-graph engine that streams PCM while it generates. The UI exposes both in
+**Ajustes → Motor de la voz clonada** and defaults to the original engine.
+
+The streaming environment lives beside this repository so its Qwen and
+Transformers versions cannot replace the standard runtime:
+
+```bash
+git clone https://github.com/andimarafioti/faster-qwen3-tts.git ../faster-qwen3-tts
+uv venv --python 3.12 ../faster-qwen3-tts/.venv
+uv pip install --python ../faster-qwen3-tts/.venv/bin/python \
+  -e '../faster-qwen3-tts[demo]' 'transformers==5.15.1'
+```
+
+`run.sh` detects that environment and starts the private worker on
+`127.0.0.1:8002`. Both engines read the same device-scoped cloned voice files;
+the worker is never exposed directly through Tailscale.

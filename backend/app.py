@@ -4,15 +4,17 @@ import asyncio
 import subprocess
 import tempfile
 import logging
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import torch
+import httpx
 
 try:
     import edge_tts
@@ -48,15 +50,12 @@ async def preload_qwen_voice():
     """Move model/profile setup off the first press of the Speak button."""
     global _qwen_preload_task
     enabled = os.environ.get("QWEN_TTS_PRELOAD", "true").lower() in {"1", "true", "yes", "on"}
-    if not enabled or not qwen_voice.status().available:
+    if not enabled:
         return
 
     async def load_in_background():
         try:
-            await asyncio.to_thread(qwen_voice.load)
-            warmup = os.environ.get("QWEN_TTS_WARMUP", "true").lower() in {"1", "true", "yes", "on"}
-            if warmup:
-                await asyncio.to_thread(qwen_voice.synthesize, "Hola.", "Spanish")
+            await asyncio.to_thread(qwen_voice.preload_model)
             status = qwen_voice.status()
             logger.info("Qwen voice ready: model=%s attention=%s", status.model, status.attention)
         except Exception:
@@ -66,6 +65,22 @@ async def preload_qwen_voice():
 
 # Lazy-loaded Whisper model
 _whisper_model = None
+
+GROQ_API_KEY_FILE = Path(os.environ.get(
+    "GROQ_API_KEY_FILE",
+    Path(__file__).resolve().parents[2] / "qwen3-tts-runtime" / ".groq_api_key",
+))
+
+
+def get_groq_api_key():
+    """Read the shared key without ever returning or logging it."""
+    key = os.environ.get("GROQ_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        return GROQ_API_KEY_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
 
 def get_whisper_model():
     global _whisper_model
@@ -94,6 +109,8 @@ class TTSRequest(BaseModel):
     pitch: Optional[str] = "+0Hz"
     language: Optional[str] = "Spanish"
 
+STREAMING_TTS_URL = os.environ.get("STREAMING_TTS_URL", "http://127.0.0.1:8002")
+
 CURATED_VOICES = [
     {"id": "qwen-clone", "name": "Mi voz clonada (Qwen3-TTS)", "gender": "Custom", "lang": "es-ES"},
     {"id": "es-ES-AlvaroNeural", "name": "Álvaro (España, Natural)", "gender": "Male", "lang": "es-ES"},
@@ -109,7 +126,7 @@ CURATED_VOICES = [
 ]
 
 @app.get("/api/health")
-async def health():
+async def health(x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client")):
     cuda_available = torch.cuda.is_available()
     ollama_ok = False
     try:
@@ -119,13 +136,16 @@ async def health():
     except Exception:
         pass
     
-    clone_status = qwen_voice.status()
+    try:
+        clone_status = qwen_voice.status(x_vocalis_client) if x_vocalis_client else qwen_voice.status()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Identificador de dispositivo no válido.")
     return {
         "status": "healthy",
         "cuda": cuda_available,
         "ollama": ollama_ok,
-        "groq_ready": True,
-        "whisper_ready": _whisper_model is not None,
+        "groq_ready": bool(get_groq_api_key()),
+        "whisper_ready": bool(get_groq_api_key()) or whisper is not None,
         "tts": "qwen-clone ready" if clone_status.available else "edge-tts ready",
         "qwen_voice": clone_status.__dict__,
     }
@@ -135,7 +155,10 @@ async def list_voices():
     return CURATED_VOICES
 
 @app.post("/api/voice/clone")
-async def clone_voice(file: UploadFile = File(...)):
+async def clone_voice(
+    file: UploadFile = File(...),
+    x_vocalis_client: str = Header(..., alias="X-Vocalis-Client"),
+):
     """Build a Qwen speaker profile from a short recording; no transcript required."""
     content = await file.read()
     if not content:
@@ -165,7 +188,7 @@ async def clone_voice(file: UploadFile = File(...)):
         if conversion.returncode != 0:
             raise ValueError(conversion.stderr.strip() or "Formato de audio no compatible")
 
-        await asyncio.to_thread(qwen_voice.clone_from_audio, wav_path)
+        await asyncio.to_thread(qwen_voice.clone_from_audio, wav_path, x_vocalis_client)
         return {
             "status": "ready",
             "message": "Voz clonada y lista para usar.",
@@ -196,31 +219,59 @@ async def suggest(req: SuggestRequest):
     return res
 
 @app.post("/api/transcribe")
-async def transcribe_audio(file: UploadFile = File(...)):
-    """Transcribes an uploaded audio blob (webm, wav, ogg) using Whisper."""
+async def transcribe_audio(file: UploadFile = File(...), language: str = Form("es")):
+    """Transcribe browser audio with Groq Whisper, or local Whisper as fallback."""
+    tmp_path = None
     try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="La grabación está vacía.")
+        if len(content) > 25 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="La grabación no puede superar 25 MB.")
+
         suffix = os.path.splitext(file.filename or "audio.webm")[1] or ".webm"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp_path = tmp.name
-            content = await file.read()
             tmp.write(content)
-        
+
+        key = get_groq_api_key()
+        short_language = (language or "es").split("-")[0].lower()
+        if key:
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                with open(tmp_path, "rb") as audio:
+                    response = await client.post(
+                        "https://api.groq.com/openai/v1/audio/transcriptions",
+                        headers={"Authorization": f"Bearer {key}"},
+                        data={"model": "whisper-large-v3-turbo", "language": short_language},
+                        files={"file": (file.filename or f"recording{suffix}", audio, file.content_type or "audio/webm")},
+                    )
+            if response.is_error:
+                logger.error("Groq transcription failed with status %s", response.status_code)
+                raise HTTPException(status_code=502, detail="El servicio de transcripción no respondió correctamente.")
+            return {"text": response.json().get("text", "").strip(), "engine": "groq-whisper"}
+
         model = get_whisper_model()
-        result = model.transcribe(tmp_path, fp16=torch.cuda.is_available())
-        text = result.get("text", "").strip()
-        
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass
-            
-        return {"text": text}
+        result = await asyncio.to_thread(
+            model.transcribe,
+            tmp_path,
+            fp16=torch.cuda.is_available(),
+            language=short_language,
+        )
+        return {"text": result.get("text", "").strip(), "engine": "local-whisper"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Transcription error: {e}")
-        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="No se pudo transcribir el audio.")
+    finally:
+        if tmp_path:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
 
 @app.post("/api/tts")
-async def generate_tts(req: TTSRequest):
+async def generate_tts(req: TTSRequest, x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client")):
     """Synthesizes speech with the saved Qwen clone or an Edge-TTS voice."""
     text = (req.text or "").strip()
     if not text:
@@ -232,10 +283,13 @@ async def generate_tts(req: TTSRequest):
 
     try:
         if voice == "qwen-clone":
+            if not x_vocalis_client:
+                raise HTTPException(status_code=400, detail="Falta el identificador de este dispositivo.")
             audio = await asyncio.to_thread(
                 qwen_voice.synthesize,
                 text,
                 req.language or "Spanish",
+                x_vocalis_client,
             )
             return StreamingResponse(
                 io.BytesIO(audio),
@@ -257,9 +311,64 @@ async def generate_tts(req: TTSRequest):
             media_type="audio/mpeg",
             headers={"Content-Disposition": "inline; filename=speech.mp3"}
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"TTS error: {e}")
         raise HTTPException(status_code=500, detail=f"TTS synthesis failed: {str(e)}")
+
+
+@app.post("/api/tts/stream")
+async def stream_tts(req: TTSRequest, x_vocalis_client: str = Header(..., alias="X-Vocalis-Client")):
+    """Proxy true incremental PCM from the isolated CUDA-graph Qwen worker."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    if (req.voice or "qwen-clone") != "qwen-clone":
+        raise HTTPException(status_code=400, detail="La transmisión rápida solo está disponible para la voz clonada.")
+
+    client = httpx.AsyncClient(timeout=httpx.Timeout(None, connect=5.0))
+    try:
+        outgoing = client.build_request(
+            "POST",
+            f"{STREAMING_TTS_URL}/synthesize",
+            headers={"X-Vocalis-Client": x_vocalis_client},
+            json={"text": text, "language": req.language or "Spanish"},
+        )
+        response = await client.send(outgoing, stream=True)
+        if response.is_error:
+            body = await response.aread()
+            await response.aclose()
+            await client.aclose()
+            try:
+                detail = response.json().get("detail")
+            except Exception:
+                detail = body.decode("utf-8", errors="ignore")
+            raise HTTPException(status_code=response.status_code, detail=detail or "La voz rápida no está disponible.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        await client.aclose()
+        logger.error("Could not connect to streaming TTS worker: %s", exc)
+        raise HTTPException(status_code=503, detail="La voz rápida no está disponible todavía.")
+
+    async def proxy_audio():
+        try:
+            async for chunk in response.aiter_raw():
+                yield chunk
+        finally:
+            await response.aclose()
+            await client.aclose()
+
+    return StreamingResponse(
+        proxy_audio(),
+        media_type="audio/pcm",
+        headers={
+            "X-Audio-Sample-Rate": response.headers.get("X-Audio-Sample-Rate", "24000"),
+            "X-Audio-Channels": "1",
+            "Cache-Control": "no-store",
+        },
+    )
 
 # If frontend build exists, serve it
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")

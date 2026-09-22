@@ -1,137 +1,238 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchEdgeTTSAudio } from '../services/api';
+import { fetchEdgeTTSAudio, fetchStreamingTTSAudio } from '../services/api';
+
+const START_BUFFER_SECONDS = 0.2;
 
 export function useTTS(settings = {}) {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentText, setCurrentText] = useState('');
+  const [error, setError] = useState('');
   const [browserVoices, setBrowserVoices] = useState([]);
   const audioRef = useRef(null);
-
-  const ttsMode = settings.ttsMode || 'browser'; // 'browser' | 'edge-tts'
+  const streamAudioRef = useRef(null);
+  const urlRef = useRef(null);
+  const generation = useRef(0);
+  const abortRef = useRef(null);
+  const ttsMode = settings.ttsMode || 'browser';
+  const qwenEngine = settings.qwenEngine || 'standard';
   const browserVoiceURI = settings.browserVoiceURI || '';
-  const edgeVoiceId = settings.edgeVoiceId || 'es-ES-AlvaroNeural';
-  const speechRate = settings.speechRate ?? 1.0; // 0.5 - 1.5
-  const speechPitch = settings.speechPitch ?? 1.0; // 0.5 - 1.5
+  const edgeVoiceId = settings.edgeVoiceId || 'qwen-clone';
+  const speechRate = settings.speechRate ?? 1;
+  const speechPitch = settings.speechPitch ?? 1;
 
-  // Load browser voices
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (!window.speechSynthesis) return;
+    const update = () => setBrowserVoices(window.speechSynthesis.getVoices());
+    update();
+    window.speechSynthesis.addEventListener('voiceschanged', update);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', update);
+  }, []);
 
-    const updateVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        setBrowserVoices(voices);
+  const releaseAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    const streaming = streamAudioRef.current;
+    if (streaming) {
+      streamAudioRef.current = null;
+      clearTimeout(streaming.timer);
+      streaming.reader?.cancel().catch(() => {});
+      streaming.sources.forEach((source) => { try { source.stop(); } catch (_) {} });
+      streaming.context.close().catch(() => {});
+    }
+    if (urlRef.current) {
+      URL.revokeObjectURL(urlRef.current);
+      urlRef.current = null;
+    }
+  }, []);
+
+  const stop = useCallback(() => {
+    generation.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    window.speechSynthesis?.cancel();
+    releaseAudio();
+    setIsSpeaking(false);
+    setIsLoading(false);
+    setCurrentText('');
+  }, [releaseAudio]);
+
+  useEffect(() => () => {
+    generation.current += 1;
+    abortRef.current?.abort();
+    window.speechSynthesis?.cancel();
+    releaseAudio();
+  }, [releaseAudio]);
+
+  const playPcmStream = useCallback(async (response, signal, onFirstAudio) => {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) throw new Error('Este navegador no puede reproducir audio transmitido.');
+    const sampleRate = Number(response.headers.get('X-Audio-Sample-Rate')) || 24000;
+    const context = new AudioCtx();
+    await context.resume?.();
+    const reader = response.body.getReader();
+    const playback = { context, reader, sources: new Set(), timer: null };
+    streamAudioRef.current = playback;
+    let pending = new Uint8Array(0);
+    let started = false;
+    let nextStart = 0;
+    const startThreshold = Math.round(sampleRate * 2 * START_BUFFER_SECONDS);
+
+    const append = (left, right) => {
+      const joined = new Uint8Array(left.length + right.length);
+      joined.set(left);
+      joined.set(right, left.length);
+      return joined;
+    };
+    const schedule = (bytes) => {
+      const usableLength = bytes.length - (bytes.length % 2);
+      if (!usableLength) return bytes;
+      const view = new DataView(bytes.buffer, bytes.byteOffset, usableLength);
+      const samples = new Float32Array(usableLength / 2);
+      for (let i = 0; i < samples.length; i += 1) samples[i] = view.getInt16(i * 2, true) / 32768;
+      const buffer = context.createBuffer(1, samples.length, sampleRate);
+      buffer.copyToChannel(samples, 0);
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      source.onended = () => playback.sources.delete(source);
+      if (!started) {
+        started = true;
+        nextStart = context.currentTime + START_BUFFER_SECONDS;
+        onFirstAudio();
       }
+      source.start(nextStart);
+      nextStart += buffer.duration;
+      playback.sources.add(source);
+      return bytes.slice(usableLength);
     };
 
-    updateVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = updateVoices;
+    while (true) {
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const { value, done } = await reader.read();
+      if (value?.length) pending = append(pending, value);
+      if (!started && pending.length >= startThreshold) pending = schedule(pending);
+      else if (started && pending.length >= 2) pending = schedule(pending);
+      if (done) break;
     }
+    if (pending.length >= 2) pending = schedule(pending);
+    if (!started) throw new Error('El motor rápido no devolvió audio.');
+
+    const remainingMs = Math.max(0, (nextStart - context.currentTime) * 1000);
+    await new Promise((resolve, reject) => {
+      const abort = () => reject(new DOMException('Aborted', 'AbortError'));
+      signal.addEventListener('abort', abort, { once: true });
+      playback.timer = setTimeout(() => {
+        signal.removeEventListener('abort', abort);
+        resolve();
+      }, remainingMs + 30);
+    });
   }, []);
 
-  // Stop any active speech
-  const stop = useCallback(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsSpeaking(false);
-    setCurrentText('');
-  }, []);
-
-  // Speak a piece of text
-  const speak = useCallback(async (textToSpeak) => {
-    const text = (textToSpeak || '').trim();
+  const speak = useCallback(async (value) => {
+    const text = (value || '').trim();
     if (!text) return;
-
     stop();
+    const request = generation.current;
+    const isCurrent = () => generation.current === request;
+    setError('');
     setIsSpeaking(true);
     setCurrentText(text);
 
-    if (ttsMode === 'edge-tts') {
-      try {
-        const ratePercent = `${Math.round((speechRate - 1.0) * 100)}%`;
-        const rateParam = ratePercent.startsWith('-') ? ratePercent : `+${ratePercent}`;
-        const pitchHz = `${Math.round((speechPitch - 1.0) * 50)}Hz`;
-        const pitchParam = pitchHz.startsWith('-') ? pitchHz : `+${pitchHz}`;
-
-        const audioUrl = await fetchEdgeTTSAudio(text, edgeVoiceId, rateParam, pitchParam);
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-
-        audio.onended = () => {
-          setIsSpeaking(false);
-          setCurrentText('');
-        };
-        audio.onerror = (e) => {
-          console.warn('Edge-TTS playback failed, falling back to browser synthesis:', e);
-          fallbackBrowserSpeak(text);
-        };
-
-        await audio.play();
-        return;
-      } catch (err) {
-        console.warn('Edge-TTS request failed, using browser synthesis:', err);
-        fallbackBrowserSpeak(text);
-        return;
-      }
-    }
-
-    // Default: Browser Web SpeechSynthesis
-    fallbackBrowserSpeak(text);
-  }, [ttsMode, edgeVoiceId, browserVoiceURI, speechRate, speechPitch, stop]);
-
-  const fallbackBrowserSpeak = (text) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.warn('SpeechSynthesis is not supported in this browser.');
+    const finish = () => {
+      if (!isCurrent()) return;
+      releaseAudio();
+      setIsLoading(false);
       setIsSpeaking(false);
       setCurrentText('');
+    };
+    let browserFallbackStarted = false;
+    const browserSpeak = () => {
+      if (!isCurrent() || browserFallbackStarted) return;
+      browserFallbackStarted = true;
+      releaseAudio();
+      setIsLoading(false);
+      if (!window.speechSynthesis) {
+        setError('Este navegador no puede reproducir la voz.');
+        finish();
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = speechRate;
+      utterance.pitch = speechPitch;
+      utterance.voice = browserVoices.find((voice) => voice.voiceURI === browserVoiceURI)
+        || browserVoices.find((voice) => voice.lang?.startsWith('es')) || browserVoices[0] || null;
+      utterance.lang = utterance.voice?.lang || 'es-ES';
+      utterance.onend = finish;
+      utterance.onerror = () => {
+        if (!isCurrent()) return;
+        setError('No se pudo reproducir el mensaje. Comprueba el audio e inténtalo de nuevo.');
+        finish();
+      };
+      window.speechSynthesis.speak(utterance);
+    };
+    if (ttsMode === 'browser') {
+      browserSpeak();
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = speechRate;
-    utterance.pitch = speechPitch;
+    setIsLoading(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const playStandard = async () => {
+      const signed = (number) => (number >= 0 ? '+' : '') + number;
+      const url = await fetchEdgeTTSAudio(
+        text,
+        edgeVoiceId,
+        `${signed(Math.round((speechRate - 1) * 100))}%`,
+        `${signed(Math.round((speechPitch - 1) * 50))}Hz`,
+        controller.signal,
+      );
+      if (!isCurrent()) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+      urlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = finish;
+      audio.onerror = () => {
+        if (!isCurrent()) return;
+        setError('La voz seleccionada no está disponible. Usando la voz del navegador.');
+        browserSpeak();
+      };
+      await audio.play();
+      if (isCurrent()) setIsLoading(false);
+    };
 
-    if (browserVoiceURI) {
-      const selected = browserVoices.find((v) => v.voiceURI === browserVoiceURI);
-      if (selected) utterance.voice = selected;
-    } else {
-      // Pick Spanish voice by default if available
-      const preferred = browserVoices.find((v) => v.lang && v.lang.startsWith('es')) ||
-                        browserVoices.find((v) => v.default) ||
-                        browserVoices[0];
-      if (preferred) utterance.voice = preferred;
+    try {
+      const useStreaming = qwenEngine === 'streaming' && edgeVoiceId === 'qwen-clone';
+      if (useStreaming) {
+        try {
+          const response = await fetchStreamingTTSAudio(text, controller.signal);
+          await playPcmStream(response, controller.signal, () => {
+            if (isCurrent()) setIsLoading(false);
+          });
+          finish();
+          return;
+        } catch (problem) {
+          if (!isCurrent() || problem.name === 'AbortError') return;
+          releaseAudio();
+          setError('El motor rápido no está disponible; usando el motor estándar.');
+          setIsLoading(true);
+        }
+      }
+      await playStandard();
+    } catch (problem) {
+      if (!isCurrent() || problem.name === 'AbortError') return;
+      setError('La voz seleccionada no está disponible. Usando la voz del navegador.');
+      browserSpeak();
     }
-    utterance.lang = utterance.voice?.lang || 'es-ES';
+  }, [stop, releaseAudio, playPcmStream, ttsMode, qwenEngine, edgeVoiceId, browserVoiceURI, browserVoices, speechRate, speechPitch]);
 
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setCurrentText('');
-    };
-
-    utterance.onerror = (err) => {
-      console.error('SpeechSynthesis error:', err);
-      setIsSpeaking(false);
-      setCurrentText('');
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  return {
-    isSpeaking,
-    currentText,
-    browserVoices,
-    speak,
-    stop
-  };
+  return { isSpeaking, isLoading, currentText, error, browserVoices, speak, stop };
 }

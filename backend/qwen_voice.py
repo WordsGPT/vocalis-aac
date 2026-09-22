@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import importlib.util
 import os
 import tempfile
@@ -27,6 +28,10 @@ ATTENTION_MODE = os.environ.get("QWEN_TTS_ATTENTION", "auto").strip().lower()
 MAX_NEW_TOKENS = int(os.environ.get("QWEN_TTS_MAX_NEW_TOKENS", "256"))
 DEFAULT_PROFILE = Path(__file__).resolve().parents[2] / "qwen3-tts-runtime" / "saved_voice.pt"
 PROFILE_PATH = Path(os.environ.get("QWEN_VOICE_PROFILE", str(DEFAULT_PROFILE))).expanduser()
+PROFILE_DIRECTORY = Path(os.environ.get(
+    "QWEN_VOICE_PROFILE_DIRECTORY",
+    str(DEFAULT_PROFILE.parent / "voice_profiles"),
+)).expanduser()
 
 
 @dataclass(frozen=True)
@@ -44,16 +49,27 @@ class QwenVoiceClone:
 
     def __init__(self) -> None:
         self._model: Any = None
-        self._prompt: Any = None
+        self._prompts: dict[str, Any] = {}
         self._error: str | None = None
         self._attention: str | None = None
         self._lock = threading.Lock()
 
-    def status(self) -> VoiceStatus:
+    @staticmethod
+    def _profile_key(client_id: str) -> str:
+        if not client_id or len(client_id) > 200:
+            raise ValueError("A valid client ID is required")
+        return hashlib.sha256(client_id.encode("utf-8")).hexdigest()
+
+    def profile_path(self, client_id: str) -> Path:
+        return PROFILE_DIRECTORY / f"{self._profile_key(client_id)}.pt"
+
+    def status(self, client_id: str | None = None) -> VoiceStatus:
+        profile_path = self.profile_path(client_id) if client_id else PROFILE_PATH
+        key = self._profile_key(client_id) if client_id else "legacy"
         return VoiceStatus(
-            available=PROFILE_PATH.is_file(),
-            loaded=self._model is not None and self._prompt is not None,
-            profile=str(PROFILE_PATH),
+            available=profile_path.is_file(),
+            loaded=self._model is not None and key in self._prompts,
+            profile=str(profile_path),
             model=MODEL_ID,
             attention=self._attention,
             error=self._error,
@@ -133,32 +149,36 @@ class QwenVoiceClone:
             attn_implementation=self._attention,
         )
 
-    def _load(self) -> None:
-        if self._model is not None and self._prompt is not None:
+    def _load(self, client_id: str) -> None:
+        key = self._profile_key(client_id)
+        if self._model is not None and key in self._prompts:
             return
-        if not PROFILE_PATH.is_file():
-            raise RuntimeError(f"Voice profile not found: {PROFILE_PATH}")
+        profile_path = self.profile_path(client_id)
+        if not profile_path.is_file():
+            raise RuntimeError("No voice has been cloned on this device yet")
 
         import torch
         from qwen_tts import VoiceClonePromptItem
 
         self._load_model()
 
-        payload = torch.load(PROFILE_PATH, map_location="cpu", weights_only=True)
+        payload = torch.load(profile_path, map_location="cpu", weights_only=True)
         items = [
             self._profile_item(item, VoiceClonePromptItem)
             for item in payload.get("items", [])
         ]
         if not items:
             raise RuntimeError("The saved voice profile contains no prompt data")
-        self._prompt = items
+        self._prompts[key] = items
 
-    def clone_from_audio(self, audio_path: str) -> None:
+    def clone_from_audio(self, audio_path: str, client_id: str) -> None:
         """Create and persist a transcript-free speaker-embedding profile."""
         import torch
 
         with self._lock:
             try:
+                key = self._profile_key(client_id)
+                profile_path = self.profile_path(client_id)
                 self._load_model()
                 prompt = self._model.create_voice_clone_prompt(
                     ref_audio=audio_path,
@@ -168,9 +188,9 @@ class QwenVoiceClone:
                 if not prompt:
                     raise RuntimeError("Qwen did not create a voice profile")
 
-                PROFILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+                profile_path.parent.mkdir(parents=True, exist_ok=True)
                 with tempfile.NamedTemporaryFile(
-                    dir=PROFILE_PATH.parent,
+                    dir=profile_path.parent,
                     prefix=".voice-",
                     suffix=".pt",
                     delete=False,
@@ -179,21 +199,21 @@ class QwenVoiceClone:
                 try:
                     torch.save({"items": [asdict(item) for item in prompt]}, temporary_path)
                     temporary_path.chmod(0o600)
-                    temporary_path.replace(PROFILE_PATH)
+                    temporary_path.replace(profile_path)
                 finally:
                     temporary_path.unlink(missing_ok=True)
 
-                self._prompt = prompt
+                self._prompts[key] = prompt
                 self._error = None
             except Exception as exc:
                 self._error = f"{type(exc).__name__}: {exc}"
                 raise
 
-    def load(self) -> None:
-        """Load the configured model and adapt the saved prompt ahead of use."""
+    def preload_model(self) -> None:
+        """Load the shared model without loading any user's voice profile."""
         with self._lock:
             try:
-                self._load()
+                self._load_model()
                 self._error = None
             except Exception as exc:
                 self._error = f"{type(exc).__name__}: {exc}"
@@ -212,14 +232,15 @@ class QwenVoiceClone:
             wav_file.writeframes(pcm.tobytes())
         return output.getvalue()
 
-    def synthesize(self, text: str, language: str = "Spanish") -> bytes:
+    def synthesize(self, text: str, language: str, client_id: str) -> bytes:
         with self._lock:
             try:
-                self._load()
+                key = self._profile_key(client_id)
+                self._load(client_id)
                 wavs, sample_rate = self._model.generate_voice_clone(
                     text=text,
                     language=language,
-                    voice_clone_prompt=self._prompt,
+                    voice_clone_prompt=self._prompts[key],
                     # Protect interactive use from a rare missed end token. The
                     # text-relative cap remains generous for normal speech.
                     max_new_tokens=min(MAX_NEW_TOKENS, max(64, len(text) * 2)),

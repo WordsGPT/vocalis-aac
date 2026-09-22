@@ -1,0 +1,5 @@
+# Install in a separate virtual environment. qwen-tts-hf replaces the
+# standard qwen_tts package and must not be mixed with backend/requirements.txt.
+-e ../../faster-qwen3-tts[demo]
+# 5.17 currently breaks MimiConfig initialization in qwen-tts-hf 0.1.1.post1.
+transformers==5.15.1

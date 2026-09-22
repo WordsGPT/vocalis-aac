@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
 
@@ -12,16 +12,35 @@ export function SettingsModal({
   onTestVoice,
   onVoiceCloned
 }) {
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.focus();
+    const handleKey = (event) => {
+      if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
+      if (event.key !== 'Tab') return;
+      const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter(node => node.getClientRects().length);
+      const first = nodes[0]; const last = nodes[nodes.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    const dialog = dialogRef.current;
+    dialog?.addEventListener('keydown', handleKey);
+    return () => { dialog?.removeEventListener('keydown', handleKey); document.body.style.overflow = overflow; previous?.focus(); };
+  }, [isOpen, onClose]);
   if (!isOpen) return null;
 
   return (
     <div className="settings-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in">
-      <div className="settings-dialog rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden text-left">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="voice-settings-title" tabIndex={-1} className="settings-dialog rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden text-left">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-blue-400" />
-            <h2 className="text-lg font-bold text-white m-0">Ajustes y Perfil de Voz</h2>
+            <h2 id="voice-settings-title" className="text-lg font-bold text-white m-0">Ajustes y Perfil de Voz</h2>
           </div>
           <button
             onClick={onClose}
@@ -114,6 +133,39 @@ export function SettingsModal({
               )}
             </div>
 
+            {settings.ttsMode === 'edge-tts' && (settings.edgeVoiceId || 'qwen-clone') === 'qwen-clone' && (
+              <div className="mb-4">
+                <label className="block text-xs text-slate-400 mb-1.5">Motor de la voz clonada:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSettings({ qwenEngine: 'streaming' })}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
+                      settings.qwenEngine === 'streaming'
+                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
+                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Rápido · streaming</div>
+                    <div className="text-[11px] text-slate-400">Empieza a hablar mientras genera</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSettings({ qwenEngine: 'standard' })}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
+                      settings.qwenEngine !== 'streaming'
+                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
+                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Estándar · WAV completo</div>
+                    <div className="text-[11px] text-slate-400">Motor anterior, más lento y conservador</div>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5 mb-0">Ambos motores usan la misma voz guardada en este dispositivo.</p>
+              </div>
+            )}
+
             {/* Sliders for rate and pitch */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -163,7 +215,7 @@ export function SettingsModal({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {[
-                { id: 'groq', label: '⚡ Groq', desc: 'Ultra-rápido (~100ms)' },
+                { id: 'groq', label: 'Groq', desc: 'Respuestas en la nube' },
                 { id: 'ollama', label: 'Ollama', desc: 'Local Gemma 3' },
                 { id: 'gemini', label: 'Gemini', desc: 'Google Cloud' },
                 { id: 'heuristic', label: 'Heurístico', desc: 'Instantáneo offline' }
@@ -286,28 +338,28 @@ export function SettingsModal({
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 type="button"
-                onClick={() => onUpdateSettings({ sttMode: 'auto' })}
+                onClick={() => onUpdateSettings({ sttMode: 'whisper' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                  settings.sttMode === 'auto'
+                  settings.sttMode !== 'browser'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-emerald-300 mb-0.5">STT Automático (Híbrido)</div>
-                <div className="text-[11px] text-slate-400">Web Speech API nativo + Whisper</div>
+                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Automático (recomendado)</div>
+                <div className="text-[11px] text-slate-400">Detecta cuándo hablas y transcribe al terminar</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => onUpdateSettings({ sttMode: 'whisper' })}
+                onClick={() => onUpdateSettings({ sttMode: 'browser' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                  settings.sttMode === 'whisper'
+                  settings.sttMode === 'browser'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Whisper GPU Local</div>
-                <div className="text-[11px] text-slate-400">Alta precisión por audio local</div>
+                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Texto en directo</div>
+                <div className="text-[11px] text-slate-400">Más inmediato, pero depende del navegador</div>
               </button>
             </div>
 

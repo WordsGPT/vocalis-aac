@@ -1,0 +1,163 @@
+// ARASAAC pictograms: Sergio Palao / Gobierno de Aragón, CC BY-NC-SA 4.0.
+// Files are bundled locally; see public/pictograms/ATTRIBUTION.md.
+const tile = (text, pictogram, category = 'noun') => ({ text, pictogram, category });
+
+export const AAC_VOCABULARY = {
+  core: [
+    tile('Yo', 6632, 'pronoun'), tile('Tú', 6625, 'pronoun'), tile('Nosotros', 7185, 'pronoun'),
+    tile('Quiero', 5441, 'verb'), tile('Necesito', 37160, 'verb'), tile('Puedo', 35949, 'verb'),
+    tile('Tengo', 32761, 'verb'), tile('Ir', 8142, 'verb'), tile('Hacer', 32751, 'verb'),
+    tile('Ayuda', 4570, 'priority'), tile('Parar', 7196, 'priority'), tile('Me gusta', 7124, 'verb'),
+    tile('Sí', 5584, 'social'), tile('No', 5526, 'social'), tile('Por favor', 8195, 'social'),
+    tile('Gracias', 8129, 'social'), tile('Bien', 5397, 'adjective'), tile('Mal', 5504, 'adjective'),
+    tile('Más', 3220, 'adjective'), tile('Nada', 29839, 'adjective'), tile('Aquí', 5382, 'adjective'),
+    tile('Ahora', 32747, 'adjective'), tile('¿Qué?', 22620, 'question'), tile('¿Quién?', 9853, 'question'),
+    tile('¿Dónde?', 7764, 'question'), tile('¿Cuándo?', 32874, 'question'), tile('¿Por qué?', 36719, 'question'),
+  ],
+  social: [
+    tile('Hola', 6522, 'social'), tile('Adiós', 6028, 'social'), tile('Estoy bien, gracias.', 5397, 'social'),
+    tile('De nada.', 8129, 'social'), tile('De acuerdo.', 5584, 'social'), tile('No estoy de acuerdo.', 5526, 'social'),
+    tile('No lo entiendo.', 11697, 'social'), tile('¿Puedes repetir, por favor?', 11752, 'social'),
+    tile('Perdón.', 11625, 'social'), tile('Estoy pensando.', 8661, 'social'),
+    tile('Tengo una pregunta.', 9847, 'social'), tile('Buena idea.', 6019, 'social'),
+    tile('Me da igual.', 6517, 'social'), tile('Cuéntame más.', 6517, 'social'),
+    tile('¿Cómo estás?', 6517, 'question'), tile('Hasta luego.', 6028, 'social'),
+  ],
+  needs: [
+    tile('Espera un momento, por favor.', 8109, 'priority'), tile('Necesito ayuda.', 4570, 'priority'),
+    tile('Habla más despacio, por favor.', 4676, 'priority'), tile('Necesito ir al baño.', 6929, 'priority'),
+    tile('No me siento bien.', 5504, 'priority'), tile('Necesito descansar.', 3299, 'priority'),
+    tile('Necesito espacio.', 7253, 'priority'), tile('Quiero irme.', 8142, 'priority'),
+    tile('No me toques.', 7196, 'priority'), tile('Necesito silencio.', 6572, 'priority'),
+    tile('Enciende la luz.', 32757, 'verb'), tile('Apaga la luz.', 11751, 'verb'),
+    tile('Gracias por tu paciencia.', 27333, 'social'), tile('Uso este comunicador para hablar.', 6517, 'social'),
+  ],
+  people: [
+    tile('Yo', 6632, 'pronoun'), tile('Tú', 6625, 'pronoun'), tile('Nosotros', 7185, 'pronoun'),
+    tile('Mi madre', 31148), tile('Mi padre', 2497), tile('Mi familia', 38351),
+    tile('Mi hermano', 2423), tile('Mi hermana', 2422), tile('Mi pareja', 38937),
+    tile('Mi amigo', 25790), tile('El médico', 6561), tile('Mi profesor', 6556),
+    tile('Mi cuidador', 7163), tile('Alguien', 34560),
+  ],
+  feelings: [
+    tile('Estoy contento.', 35547, 'adjective'), tile('Estoy triste.', 35545, 'adjective'),
+    tile('Estoy enfadado.', 35539, 'adjective'), tile('Tengo miedo.', 35535, 'adjective'),
+    tile('Estoy nervioso.', 30391, 'adjective'), tile('Estoy tranquilo.', 31310, 'adjective'),
+    tile('Estoy sorprendido.', 35529, 'adjective'), tile('Estoy aburrido.', 35531, 'adjective'),
+    tile('Estoy preocupado.', 26985, 'adjective'), tile('Estoy emocionado.', 39090, 'adjective'),
+    tile('Me siento solo.', 7253, 'adjective'), tile('Estoy cansado.', 2314, 'adjective'),
+    tile('Me gusta.', 7124, 'verb'), tile('No me gusta.', 5526, 'verb'),
+    tile('Estoy bien.', 5397, 'adjective'), tile('Estoy mal.', 5504, 'adjective'),
+  ],
+  actions: [
+    tile('Ir', 8142, 'verb'), tile('Venir', 32669, 'verb'), tile('Hacer', 32751, 'verb'),
+    tile('Jugar', 23392, 'verb'), tile('Mirar', 6564, 'verb'), tile('Escuchar', 6572, 'verb'),
+    tile('Hablar', 6517, 'verb'), tile('Comprar', 8986, 'verb'), tile('Trabajar', 6624, 'verb'),
+    tile('Estudiar', 6495, 'verb'), tile('Abrir', 24825, 'verb'), tile('Cerrar', 24976, 'verb'),
+    tile('Dar', 28431, 'verb'), tile('Coger', 10148, 'verb'), tile('Esperar', 36914, 'verb'),
+    tile('Elegir', 30510, 'verb'), tile('Cambiar', 37360, 'verb'), tile('Empezar', 5431, 'verb'),
+    tile('Terminar', 28429, 'verb'), tile('Descansar', 3299, 'verb'),
+  ],
+  food: [
+    tile('Agua', 2248), tile('Café', 2296), tile('Té', 29802), tile('Zumo', 11461),
+    tile('Comida', 4610), tile('Fruta', 28339), tile('Comer', 2349, 'verb'), tile('Beber', 2276, 'verb'),
+    tile('Tengo hambre.', 35559, 'adjective'), tile('Tengo sed.', 7273, 'adjective'),
+    tile('Quiero más.', 3220, 'adjective'), tile('Ya he terminado.', 28429, 'verb'),
+    tile('Está caliente.', 4583, 'adjective'), tile('Está frío.', 4652, 'adjective'),
+    tile('Está bueno.', 5397, 'adjective'), tile('No me gusta.', 5526, 'adjective'),
+  ],
+  health: [
+    tile('Tengo dolor.', 2367, 'priority'), tile('Me duele la cabeza.', 28651, 'adjective'),
+    tile('Me duele el estómago.', 28765, 'adjective'), tile('Me duele la espalda.', 7775, 'adjective'),
+    tile('Me duele un poco.', 5546, 'adjective'), tile('Me duele bastante.', 2367, 'adjective'),
+    tile('Me duele mucho.', 5521, 'priority'), tile('Estoy cansado.', 2314, 'adjective'),
+    tile('Estoy mareado.', 2464, 'adjective'), tile('Tengo frío.', 35557, 'adjective'),
+    tile('Tengo calor.', 35561, 'adjective'), tile('Necesito mi medicina.', 8163),
+    tile('Necesito un médico.', 2467, 'priority'), tile('Necesito tumbarme.', 8241, 'verb'),
+    tile('Me cuesta respirar.', 4570, 'priority'), tile('Llama a emergencias.', 4570, 'priority'),
+  ],
+  care: [
+    tile('Necesito ir al baño.', 6929, 'priority'), tile('Ducharme', 32426, 'verb'),
+    tile('Lavarme', 34826, 'verb'), tile('Lavarme las manos', 2928, 'verb'),
+    tile('Lavarme la cara', 2684, 'verb'), tile('Cepillarme los dientes', 2737, 'verb'),
+    tile('Peinarme', 26947, 'verb'), tile('Vestirme', 6627, 'verb'),
+    tile('Dormir', 6479, 'verb'), tile('Levantarme', 36073, 'verb'), tile('Sentarme', 6611, 'verb'),
+    tile('Camiseta', 2309), tile('Pantalón', 2565), tile('Zapatos', 2775), tile('Chaqueta', 4872),
+    tile('Poner', 32757, 'verb'), tile('Quitar', 11751, 'verb'),
+  ],
+  places: [
+    tile('Casa', 2317), tile('Baño', 6929), tile('Dormitorio', 2304), tile('Cocina', 10752),
+    tile('Salón', 6211), tile('Calle', 2299), tile('Parque', 2859), tile('Tienda', 35695),
+    tile('Restaurante', 32408), tile('Colegio', 32446), tile('Trabajo', 16087), tile('Hospital', 6523),
+    tile('Aquí', 5382, 'adjective'), tile('Ahí', 5375, 'adjective'),
+    tile('Dentro', 5439, 'adjective'), tile('Fuera', 5475, 'adjective'),
+  ],
+  transport: [
+    tile('Coche', 2339), tile('Autobús', 2262), tile('Tren', 2603), tile('Taxi', 2580),
+    tile('Bicicleta', 6935), tile('Caminar', 8649, 'verb'), tile('Quiero ir.', 8142, 'verb'),
+    tile('Quiero volver.', 32669, 'verb'), tile('Espera aquí.', 8109, 'verb'), tile('Vamos.', 8142, 'verb'),
+    tile('A la izquierda.', 9203, 'adjective'), tile('A la derecha.', 4624, 'adjective'),
+    tile('Está cerca.', 30383, 'adjective'), tile('Está lejos.', 30385, 'adjective'),
+  ],
+  time: [
+    tile('Ahora', 32747, 'adjective'), tile('Hoy', 7131, 'adjective'), tile('Mañana', 7152, 'adjective'),
+    tile('Ayer', 38279, 'adjective'), tile('Antes', 32745, 'adjective'), tile('Después', 32749, 'adjective'),
+    tile('Por la mañana', 7152, 'adjective'), tile('Al mediodía', 32708, 'adjective'),
+    tile('Por la tarde', 7268, 'adjective'), tile('Por la noche', 26997, 'adjective'),
+    tile('Esta semana', 37732, 'adjective'), tile('¿A qué hora?', 7129, 'question'),
+    tile('Pronto', 5306, 'adjective'), tile('Más tarde', 7268, 'adjective'),
+  ],
+  activities: [
+    tile('Escuchar música', 24791, 'verb'), tile('Ver la televisión', 25498, 'verb'),
+    tile('Leer', 7141, 'verb'), tile('Ver una película', 34320, 'verb'),
+    tile('Hacer una foto', 7107, 'verb'), tile('Jugar al fútbol', 16743, 'verb'),
+    tile('Dibujar', 8088, 'verb'), tile('Cantar', 6960, 'verb'), tile('Bailar', 35747, 'verb'),
+    tile('Jugar a videojuegos', 21945, 'verb'), tile('Usar internet', 37366, 'verb'),
+    tile('Ir al parque', 2859, 'verb'), tile('Pasear', 8649, 'verb'), tile('Cocinar', 2342, 'verb'),
+  ],
+  schoolWork: [
+    tile('Colegio', 32446), tile('Trabajo', 16087), tile('Ordenador', 7190), tile('Teléfono', 26479),
+    tile('Leer', 7141, 'verb'), tile('Escribir', 2380, 'verb'), tile('Estudiar', 6495, 'verb'),
+    tile('Trabajar', 6624, 'verb'), tile('Enviar un mensaje', 37867, 'verb'), tile('Internet', 37366),
+    tile('Batería', 5923), tile('Necesito ayuda.', 4570, 'priority'),
+    tile('No lo entiendo.', 11697, 'social'), tile('He terminado.', 28429, 'verb'),
+  ],
+  describing: [
+    tile('Grande', 4658, 'adjective'), tile('Pequeño', 34088, 'adjective'),
+    tile('Rápido', 5306, 'adjective'), tile('Lento', 4676, 'adjective'),
+    tile('Igual', 4667, 'adjective'), tile('Diferente', 4628, 'adjective'),
+    tile('Fácil', 4645, 'adjective'), tile('Difícil', 4629, 'adjective'),
+    tile('Mucho', 7168, 'adjective'), tile('Poco', 7209, 'adjective'),
+    tile('Todo', 5596, 'adjective'), tile('Nada', 29839, 'adjective'),
+    tile('Dentro', 5439, 'adjective'), tile('Fuera', 5475, 'adjective'),
+    tile('Con', 7064, 'adjective'), tile('Sin', 7813, 'adjective'),
+  ],
+};
+
+export const BOARD_CATEGORIES = [
+  { id: 'social', label: 'Conversar', pictogram: 6517, category: 'social' },
+  { id: 'needs', label: 'Necesidades', pictogram: 4570, category: 'priority' },
+  { id: 'people', label: 'Personas', pictogram: 38351, category: 'pronoun' },
+  { id: 'feelings', label: 'Emociones', pictogram: 35547, category: 'adjective' },
+  { id: 'actions', label: 'Acciones', pictogram: 32751, category: 'verb' },
+  { id: 'food', label: 'Comer y beber', pictogram: 4610, category: 'noun' },
+  { id: 'health', label: 'Salud y dolor', pictogram: 2367, category: 'priority' },
+  { id: 'care', label: 'Cuidado personal', pictogram: 32426, category: 'verb' },
+  { id: 'places', label: 'Lugares', pictogram: 2317, category: 'noun' },
+  { id: 'transport', label: 'Transporte', pictogram: 2339, category: 'noun' },
+  { id: 'time', label: 'Tiempo', pictogram: 7131, category: 'question' },
+  { id: 'activities', label: 'Ocio y actividades', pictogram: 23392, category: 'verb' },
+  { id: 'schoolWork', label: 'Colegio y trabajo', pictogram: 7190, category: 'noun' },
+  { id: 'describing', label: 'Describir', pictogram: 4667, category: 'adjective' },
+  { id: 'saved', label: 'Mis frases', pictogram: 9837, category: 'social' },
+];
+
+export const QUICK_PHRASES = [
+  tile('Sí', 5584, 'social'), tile('No', 5526, 'social'),
+  tile('Un momento, por favor.', 8109, 'social'), tile('Necesito ayuda.', 4570, 'priority'),
+];
+
+export const CORE_STRIP = ['Yo', 'Quiero', 'Necesito', 'No', 'Más', 'Por favor']
+  .map(text => AAC_VOCABULARY.core.find(item => item.text === text));
+
+export function pictogramPath(id) { return '/pictograms/' + (id || 9837) + '.png'; }

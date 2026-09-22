@@ -1,10 +1,25 @@
 // API client for Vocalis AAC backend
 
 const API_BASE = '/api';
+const CLIENT_ID_KEY = 'vocalis_client_id';
+
+function getClientId() {
+  let clientId = localStorage.getItem(CLIENT_ID_KEY);
+  if (!clientId) {
+    clientId = globalThis.crypto?.randomUUID?.()
+      || `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(CLIENT_ID_KEY, clientId);
+  }
+  return clientId;
+}
+
+function deviceHeaders(headers = {}) {
+  return { ...headers, 'X-Vocalis-Client': getClientId() };
+}
 
 export async function checkHealth() {
   try {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await fetch(`${API_BASE}/health`, { headers: deviceHeaders() });
     if (!res.ok) throw new Error('Health check failed');
     return await res.json();
   } catch (err) {
@@ -27,7 +42,11 @@ export async function fetchCuratedVoices() {
 export async function cloneVoiceFromAudio(audio) {
   const formData = new FormData();
   formData.append('file', audio, audio.name || 'voice-sample.webm');
-  const res = await fetch(`${API_BASE}/voice/clone`, { method: 'POST', body: formData });
+  const res = await fetch(`${API_BASE}/voice/clone`, {
+    method: 'POST',
+    headers: deviceHeaders(),
+    body: formData,
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.detail || `Voice cloning failed: ${res.status}`);
   return data;
@@ -76,9 +95,11 @@ export async function getSmartSuggestions({
   }
 }
 
-export async function transcribeAudioBlob(blob) {
+export async function transcribeAudioBlob(blob, language = 'es-ES') {
   const formData = new FormData();
-  formData.append('file', blob, 'recording.webm');
+  const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm';
+  formData.append('file', blob, `recording.${extension}`);
+  formData.append('language', language);
   
   const res = await fetch(`${API_BASE}/transcribe`, {
     method: 'POST',
@@ -92,11 +113,12 @@ export async function transcribeAudioBlob(blob) {
   return await res.json();
 }
 
-export async function fetchEdgeTTSAudio(text, voice = 'en-US-GuyNeural', rate = '+0%', pitch = '+0Hz') {
+export async function fetchEdgeTTSAudio(text, voice = 'en-US-GuyNeural', rate = '+0%', pitch = '+0Hz', signal) {
   const res = await fetch(`${API_BASE}/tts`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, voice, rate, pitch })
+    headers: deviceHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ text, voice, rate, pitch }),
+    signal
   });
   
   if (!res.ok) {
@@ -104,4 +126,19 @@ export async function fetchEdgeTTSAudio(text, voice = 'en-US-GuyNeural', rate = 
   }
   const blob = await res.blob();
   return URL.createObjectURL(blob);
+}
+
+export async function fetchStreamingTTSAudio(text, signal) {
+  const res = await fetch(`${API_BASE}/tts/stream`, {
+    method: 'POST',
+    headers: deviceHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ text, voice: 'qwen-clone', language: 'Spanish' }),
+    signal,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Streaming TTS failed: ${res.status}`);
+  }
+  if (!res.body) throw new Error('Este navegador no admite audio transmitido.');
+  return res;
 }

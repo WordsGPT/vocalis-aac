@@ -4,6 +4,7 @@ import re
 import time
 import logging
 import requests
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 logger = logging.getLogger("echo_flow_engine")
@@ -12,8 +13,21 @@ logging.basicConfig(level=logging.INFO)
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 DEFAULT_OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_API_KEY_FILE = Path(os.environ.get(
+    "GROQ_API_KEY_FILE",
+    Path(__file__).resolve().parents[2] / "qwen3-tts-runtime" / ".groq_api_key",
+))
 DEFAULT_GROQ_MODEL = "qwen/qwen3.8-27b"
+
+
+def get_server_groq_api_key() -> str:
+    key = os.environ.get("GROQ_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        return GROQ_API_KEY_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
 
 HEURISTIC_TEMPLATES = [
     # Question patterns in Spanish (and English):
@@ -373,7 +387,7 @@ def generate_responses_groq(
     model: str = DEFAULT_GROQ_MODEL
 ) -> Optional[List[str]]:
     """Calls Groq API for ultra-fast (100ms) high quality LLM inference."""
-    key = api_key or DEFAULT_GROQ_API_KEY
+    key = (api_key or "").strip() or get_server_groq_api_key()
     if not key:
         return None
 
@@ -390,23 +404,17 @@ En el historial de mensajes:
 - 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
 
 El interlocutor acaba de decir el último mensaje.
-Basándote en el tema actual y contexto, sugiere exactamente {count} respuestas habladas naturales, completas, variadas, en primera persona y SIEMPRE EN ESPAÑOL en formato JSON con la clave "suggestions":
-{{
-  "suggestions": [
-    "opción 1: acuerdo entusiasta o positivo",
-    "opción 2: acuerdo suave o tranquilo",
-    "opción 3: pregunta curiosa o aclaratoria",
-    "opción 4: sugerencia o alternativa diferente",
-    "opción 5: rechazo educado o límite",
-    "opción 6: pedir un momento o decir que lo va a pensar"
-  ]
-}}
+Sugiere exactamente {count} respuestas que la persona no verbal podría decir ahora. Devuelve JSON con la clave "suggestions".
 Tono: {tone_instruction}
 Reglas estrictas:
 - Las {count} respuestas DEBEN estar en ESPAÑOL.
-- Habla en primera persona ("yo", "me", "nosotros").
-- Respuestas variadas cubriendo distintas intenciones (acuerdo, pregunta, alternativa, rechazo, pausa).
-- Frases completas listas para voz artificial (TTS)."""
+- Cada opción debe responder directamente al significado del ÚLTIMO mensaje y conservar su tema concreto.
+- No uses respuestas genéricas que funcionarían igual para cualquier conversación.
+- Adapta las intenciones al mensaje: por ejemplo empatía ante malas noticias, respuesta directa ante preguntas, y curiosidad ante relatos.
+- Ofrece opciones variadas y plausibles, pero no inventes datos personales, decisiones ni hechos que no aparecen en el contexto.
+- Habla desde la perspectiva de la persona no verbal, normalmente en primera persona.
+- Frases completas, naturales y listas para voz artificial, idealmente de 3 a 14 palabras.
+- No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1"."""
 
     messages = [{"role": "system", "content": system_prompt}]
 
