@@ -204,18 +204,20 @@ export function SettingsModal({
 
             <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
               <div className="flex items-center justify-between gap-3 mb-2">
-                <label htmlFor="pictogram-size" className="font-semibold text-sm text-slate-200">Tamaño de pictogramas</label>
+                <label htmlFor="pictogram-size" className="font-semibold text-sm text-slate-200">Tamaño de casillas</label>
                 <output htmlFor="pictogram-size" className="font-semibold text-blue-300">{pictogramSize}%</output>
               </div>
               <div className="flex items-center gap-4">
                 <input id="pictogram-size" type="range" min="70" max="160" step="10" value={pictogramSize}
                   onChange={(event) => onUpdateSettings({ pictogramSize: Number(event.target.value) })}
                   aria-describedby="pictogram-size-help" className="flex-1 min-w-0 accent-blue-600 cursor-pointer" />
-                <img src={pictogramPath(5441)} alt="Vista previa del pictograma" draggable="false"
-                  width={Math.round(48 * pictogramSize / 100)} height={Math.round(48 * pictogramSize / 100)}
-                  className="shrink-0 rounded bg-white object-contain" />
+                <div className="shrink-0 flex flex-col items-center justify-between rounded-lg border-2 border-amber-500 bg-amber-50 p-1 text-slate-800"
+                  style={{ width: Math.round(75 * pictogramSize / 100), height: Math.round(85 * pictogramSize / 100) }} aria-hidden="true">
+                  <img src={pictogramPath(5441)} alt="" draggable="false" width={Math.round(48 * pictogramSize / 100)} height={Math.round(48 * pictogramSize / 100)} className="max-w-full object-contain" />
+                  <span style={{ fontSize: Math.max(10, Math.round(12 * pictogramSize / 100)) }} className="font-semibold leading-tight">Quiero</span>
+                </div>
               </div>
-              <p id="pictogram-size-help" className="text-xs text-slate-400 mt-2 mb-0">Ajusta las imágenes del tablero, categorías, palabras esenciales y frases rápidas. El tablero deja más espacio cuando eliges un tamaño grande.</p>
+              <p id="pictogram-size-help" className="text-xs text-slate-400 mt-2 mb-0">Cambia el tamaño de las casillas completas, imágenes y texto. Las casillas pequeñas permiten ver más palabras por fila.</p>
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">

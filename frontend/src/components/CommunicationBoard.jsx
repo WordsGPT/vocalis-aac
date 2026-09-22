@@ -60,6 +60,15 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
   const pictogramScale = Math.min(160, Math.max(70, Number(settings.pictogramSize) || 100)) / 100;
   const pictogramPixels = base => `${Math.round(base * pictogramScale)}px`;
   const pictogramStyle = {
+    '--aac-tile-min-width': `${Math.min(280, Math.round(200 * pictogramScale))}px`,
+    '--aac-tile-min-width-tablet': `${Math.min(230, Math.round(170 * pictogramScale))}px`,
+    '--aac-tile-min-width-mobile': `${Math.min(140, Math.round(110 * pictogramScale))}px`,
+    '--aac-tile-height': pictogramPixels(163),
+    '--aac-tile-height-mobile': pictogramPixels(130),
+    '--aac-tile-font': pictogramPixels(18),
+    '--aac-tile-font-mobile': `${Math.max(11, Math.round(15 * pictogramScale))}px`,
+    '--aac-tile-padding': pictogramPixels(12),
+    '--aac-tile-padding-mobile': `${Math.max(4, Math.round(8 * pictogramScale))}px`,
     '--aac-tile-picto': pictogramPixels(96),
     '--aac-tile-picto-mobile': pictogramPixels(75),
     '--aac-core-picto': pictogramPixels(44),
@@ -189,7 +198,7 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
         </button>
       </div>
       <div className="aac-sentence-row">
-        {view === 'board' && <div className="aac-board-actions"><button className="aac-tool" aria-pressed={showFolders} onClick={() => { setShowFolders(value => !value); setQuery(''); scrollArea.current?.scrollTo({ top: 0 }); }}><Folder size={20} /><span>Categorías</span></button><label className="aac-search"><Search size={18} /><input aria-label="Buscar palabras y frases" placeholder="Buscar palabras" value={query} onChange={event => { setQuery(event.target.value); setShowFolders(false); }} />{query && <button aria-label="Borrar búsqueda" onClick={() => setQuery('')}><X size={18} /></button>}</label></div>}
+        {view === 'board' && <div className="aac-board-actions"><button className="aac-tool" aria-label="Categorías" title="Categorías" aria-pressed={showFolders} onClick={() => { setShowFolders(value => !value); setQuery(''); scrollArea.current?.scrollTo({ top: 0 }); }}><Folder size={20} /><span>Categorías</span></button><label className="aac-search"><Search size={18} /><input aria-label="Buscar palabras y frases" placeholder="Buscar" value={query} onChange={event => { setQuery(event.target.value); setShowFolders(false); }} />{query && <button aria-label="Borrar búsqueda" onClick={() => setQuery('')}><X size={18} /></button>}</label></div>}
         <div className="aac-sentence-strip" ref={sentenceStrip} aria-label="Pictogramas del mensaje" hidden={!segments.some(item => item.pictogram)}>
           {segments.some(item => item.pictogram) ? segments.map((item, index) => <button key={index} className="aac-sentence-symbol" onClick={() => updateMessage(segments.filter((_, i) => i !== index))} aria-label={'Quitar del mensaje: ' + spokenTile(segments.slice(0, index), item)}>
             {item.pictogram && <Picto id={item.pictogram} />}<span>{spokenTile(segments.slice(0, index), item)}</span><X size={12} />
@@ -225,9 +234,9 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     <main className="aac-scroll-area" ref={scrollArea}>
       <section role="tabpanel" id={'panel-' + view} aria-labelledby={'tab-' + view} className="aac-tab-content" tabIndex={0}>
         {view === 'board' && <>
-          <div className="aac-board-toolbar">
-            <div className="aac-breadcrumb">{(category !== 'core' || showFolders) && <button className="aac-tool" onClick={() => openCategory('core')}><ArrowLeft size={20} /><span>Inicio</span></button>}<h1>{search ? 'Buscar palabras' : showFolders ? 'Categorías' : category === 'core' ? 'Mi tablero' : activeCategory.label}</h1></div>
-          </div>
+          {(category !== 'core' || showFolders || search) && <div className="aac-board-toolbar">
+            <div className="aac-breadcrumb">{(category !== 'core' || showFolders) && <button className="aac-tool" onClick={() => openCategory('core')}><ArrowLeft size={20} /><span>Inicio</span></button>}<h1>{search ? 'Buscar palabras' : showFolders ? 'Categorías' : activeCategory.label}</h1></div>
+          </div>}
           {category === 'core' && !search && !showFolders && <button className="aac-tool aac-connectors-link" onClick={() => openCategory('connectors')}>Unir palabras: a, el, la, y…</button>}
           {category !== 'core' && !search && <nav className="aac-core-strip" aria-label="Palabras esenciales">{CORE_STRIP.map(tile => <button key={tile.text} className={'tone-' + tile.category} onClick={() => append(tile)} aria-label={(settings.speakTiles !== false ? 'Añadir y decir: ' : 'Añadir: ') + tile.text}><Picto id={tile.pictogram} /><span>{tile.text}</span></button>)}</nav>}
           {category === 'saved' && !search && <div className="aac-saved-controls"><p>Guarda un mensaje con el corazón. Abajo puedes personalizar las frases rápidas.</p><button className="aac-tool" aria-pressed={manageSaved} onClick={() => setManageSaved(value => !value)}>{manageSaved ? 'Terminar' : 'Organizar frases'}</button></div>}
