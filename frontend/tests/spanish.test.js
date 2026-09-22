@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { personalForm, suggestSentence } from '../src/utils/spanish.js';
+import { composeSentence, personalForm, spokenTile, suggestSentence } from '../src/utils/spanish.js';
 const tiles = (...words) => words.map(text => ({ text, pictogram: 1 }));
 test('offers prepositions without modifying original tiles', () => {
   const input = tiles('Yo', 'Quiero', 'Ir', 'Baño');
@@ -12,7 +12,16 @@ test('offers prepositions without modifying original tiles', () => {
 test('does not rewrite typed messages or already complete phrases', () => {
   assert.equal(suggestSentence([{ text: 'Quiero ir baño' }]), '');
   assert.equal(suggestSentence(tiles('Estoy bien.', 'Gracias')), '');
-  assert.equal(suggestSentence(tiles('Quiero', 'Agua')), '');
+  assert.equal(composeSentence(tiles('Quiero', 'Agua')), 'Quiero agua');
+});
+test('conjugates pronoun and verb in the displayed and spoken sentence', () => {
+  assert.equal(composeSentence(tiles('Nosotros', 'Quiero')), 'Nosotros queremos');
+  assert.equal(spokenTile(tiles('Nosotros'), { text: 'Quiero', pictogram: 1 }), 'queremos');
+  assert.equal(composeSentence(tiles('Nosotros', 'Quiero', 'Ir', 'Baño')), 'Nosotros queremos ir al baño');
+  assert.equal(composeSentence(tiles('Tú', 'No', 'Puedo')), 'Tú no puedes');
+  assert.equal(composeSentence(tiles('Yo', 'Ir', 'Casa')), 'Yo voy a casa');
+  assert.equal(composeSentence(tiles('Nosotros', 'Jugar')), 'Nosotros jugamos');
+  assert.equal(composeSentence([{ text: 'Nosotros quiero' }]), 'Nosotros quiero');
 });
 test('adapts self-description without changing objects or other people', () => {
   assert.equal(personalForm('Estoy cansado.', 'feminine'), 'Estoy cansada.');

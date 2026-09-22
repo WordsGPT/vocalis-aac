@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight, CircleStop, Delete, Folder, Grid2X2, Heart, History, Keyboard, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Trash2, Volume2, X } from 'lucide-react';
 import { AAC_VOCABULARY, BOARD_CATEGORIES, CORE_STRIP, QUICK_PHRASES, pictogramPath } from './vocabulary';
 import './communication.css';
-import { personalForm, suggestSentence } from '../utils/spanish';
+import { composeSentence, personalForm, spokenTile, suggestSentence } from '../utils/spanish';
 
 function readQuick() {
   try {
@@ -52,11 +52,27 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
   const scrollArea = useRef(null);
   const sentenceStrip = useRef(null);
   const tabButtons = useRef([]);
-  const draft = segments.map(item => item.text).join(' ');
+  const draft = composeSentence(segments);
   const improvedSentence = suggestSentence(segments);
   const heard = [stt.transcript, stt.interimTranscript].filter(Boolean).join(' ');
   const search = normalize(query.trim());
   const activeCategory = BOARD_CATEGORIES.find(item => item.id === category);
+  const pictogramScale = Math.min(160, Math.max(70, Number(settings.pictogramSize) || 100)) / 100;
+  const pictogramPixels = base => `${Math.round(base * pictogramScale)}px`;
+  const pictogramStyle = {
+    '--aac-tile-picto': pictogramPixels(96),
+    '--aac-tile-picto-mobile': pictogramPixels(75),
+    '--aac-core-picto': pictogramPixels(44),
+    '--aac-core-picto-mobile': pictogramPixels(32),
+    '--aac-quick-picto': pictogramPixels(30),
+    '--aac-quick-picto-mobile': pictogramPixels(28),
+    '--aac-folder-picto': pictogramPixels(65),
+    '--aac-folder-picto-mobile': pictogramPixels(61),
+    '--aac-sentence-picto': pictogramPixels(34),
+    '--aac-sentence-picto-mobile': pictogramPixels(28),
+    '--aac-sentence-picto-short': pictogramPixels(24),
+    '--aac-word-symbol-size': pictogramPixels(36),
+  };
   const allTiles = [...Object.values(AAC_VOCABULARY).flat().map(adapt), ...saved.map(text => ({ text, pictogram: 9837, category: 'social' }))];
   const tiles = search
     ? allTiles.filter((tile, i) => normalize(tile.text).includes(search) && allTiles.findIndex(other => other.text === tile.text) === i)
@@ -89,7 +105,7 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     updateMessage([...segments.filter(item => item.text.trim()), { text: tile.text, pictogram: tile.pictogram, connector: tile.connector }]);
     if (settings.speakTiles !== false) {
       if (stt.isListening) stt.stopListening();
-      tts.speak(tile.text, { prepared: true });
+      tts.speak(spokenTile(segments, tile), { prepared: true });
     }
   }
   function undoMessage() {
@@ -151,7 +167,7 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     onSettings();
   }
 
-  return <div className="aac-app">
+  return <div className={'aac-app' + (pictogramScale >= 1.3 ? ' aac-large-pictograms' : '')} style={pictogramStyle}>
     <header className="aac-header">
       <button className="aac-brand" aria-label="Ir al tablero principal" onClick={() => { changeView('board'); openCategory('core'); }}><Volume2 /> <span>vocalis</span></button>
       <span className="aac-voice-label">{voiceLabel}</span>
@@ -173,10 +189,11 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
         </button>
       </div>
       <div className="aac-sentence-row">
-        <div className="aac-sentence-strip" ref={sentenceStrip} aria-label="Pictogramas del mensaje">
-          {segments.some(item => item.pictogram) ? segments.map((item, index) => <button key={index} className="aac-sentence-symbol" onClick={() => updateMessage(segments.filter((_, i) => i !== index))} aria-label={'Quitar del mensaje: ' + item.text}>
-            {item.pictogram && <Picto id={item.pictogram} />}<span>{item.text}</span><X size={12} />
-          </button>) : <span className="aac-compose-hint">{settings.speakTiles !== false ? 'Toca palabras para escucharlas. Hablar dirá la frase completa.' : 'Construye tu frase y pulsa Hablar.'}</span>}
+        {view === 'board' && <div className="aac-board-actions"><button className="aac-tool" aria-pressed={showFolders} onClick={() => { setShowFolders(value => !value); setQuery(''); scrollArea.current?.scrollTo({ top: 0 }); }}><Folder size={20} /><span>Categorías</span></button><label className="aac-search"><Search size={18} /><input aria-label="Buscar palabras y frases" placeholder="Buscar palabras" value={query} onChange={event => { setQuery(event.target.value); setShowFolders(false); }} />{query && <button aria-label="Borrar búsqueda" onClick={() => setQuery('')}><X size={18} /></button>}</label></div>}
+        <div className="aac-sentence-strip" ref={sentenceStrip} aria-label="Pictogramas del mensaje" hidden={!segments.some(item => item.pictogram)}>
+          {segments.some(item => item.pictogram) ? segments.map((item, index) => <button key={index} className="aac-sentence-symbol" onClick={() => updateMessage(segments.filter((_, i) => i !== index))} aria-label={'Quitar del mensaje: ' + spokenTile(segments.slice(0, index), item)}>
+            {item.pictogram && <Picto id={item.pictogram} />}<span>{spokenTile(segments.slice(0, index), item)}</span><X size={12} />
+          </button>) : null}
         </div>
         <button className="aac-icon-tool" disabled={!undo.length} onClick={undoMessage} aria-label="Deshacer último cambio" title="Deshacer"><RotateCcw size={19} /></button>
         <button className="aac-icon-tool" onClick={() => input.current?.focus()} aria-label="Escribir con el teclado" title="Escribir"><Keyboard size={21} /></button>
@@ -210,7 +227,6 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
         {view === 'board' && <>
           <div className="aac-board-toolbar">
             <div className="aac-breadcrumb">{(category !== 'core' || showFolders) && <button className="aac-tool" onClick={() => openCategory('core')}><ArrowLeft size={20} /><span>Inicio</span></button>}<h1>{search ? 'Buscar palabras' : showFolders ? 'Categorías' : category === 'core' ? 'Mi tablero' : activeCategory.label}</h1></div>
-            <div className="aac-board-actions"><button className="aac-tool" aria-pressed={showFolders} onClick={() => { setShowFolders(value => !value); setQuery(''); scrollArea.current?.scrollTo({ top: 0 }); }}><Folder size={20} /><span>Categorías</span></button><label className="aac-search"><Search size={18} /><input aria-label="Buscar palabras y frases" placeholder="Buscar palabras" value={query} onChange={event => { setQuery(event.target.value); setShowFolders(false); }} />{query && <button aria-label="Borrar búsqueda" onClick={() => setQuery('')}><X size={18} /></button>}</label></div>
           </div>
           {category === 'core' && !search && !showFolders && <button className="aac-tool aac-connectors-link" onClick={() => openCategory('connectors')}>Unir palabras: a, el, la, y…</button>}
           {category !== 'core' && !search && <nav className="aac-core-strip" aria-label="Palabras esenciales">{CORE_STRIP.map(tile => <button key={tile.text} className={'tone-' + tile.category} onClick={() => append(tile)} aria-label={(settings.speakTiles !== false ? 'Añadir y decir: ' : 'Añadir: ') + tile.text}><Picto id={tile.pictogram} /><span>{tile.text}</span></button>)}</nav>}

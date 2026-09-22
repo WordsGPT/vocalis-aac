@@ -11,6 +11,7 @@ import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
   speakTiles: true,
+  pictogramSize: 100,
   ttsMode: 'edge-tts', // 'edge-tts' | 'browser'
   edgeVoiceId: 'qwen-clone',
   qwenEngine: 'streaming', // 'streaming' | 'standard'

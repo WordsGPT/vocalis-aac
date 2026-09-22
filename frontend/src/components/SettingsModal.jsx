@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
+import { pictogramPath } from './vocabulary';
 
 export function SettingsModal({
   isOpen,
@@ -19,6 +20,7 @@ export function SettingsModal({
   const [preparing, setPreparing] = useState(false);
   const [preparingScope, setPreparingScope] = useState(null);
   const [preparationStatus, setPreparationStatus] = useState('');
+  const pictogramSize = Math.min(160, Math.max(70, Number(settings.pictogramSize) || 100));
   const preparePhrases = async (scope) => {
     setPreparing(true);
     setPreparingScope(scope);
@@ -198,6 +200,22 @@ export function SettingsModal({
                   className="w-full accent-blue-500 cursor-pointer"
                 />
               </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <label htmlFor="pictogram-size" className="font-semibold text-sm text-slate-200">Tamaño de pictogramas</label>
+                <output htmlFor="pictogram-size" className="font-semibold text-blue-300">{pictogramSize}%</output>
+              </div>
+              <div className="flex items-center gap-4">
+                <input id="pictogram-size" type="range" min="70" max="160" step="10" value={pictogramSize}
+                  onChange={(event) => onUpdateSettings({ pictogramSize: Number(event.target.value) })}
+                  aria-describedby="pictogram-size-help" className="flex-1 min-w-0 accent-blue-600 cursor-pointer" />
+                <img src={pictogramPath(5441)} alt="Vista previa del pictograma" draggable="false"
+                  width={Math.round(48 * pictogramSize / 100)} height={Math.round(48 * pictogramSize / 100)}
+                  className="shrink-0 rounded bg-white object-contain" />
+              </div>
+              <p id="pictogram-size-help" className="text-xs text-slate-400 mt-2 mb-0">Ajusta las imágenes del tablero, categorías, palabras esenciales y frases rápidas. El tablero deja más espacio cuando eliges un tamaño grande.</p>
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
