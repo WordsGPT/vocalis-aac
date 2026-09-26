@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { ArrowLeft, ChevronRight, CircleStop, Delete, Folder, Grid2X2, Heart, History, Keyboard, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Trash2, Volume2, X } from 'lucide-react';
 import { AAC_VOCABULARY, BOARD_CATEGORIES, CORE_STRIP, QUICK_PHRASES, pictogramPath } from './vocabulary';
 import './communication.css';
@@ -41,6 +42,7 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
   const [category, setCategory] = useState('core');
   const [showFolders, setShowFolders] = useState(false);
   const [view, setView] = useState('board');
+  const [isComposing, setIsComposing] = useState(false);
   const [segments, setSegments] = useState(readDraft);
   const [undo, setUndo] = useState([]);
   const [query, setQuery] = useState('');
@@ -49,9 +51,9 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
   const [manageSaved, setManageSaved] = useState(false);
   const [partnerText, setPartnerText] = useState('');
   const input = useRef(null);
+  const workspace = useRef(null);
   const scrollArea = useRef(null);
   const sentenceStrip = useRef(null);
-  const tabButtons = useRef([]);
   const draft = composeSentence(segments);
   const improvedSentence = suggestSentence(segments);
   const heard = [stt.transcript, stt.interimTranscript].filter(Boolean).join(' ');
@@ -88,6 +90,19 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     : category === 'saved' ? saved.map(text => ({ text, pictogram: 9837, category: 'social' })) : AAC_VOCABULARY[category].map(adapt);
 
   useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const resize = () => {
+      // Mobile keyboards can resize only the visual viewport, leaving dvh unchanged.
+      if (viewport.scale === 1) workspace.current?.style.setProperty('height', `${viewport.height}px`);
+      else workspace.current?.style.removeProperty('height');
+    };
+    resize();
+    viewport.addEventListener('resize', resize);
+    return () => viewport.removeEventListener('resize', resize);
+  }, []);
+
+  useEffect(() => {
     try { sessionStorage.setItem('vocalis_draft', JSON.stringify(segments)); } catch { /* Draft remains available in memory. */ }
     sentenceStrip.current?.scrollTo({ left: sentenceStrip.current.scrollWidth });
   }, [segments]);
@@ -109,6 +124,11 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     setUndo(previous => [...previous.slice(-39), segments]);
     setSegments(next);
     setNotice('');
+  }
+  function startComposing() {
+    // Focus within the activation event so tablet browsers can open the keyboard.
+    flushSync(() => setIsComposing(true));
+    input.current?.focus();
   }
   function append(tile) {
     updateMessage([...segments.filter(item => item.text.trim()), { text: tile.text, pictogram: tile.pictogram, connector: tile.connector }]);
@@ -133,6 +153,8 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     }
   }
   function changeView(next) {
+    document.activeElement?.closest('input, textarea')?.blur();
+    setIsComposing(false);
     if (next !== 'conversation' && stt.isListening) stt.stopListening();
     setView(next);
     scrollArea.current?.scrollTo({ top: 0 });
@@ -176,14 +198,15 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     onSettings();
   }
 
-  return <div className={'aac-app' + (pictogramScale >= 1.3 ? ' aac-large-pictograms' : '')} style={pictogramStyle}>
+  return <div ref={workspace} className={'aac-app' + (pictogramScale >= 1.3 ? ' aac-large-pictograms' : '')} style={pictogramStyle}>
     <header className="aac-header">
       <button className="aac-brand" aria-label="Ir al tablero principal" onClick={() => { changeView('board'); openCategory('core'); }}><Volume2 /> <span>vocalis</span></button>
       <span className="aac-voice-label">{voiceLabel}</span>
       <button className="aac-tool" onClick={openSettings} aria-label="Ajustes y clonar mi voz"><Settings /><span>Ajustes y voz</span></button>
     </header>
 
-    <section className="aac-composer" aria-label="Mi mensaje">
+    <section id="message-composer" className="aac-composer" aria-label="Mi mensaje" hidden={view === 'conversation' && !isComposing}>
+      {view === 'conversation' && <button className="aac-tool aac-close-composer" onClick={() => { input.current?.blur(); setIsComposing(false); document.getElementById('conversation-write')?.focus(); }}><X size={20} />Cerrar teclado</button>}
       <div className="aac-message-line">
         <label className="sr-only" htmlFor="message-draft">Escribe tu mensaje</label>
         <textarea id="message-draft" ref={input} rows={2} placeholder="Escribe aquí o toca los pictogramas…" value={draft}
@@ -214,16 +237,9 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
     </section>
 
     <div className="aac-navigation">
-      <nav className="aac-tabs" role="tablist" aria-label="Modo de comunicación">
-        {tabs.map(([id, Icon, label], index) => <button key={id} id={'tab-' + id} role="tab" aria-selected={view === id} aria-controls={'panel-' + id} tabIndex={view === id ? 0 : -1}
-          ref={node => { tabButtons.current[index] = node; }} onClick={() => changeView(id)}
-          onKeyDown={event => {
-            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-            event.preventDefault();
-            const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-            changeView(tabs[next][0]); tabButtons.current[next]?.focus();
-          }}>
-          <Icon size={20} /><span>{label}</span>{id === 'conversation' && stt.isListening && <span className="aac-mic-dot" />}
+      <nav className="aac-tabs" aria-label="Modo de comunicación">
+        {tabs.map(([id, Icon, label]) => <button type="button" key={id} id={'tab-' + id} aria-pressed={view === id} aria-controls="communication-panel" onClick={() => changeView(id)}>
+          <Icon size={20} aria-hidden="true" /><span>{label}</span>{id === 'conversation' && stt.isListening && <span className="aac-mic-dot" />}
         </button>)}
       </nav>
       <div className="aac-quick" aria-label="Hablar inmediatamente">
@@ -231,8 +247,14 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
       </div>
     </div>
 
-    <main className="aac-scroll-area" ref={scrollArea}>
-      <section role="tabpanel" id={'panel-' + view} aria-labelledby={'tab-' + view} className="aac-tab-content" tabIndex={0}>
+    <main className={'aac-scroll-area' + (view === 'conversation' ? ' aac-conversation-workspace' : '')} ref={scrollArea}>
+      {view === 'conversation' && <div className="aac-conversation-controls" aria-label="Controles de conversación">
+        <button type="button" className={'aac-listen ' + (stt.isListening ? 'active' : '')} aria-pressed={stt.isListening} disabled={stt.isTranscribing} onClick={() => { document.activeElement?.closest('input, textarea')?.blur(); setIsComposing(false); tts.stop(); stt.toggleListening(); }}>{stt.isListening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}<span>{stt.isTranscribing ? 'Transcribiendo…' : stt.isListening ? 'Detener escucha' : 'Escuchar'}</span></button>
+        <div className="aac-hearing-status" role="status">{stt.isTranscribing ? 'Convirtiendo audio en texto…' : stt.isListening ? (stt.isSpeechDetected ? 'Voz detectada · termina de hablar' : 'Escuchando · empieza a hablar') : 'Micrófono apagado'}{stt.isListening && <meter min="0" max="100" value={stt.audioLevel} aria-label="Nivel del micrófono" />}</div>
+        <button type="button" id="conversation-write" className="aac-tool" aria-expanded={isComposing} aria-controls="message-composer" onClick={startComposing}><Keyboard aria-hidden="true" size={20} />Escribir</button>
+        {tts.isSpeaking && <button type="button" className="aac-tool" onClick={tts.stop}><CircleStop size={20} />Detener voz</button>}
+      </div>}
+      <section id="communication-panel" aria-labelledby={'tab-' + view} className="aac-tab-content" tabIndex={0}>
         {view === 'board' && <>
           {(category !== 'core' || showFolders || search) && <div className="aac-board-toolbar">
             <div className="aac-breadcrumb">{(category !== 'core' || showFolders) && <button className="aac-tool" onClick={() => openCategory('core')}><ArrowLeft size={20} /><span>Inicio</span></button>}<h1>{search ? 'Buscar palabras' : showFolders ? 'Categorías' : activeCategory.label}</h1></div>
@@ -266,19 +288,16 @@ export function CommunicationBoard({ settings = {}, tts, stt, suggestions, loadi
         </>}
 
         {view === 'conversation' && <div className="aac-conversation">
-          <div className="aac-section-heading"><div><h1>Escucha y responde</h1><p>Escucha a la otra persona. Elige una respuesta o edítala antes de hablar.</p></div></div>
+          <h1 className="sr-only">Escucha y responde</h1>
           <section className="aac-hearing" aria-label="Escuchar al interlocutor">
-            <div className="aac-hearing-controls"><button className={'aac-listen ' + (stt.isListening ? 'active' : '')} disabled={stt.isTranscribing} onClick={() => { tts.stop(); stt.toggleListening(); }}>{stt.isListening ? <MicOff /> : <Mic />}<span>{stt.isTranscribing ? 'Transcribiendo…' : stt.isListening ? 'Detener escucha' : 'Escuchar'}</span></button>
-              <div className="aac-hearing-status" role="status">{stt.isTranscribing ? 'Convirtiendo audio en texto…' : stt.isListening ? (stt.isSpeechDetected ? 'Voz detectada · termina de hablar' : 'Escuchando · empieza a hablar') : 'Micrófono apagado'}{stt.isListening && <meter min="0" max="100" value={stt.audioLevel} aria-label="Nivel del micrófono" />}</div>
-            </div>
             <p className="aac-heard" aria-live="polite">{heard || 'Lo que diga tu interlocutor aparecerá aquí.'}</p>
             {stt.error && <p className="aac-error" role="alert">{stt.error}</p>}
-            <details className="aac-partner-input"><summary>Escribir o corregir lo que dijo</summary><form onSubmit={event => { event.preventDefault(); if (partnerText.trim()) { stt.simulateSpeech(partnerText); setPartnerText(''); } }}><label htmlFor="partner-text">Mensaje del interlocutor</label><input id="partner-text" value={partnerText} onChange={event => setPartnerText(event.target.value)} placeholder={heard || '¿Qué te han dicho?'} /><button className="aac-tool" disabled={!partnerText.trim()}>Generar respuestas</button></form></details>
+            <details className="aac-partner-input"><summary>Escribir o corregir lo que dijo</summary><form onSubmit={event => { event.preventDefault(); if (partnerText.trim()) { event.currentTarget.querySelector('input')?.blur(); event.currentTarget.closest('details').open = false; stt.simulateSpeech(partnerText); setPartnerText(''); } }}><label htmlFor="partner-text">Mensaje del interlocutor</label><input id="partner-text" value={partnerText} onChange={event => setPartnerText(event.target.value)} placeholder={heard || '¿Qué te han dicho?'} /><button className="aac-tool" disabled={!partnerText.trim()}>Generar respuestas</button></form></details>
           </section>
           <div className="aac-reply-heading"><h2>Podrías decir</h2><button className="aac-tool" disabled={loading || !heard} onClick={() => onRegenerate(heard)}><RotateCcw size={18} />Otras respuestas</button></div>
           {loading && <p className="aac-loading" role="status">Preparando respuestas…</p>}
           {!loading && !suggestions.length && <p className="aac-empty-replies">Activa Escuchar o escribe el mensaje del interlocutor para recibir sugerencias.</p>}
-          <div className="aac-replies" aria-busy={loading}>{!loading && suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => onSpeak(text)} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span>{text}</span><Volume2 size={22} /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); input.current?.focus(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={16} />Editar en mi mensaje</button></article>)}</div>
+          <div className="aac-replies" aria-busy={loading}>{!loading && suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak(text); }} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span>{text}</span><Volume2 size={22} /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); startComposing(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={16} />Editar en mi mensaje</button></article>)}</div>
           {suggestions.length > 0 && <p className="aac-conversation-note">El botón de voz habla directamente. «Editar» te permite cambiar la respuesta.{engine === 'heuristic' || engine === 'client-offline' ? ' Se están usando respuestas básicas de respaldo.' : ''}</p>}
         </div>}
 

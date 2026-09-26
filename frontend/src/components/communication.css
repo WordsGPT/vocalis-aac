@@ -39,7 +39,7 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 .aac-navigation { background: #f8fafd; border-bottom: 1px solid #d2dce9; padding: 0 22px; display: flex; align-items: center; gap: 20px; justify-content: space-between; z-index: 2; }
 .aac-tabs { display: flex; flex-shrink: 0; gap: 4px; }
 .aac-tabs button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 59px; padding: 10px 17px; border-bottom: 4px solid transparent; color: #526780; font-size: 15px; font-weight: 650; }
-.aac-tabs button[aria-selected=true] { color: #204994; border-bottom-color: #2855ac; background: #e8eef9; }
+.aac-tabs button[aria-pressed=true] { color: #204994; border-bottom-color: #2855ac; background: #e8eef9; }
 .aac-mic-dot { width: 8px; height: 8px; border-radius: 50%; background: #bf363a; }
 .aac-quick { display: flex; gap: 6px; padding: 6px 0; }
 .aac-quick button { display: flex; gap: 6px; align-items: center; min-width: 0; min-height: max(45px, calc(var(--aac-quick-picto) + 10px)); padding: 4px 9px; border: 1px solid #cbd7e6; border-radius: 7px; background: white; font-size: 12px; font-weight: 650; color: #324b6b; }
@@ -194,7 +194,6 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
   .aac-quick button span { display: none; }
 }
 @media (max-width: 700px) {
-  .aac-app:has(:is(textarea, input):focus) .aac-navigation { display: none; }
   .vocalis-redesign .settings-backdrop { padding: 0; align-items: stretch; }
   .vocalis-redesign .settings-dialog { max-height: 100dvh; height: 100dvh; border-radius: 0; }
   .vocalis-redesign .settings-body { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
@@ -227,3 +226,42 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 .aac-quick-editor li > span { flex: 1 1 180px; align-self: center; overflow-wrap: anywhere; }
 .aac-phrase-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 @media (max-width: 700px) { .aac-sentence-suggestion { font-size: 12px; gap: 6px; }.aac-sentence-suggestion button { padding-inline: 8px; font-size: 12px; } }
+
+/* Keep mode buttons and listening controls outside the response scroll region. */
+.aac-header { grid-row: 1; }
+.aac-composer { grid-row: 2; }
+.aac-navigation { grid-row: 3; }
+.aac-scroll-area { grid-row: 4; }
+.aac-tabs { gap: 8px; }
+.aac-navigation .aac-tabs button { min-height: 56px; min-width: 100px; }
+.aac-tabs button > * { pointer-events: none; }
+.aac-conversation-workspace { display: flex; flex-direction: column; overflow: hidden; }
+.aac-conversation-controls { display: flex; align-items: center; gap: 12px; padding: 8px 22px; background: #fff; border-bottom: 1px solid #c8d4e4; flex-shrink: 0; flex-wrap: wrap; }
+.aac-conversation-controls .aac-hearing-status { flex: 1; }
+.aac-conversation-controls .aac-tool { min-height: 54px; }
+.aac-conversation-workspace > .aac-tab-content { flex: 1; margin: 0 auto; overflow-y: auto; overscroll-behavior: contain; min-height: 0; width: 100%; padding-top: 10px; }
+.aac-conversation .aac-hearing { padding: 8px 14px; }
+.aac-conversation .aac-heard { padding: 4px 0 8px; font-size: 19px; }
+.aac-conversation .aac-reply-heading { margin: 10px 0; }
+.aac-conversation .aac-replies { gap: 10px; }
+.aac-conversation .aac-reply-speak { min-height: 96px; padding: 12px; overflow-wrap: anywhere; }
+.aac-reply-speak > span:not(.aac-reply-number) { min-width: 0; }
+.aac-close-composer { margin-bottom: 6px; }
+@media (max-width: 900px) {
+  .aac-scroll-area { grid-row: 3; }
+  .aac-navigation { grid-row: 4; }
+}
+@media (max-width: 700px) {
+  .aac-conversation-controls { padding: 8px 10px; gap: 8px; }
+  .aac-conversation-controls .aac-hearing-status { flex-basis: 100%; order: 1; }
+  .aac-conversation-controls .aac-listen { flex: 1; }
+  .aac-conversation .aac-replies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aac-conversation .aac-reply-speak { font-size: 17px; gap: 6px; }
+  .aac-reply-speak svg { width: 18px; }
+  .aac-navigation .aac-tabs { width: 100%; }
+  .aac-navigation { flex-wrap: wrap; }
+  .aac-navigation .aac-tabs button { min-width: 0; }
+}
+@media (max-width: 380px) {
+  .aac-conversation .aac-replies { grid-template-columns: 1fr; }
+}
