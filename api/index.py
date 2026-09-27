@@ -8,10 +8,12 @@ import re
 import secrets
 import time
 import wave
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.engine import get_smart_suggestions, get_server_groq_api_key
@@ -230,3 +232,9 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("es")):
     except (KeyError, IndexError, TypeError):
         raise HTTPException(502, "Gemini no devolvió transcripción.") from None
     return {"text": text.strip(), "engine": "gemini"}
+
+
+# Serve the built app if Vercel routes the root path to this FastAPI function.
+public_dir = Path(__file__).resolve().parents[1] / "public"
+if public_dir.is_dir():
+    app.mount("/", StaticFiles(directory=public_dir, html=True), name="frontend")
