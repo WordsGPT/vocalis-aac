@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchEdgeTTSAudio, fetchPocketTTSAudio, fetchStreamingTTSAudio, getClientId } from '../services/api';
+import { fetchEdgeTTSAudio, fetchStreamingTTSAudio, getClientId } from '../services/api';
 import { clearPreparedAudio, loadPreparedAudio, savePreparedAudio } from '../services/preparedAudio';
 import { loadPocketVoice } from '../services/pocketVoice';
+import { generatePocketAudio } from '../services/pocketBrowser';
 
 const START_BUFFER_SECONDS = 0.2;
 const MAX_CACHE_BYTES = 24 * 1024 * 1024;
@@ -274,7 +275,7 @@ export function useTTS(settings = {}) {
       const reference = ttsMode === 'pocket' ? await loadPocketVoice() : null;
       if (ttsMode === 'pocket' && !reference) throw new Error('Falta la muestra de Pocket TTS.');
       const blob = ttsMode === 'pocket'
-        ? await fetchPocketTTSAudio(text, reference, controller.signal)
+        ? await generatePocketAudio(text, reference, controller.signal)
         : await fetchEdgeTTSAudio(
           text, edgeVoiceId,
           `${signed(Math.round((speechRate - 1) * 100))}%`,
@@ -347,7 +348,7 @@ export function useTTS(settings = {}) {
             if (ttsMode === 'pocket') {
               const reference = await loadPocketVoice();
               if (!reference) throw new Error('Falta la muestra de Pocket TTS.');
-              blob = await fetchPocketTTSAudio(text, reference, controller.signal);
+              blob = await generatePocketAudio(text, reference, controller.signal);
             } else {
               blob = await fetchEdgeTTSAudio(
                 text, edgeVoiceId,

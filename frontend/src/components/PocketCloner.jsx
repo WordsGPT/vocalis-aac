@@ -20,7 +20,7 @@ export function PocketCloner({ available, onSelected, onRemoved }) {
       if (sample.duration < 5 || sample.duration > 30) throw new Error('La muestra debe durar entre 5 y 30 segundos.');
       await savePocketVoice(sample.wav);
       setReady(true);
-      setStatus(available ? 'Muestra guardada en este navegador. Pocket TTS está seleccionado.' : 'Muestra guardada en este navegador. Pocket TTS estará disponible cuando se configure el servicio.');
+      setStatus(available ? 'Muestra guardada en este navegador. Pocket TTS está seleccionado.' : 'Este navegador no admite Pocket TTS.');
       onSelected?.();
     } catch (error) { setStatus(error.message || 'No se pudo guardar la muestra.'); }
   };
@@ -54,7 +54,7 @@ export function PocketCloner({ available, onSelected, onRemoved }) {
 
   return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-200">
     <h4 className="font-bold m-0">Mi voz con Pocket TTS</h4>
-    <p className="text-xs text-slate-400">No requiere iniciar sesión. Usa una muestra clara de 5–30 segundos. La muestra se guarda en este navegador y se envía al servidor al hablar.</p>
+    <p className="text-xs text-slate-400">No requiere iniciar sesión. Usa una muestra clara de 5–30 segundos. La muestra permanece en este navegador; la voz se genera con la CPU del dispositivo. La primera vez se descargan unos 150 MB de modelos.</p>
     <label className="flex items-start gap-2 my-3 text-xs">
       <input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />
       Soy propietario de esta voz o tengo permiso explícito para clonarla.

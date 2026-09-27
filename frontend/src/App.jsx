@@ -6,7 +6,7 @@ import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { getSmartSuggestions, fetchCuratedVoices, checkHealth } from './services/api';
+import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
 
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
@@ -66,8 +66,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
       return DEFAULT_SETTINGS;
     }
   });
-  const [pocketReady, setPocketReady] = useState(false);
-  useEffect(() => { checkHealth().then(health => setPocketReady(!!health.pocket_ready)); }, []);
+  const pocketReady = typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined';
   const activeSettings = voiceAuthenticated ? {
     ...settings, ttsMode: settings.ttsMode === 'pocket' && !pocketReady ? 'browser' : settings.ttsMode,
   } : {

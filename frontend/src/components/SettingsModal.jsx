@@ -140,7 +140,7 @@ export function SettingsModal({
                 }`}
               >
                 <div className="font-semibold text-xs text-blue-300 mb-0.5">Pocket TTS</div>
-                <div className="text-[11px] text-slate-400">Voz clonada sin iniciar sesión</div>
+                <div className="text-[11px] text-slate-400">Voz clonada en este dispositivo, sin iniciar sesión</div>
               </button>
 
               <button
@@ -269,7 +269,7 @@ export function SettingsModal({
             </div>
 
             <PocketCloner available={pocketReady} onSelected={onPocketSelected} onRemoved={onPocketRemoved} />
-            {!pocketReady && <p className="text-xs text-slate-400">Pocket TTS estará disponible cuando se configure su servicio de voz.</p>}
+            {!pocketReady && <p className="text-xs text-slate-400">Este navegador no admite Pocket TTS.</p>}
             <VoiceCloner onCloned={onVoiceCloned} authenticated={voiceAuthenticated} />
           </div>
 
