@@ -123,7 +123,8 @@ async def suggest(body: Suggest, request: Request):
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "groq_ready": bool(get_server_groq_api_key()),
-            "gemini_ready": bool(os.environ.get("GEMINI_API_KEY"))}
+            "gemini_ready": bool(os.environ.get("GEMINI_API_KEY")),
+            "pocket_ready": bool(os.environ.get("POCKET_TTS_URL") and os.environ.get("POCKET_TTS_SECRET"))}
 
 
 @app.get("/api/voices")
@@ -176,6 +177,35 @@ async def clone_voice(reference: UploadFile = File(...), consent: UploadFile = F
     if not re.fullmatch(r"voice_[A-Za-z0-9_-]+", voice_id):
         raise HTTPException(502, "Gemini no devolvió un identificador de voz válido.")
     return {"status": "ready", "voice_id": voice_id, "message": "Voz creada y guardada en Gemini."}
+
+
+@app.post("/api/pocket/tts")
+async def pocket_tts(reference: UploadFile = File(...), text: str = Form(...)):
+    if not 1 <= len(text.strip()) <= 500:
+        raise HTTPException(400, "El texto debe tener entre 1 y 500 caracteres.")
+    sample = await reference.read(2_000_001)
+    if len(sample) > 2_000_000:
+        raise HTTPException(413, "La muestra de voz es demasiado grande.")
+    wav_duration(sample, 5, 30)
+    worker_url = config("POCKET_TTS_URL").rstrip("/")
+    if not worker_url.startswith("https://") and os.environ.get("VERCEL") == "1":
+        raise HTTPException(503, "POCKET_TTS_URL debe usar HTTPS.")
+    async with httpx.AsyncClient(timeout=110) as client:
+        try:
+            result = await client.post(
+                f"{worker_url}/synthesize",
+                headers={"Authorization": f"Bearer {config('POCKET_TTS_SECRET')}"},
+                data={"text": text.strip()},
+                files={"reference": ("reference.wav", sample, "audio/wav")},
+            )
+            result.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(502, f"Pocket TTS rechazó la solicitud ({exc.response.status_code}).") from None
+        except httpx.RequestError:
+            raise HTTPException(502, "No se pudo conectar con Pocket TTS.") from None
+    if len(result.content) > 4_000_000 or result.headers.get("content-type", "").split(";")[0] != "audio/wav":
+        raise HTTPException(502, "Pocket TTS devolvió audio no válido.")
+    return StreamingResponse(io.BytesIO(result.content), media_type="audio/wav")
 
 
 class TTS(BaseModel):

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
+import { PocketCloner } from './PocketCloner';
 import { AccessPanel } from './AccessPanel';
 import { pictogramPath } from './vocabulary';
 
@@ -9,6 +10,7 @@ export function SettingsModal({
   onClose,
   onLogout,
   voiceAuthenticated,
+  pocketReady,
   onVoiceLogin,
   settings,
   onUpdateSettings,
@@ -18,7 +20,9 @@ export function SettingsModal({
   preparationCounts = { frequent: 0, all: 0 },
   onPreparePhrases,
   onCancelPreparation,
-  onVoiceCloned
+  onVoiceCloned,
+  onPocketSelected,
+  onPocketRemoved,
 }) {
   const dialogRef = useRef(null);
   const [preparing, setPreparing] = useState(false);
@@ -110,7 +114,7 @@ export function SettingsModal({
             </div>
 
             {/* TTS Engine Mode */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ ttsMode: 'edge-tts' })}
@@ -123,6 +127,20 @@ export function SettingsModal({
               >
                 <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz personal o del catálogo</div>
                 <div className="text-[11px] text-slate-400">Elige tu voz guardada u otra voz</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ ttsMode: 'pocket' })}
+                disabled={!pocketReady}
+                className={`p-3 rounded-xl border text-left cursor-pointer transition-colors disabled:opacity-50 ${
+                  settings.ttsMode === 'pocket'
+                    ? 'bg-blue-600/20 border-blue-500 text-white font-medium ring-1 ring-blue-400'
+                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <div className="font-semibold text-xs text-blue-300 mb-0.5">Pocket TTS</div>
+                <div className="text-[11px] text-slate-400">Voz clonada sin iniciar sesión</div>
               </button>
 
               <button
@@ -140,7 +158,7 @@ export function SettingsModal({
             </div>
 
             {/* Voice dropdown */}
-            <div className="mb-3">
+            {settings.ttsMode !== 'pocket' && <div className="mb-3">
               <label className="block text-xs text-slate-400 mb-1">Voz seleccionada:</label>
             {settings.ttsMode === 'edge-tts' ? (
                 <select
@@ -172,10 +190,10 @@ export function SettingsModal({
                   )}
                 </select>
               )}
-            </div>
+            </div>}
 
             {/* Sliders for rate and pitch */}
-            <div className="grid grid-cols-2 gap-4">
+            {settings.ttsMode !== 'pocket' && <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Velocidad de habla:</span>
@@ -207,7 +225,7 @@ export function SettingsModal({
                   className="w-full accent-blue-500 cursor-pointer"
                 />
               </div>
-            </div>
+            </div>}
 
             <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
               <div className="flex items-center justify-between gap-3 mb-2">
@@ -250,6 +268,8 @@ export function SettingsModal({
               {preparationStatus && <p className="text-xs text-slate-300 mt-2 mb-0" role="status">{preparationStatus}</p>}
             </div>
 
+            <PocketCloner available={pocketReady} onSelected={onPocketSelected} onRemoved={onPocketRemoved} />
+            {!pocketReady && <p className="text-xs text-slate-400">Pocket TTS estará disponible cuando se configure su servicio de voz.</p>}
             <VoiceCloner onCloned={onVoiceCloned} authenticated={voiceAuthenticated} />
           </div>
 
@@ -390,7 +410,7 @@ export function SettingsModal({
               ))}
             </div>
 
-            <p className="text-xs text-slate-400">Tras iniciar sesión, Groq puede generar respuestas. Gemini 3.8 Flash es opcional para respuestas; Gemini 3.8 Flash TTS genera la voz. Las claves API se configuran en el servidor.</p>
+            <p className="text-xs text-slate-400">Groq genera respuestas sin iniciar sesión. Gemini 3.8 Flash y su voz requieren iniciar sesión. Las claves API se configuran en el servidor.</p>
             {settings.edgeVoiceId?.startsWith('voice_') && (
               <div className="text-xs text-slate-400">ID de voz personal: <code>{settings.edgeVoiceId}</code></div>
             )}

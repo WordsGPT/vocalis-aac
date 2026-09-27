@@ -17,6 +17,16 @@ Use a fresh, unique random `AUTH_PASSWORD`. If you replace it, redeploy so the n
 
 Both API keys stay in the Python function; the browser never receives them. Gemini suggestions, speech, and voice cloning require the signed, HttpOnly session cookie. Groq suggestions and transcription are intentionally available to unsigned visitors and can use API credits. Unsigned visitors use browser speech synthesis.
 
+## Optional public Pocket TTS voice
+
+Vocalis also supports an unsigned Pocket TTS voice clone. Pocket TTS runs in a separate CPU worker to keep PyTorch and the model out of the main Vercel API function. It does not use Gemini credits. Public speech requests still consume your worker's compute. If your Vercel plan permits another [rate limit rule](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting), consider one on `/api/pocket/tts` if traffic grows; Hobby allows one rate limit rule per project.
+
+1. Accept the access conditions for [Kyutai's Pocket TTS model](https://huggingface.co/kyutai/pocket-tts) in a Hugging Face account and create a read-only `HF_TOKEN` for that account.
+2. Deploy `pocket_service/Dockerfile` to a CPU container host (use `pocket_service` as the Docker build context). Mount persistent storage at `/data/huggingface` if possible so restarts do not re-download the model. Set `HF_TOKEN` and a random `POCKET_TTS_SECRET` generated with `openssl rand -hex 32` there. The worker's `/health` endpoint should return `{"status":"healthy"}`. Its `/synthesize` endpoint requires the secret as a Bearer token.
+3. In Vercel, set `POCKET_TTS_URL` to the worker's HTTPS base URL and `POCKET_TTS_SECRET` to the same secret. Redeploy Vocalis. The Pocket TTS selector then becomes available to unsigned visitors.
+
+Visitors record or upload a 5–30 second sample with permission from the speaker. Vocalis keeps the sample in that browser's IndexedDB and sends it with each speech request. The worker holds the sample only for the request and does not persist a voice profile. Deleting the sample in settings removes it from that browser. The Gemini option and its login gate remain separate.
+
 Server transcription uses Groq's hosted `whisper-large-v3-turbo` through `GROQ_API_KEY`; Vercel does not run a local Whisper model or GPU. If that key is missing, server transcription reports a configuration error.
 
 ## Voice replication

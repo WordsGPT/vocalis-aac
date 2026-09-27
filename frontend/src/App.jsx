@@ -6,13 +6,13 @@ import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
+import { getSmartSuggestions, fetchCuratedVoices, checkHealth } from './services/api';
 
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
   speakTiles: true,
   pictogramSize: 100,
-  ttsMode: 'browser', // 'edge-tts' | 'browser'
+  ttsMode: 'browser', // 'edge-tts' | 'pocket' | 'browser'
   edgeVoiceId: 'Puck',
   qwenEngine: 'standard', // 'streaming' | 'standard'
   browserVoiceURI: '',
@@ -66,8 +66,12 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
       return DEFAULT_SETTINGS;
     }
   });
-  const activeSettings = voiceAuthenticated ? settings : {
-    ...settings, ttsMode: 'browser',
+  const [pocketReady, setPocketReady] = useState(false);
+  useEffect(() => { checkHealth().then(health => setPocketReady(!!health.pocket_ready)); }, []);
+  const activeSettings = voiceAuthenticated ? {
+    ...settings, ttsMode: settings.ttsMode === 'pocket' && !pocketReady ? 'browser' : settings.ttsMode,
+  } : {
+    ...settings, ttsMode: settings.ttsMode === 'pocket' && pocketReady ? 'pocket' : 'browser',
     preferredEngine: settings.preferredEngine === 'gemini' ? 'groq' : settings.preferredEngine,
   };
 
@@ -213,7 +217,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
-        voiceLabel={activeSettings.ttsMode === 'browser' ? 'Voz del navegador' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
+        voiceLabel={activeSettings.ttsMode === 'browser' ? 'Voz del navegador' : activeSettings.ttsMode === 'pocket' ? 'Mi voz Pocket TTS' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
       />
 
       {/* Settings Modal */}
@@ -221,6 +225,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         isOpen={isSettingsOpen}
         onClose={closeSettings}
         voiceAuthenticated={voiceAuthenticated}
+        pocketReady={pocketReady}
         onVoiceLogin={onVoiceLogin}
         onLogout={onLogout}
         settings={activeSettings}
@@ -238,6 +243,14 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
             edgeVoiceId: voiceId || 'Puck',
             voiceRevision: String(Date.now())
           });
+        }}
+        onPocketSelected={() => {
+          tts.clearCache();
+          handleUpdateSettings({ ttsMode: pocketReady ? 'pocket' : 'browser', voiceRevision: String(Date.now()) });
+        }}
+        onPocketRemoved={() => {
+          tts.clearCache();
+          handleUpdateSettings({ ttsMode: 'browser', voiceRevision: String(Date.now()) });
         }}
       />
     </div>

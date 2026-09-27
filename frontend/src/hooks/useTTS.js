@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchEdgeTTSAudio, fetchStreamingTTSAudio, getClientId } from '../services/api';
+import { fetchEdgeTTSAudio, fetchPocketTTSAudio, fetchStreamingTTSAudio, getClientId } from '../services/api';
 import { clearPreparedAudio, loadPreparedAudio, savePreparedAudio } from '../services/preparedAudio';
+import { loadPocketVoice } from '../services/pocketVoice';
 
 const START_BUFFER_SECONDS = 0.2;
 const MAX_CACHE_BYTES = 24 * 1024 * 1024;
@@ -44,8 +45,8 @@ export function useTTS(settings = {}) {
   const speechPitch = settings.speechPitch ?? 1;
   const voiceRevision = settings.voiceRevision || 'original';
   const audioKey = useCallback((text, engine) => JSON.stringify([
-    getClientId(), voiceRevision, text, edgeVoiceId, engine, speechRate, speechPitch,
-  ]), [voiceRevision, edgeVoiceId, speechRate, speechPitch]);
+    getClientId(), voiceRevision, text, edgeVoiceId, ttsMode, engine, speechRate, speechPitch,
+  ]), [voiceRevision, edgeVoiceId, ttsMode, speechRate, speechPitch]);
 
   useEffect(() => {
     if (!window.speechSynthesis) return;
@@ -270,13 +271,16 @@ export function useTTS(settings = {}) {
     };
     const playStandard = async () => {
       const signed = (number) => (number >= 0 ? '+' : '') + number;
-      const blob = await fetchEdgeTTSAudio(
-        text,
-        edgeVoiceId,
-        `${signed(Math.round((speechRate - 1) * 100))}%`,
-        `${signed(Math.round((speechPitch - 1) * 50))}Hz`,
-        controller.signal,
-      );
+      const reference = ttsMode === 'pocket' ? await loadPocketVoice() : null;
+      if (ttsMode === 'pocket' && !reference) throw new Error('Falta la muestra de Pocket TTS.');
+      const blob = ttsMode === 'pocket'
+        ? await fetchPocketTTSAudio(text, reference, controller.signal)
+        : await fetchEdgeTTSAudio(
+          text, edgeVoiceId,
+          `${signed(Math.round((speechRate - 1) * 100))}%`,
+          `${signed(Math.round((speechPitch - 1) * 50))}Hz`,
+          controller.signal,
+        );
       if (!isCurrent()) return;
       await playAudioBlob(blob);
       if (isCurrent()) {
@@ -318,7 +322,7 @@ export function useTTS(settings = {}) {
       await playStandard();
     } catch (problem) {
       if (!isCurrent() || problem.name === 'AbortError') return;
-      setError('La voz seleccionada no está disponible. Usando la voz del navegador.');
+      setError(ttsMode === 'pocket' ? `${problem.message} Usando la voz del navegador.` : 'La voz seleccionada no está disponible. Usando la voz del navegador.');
       browserSpeak();
     }
   }, [stop, releaseAudio, playPcmStream, rememberAudio, audioKey, ttsMode, qwenEngine, edgeVoiceId, browserVoiceURI, browserVoices, speechRate, speechPitch]);
@@ -340,12 +344,18 @@ export function useTTS(settings = {}) {
         if (!stored) {
           const signed = number => (number >= 0 ? '+' : '') + number;
           if (!blob) {
-            blob = await fetchEdgeTTSAudio(
-              text, edgeVoiceId,
-              `${signed(Math.round((speechRate - 1) * 100))}%`,
-              `${signed(Math.round((speechPitch - 1) * 50))}Hz`,
-              controller.signal,
-            );
+            if (ttsMode === 'pocket') {
+              const reference = await loadPocketVoice();
+              if (!reference) throw new Error('Falta la muestra de Pocket TTS.');
+              blob = await fetchPocketTTSAudio(text, reference, controller.signal);
+            } else {
+              blob = await fetchEdgeTTSAudio(
+                text, edgeVoiceId,
+                `${signed(Math.round((speechRate - 1) * 100))}%`,
+                `${signed(Math.round((speechPitch - 1) * 50))}Hz`,
+                controller.signal,
+              );
+            }
           }
           if (controller.signal.aborted) break;
           if (!await savePreparedAudio(key, blob)) throw new Error('No se pudo guardar el audio preparado.');

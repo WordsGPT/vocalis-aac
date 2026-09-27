@@ -3,7 +3,7 @@ import { cloneVoiceFromAudio } from '../services/api';
 
 const CONSENT = 'Soy el propietario de esta voz y doy mi consentimiento para que Google la utilice para crear un modelo de voz sintética.';
 
-async function toWav(file) {
+export async function toWav(file) {
   const context = new AudioContext();
   try {
     const decoded = await context.decodeAudioData(await file.arrayBuffer());

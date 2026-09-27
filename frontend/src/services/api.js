@@ -55,6 +55,18 @@ export async function cloneVoiceFromAudio(reference, consent) {
   return data;
 }
 
+export async function fetchPocketTTSAudio(text, reference, signal) {
+  const formData = new FormData();
+  formData.append('text', text);
+  formData.append('reference', reference, 'reference.wav');
+  const res = await fetch(`${API_BASE}/pocket/tts`, { method: 'POST', body: formData, signal });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Pocket TTS failed: ${res.status}`);
+  }
+  return res.blob();
+}
+
 export function getOfflineSuggestions(count = 6, grammaticalForm = 'masculine') {
   const suggestions = [
     '¡Sí, suena genial!',
