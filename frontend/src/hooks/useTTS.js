@@ -298,7 +298,7 @@ export function useTTS(settings = {}) {
         await playAudioBlob(cached);
         return;
       }
-      const useStreaming = engine === 'streaming' && edgeVoiceId === 'qwen-clone';
+      const useStreaming = false;
       if (useStreaming) {
         try {
           const response = await fetchStreamingTTSAudio(text, controller.signal);

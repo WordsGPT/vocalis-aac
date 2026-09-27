@@ -40,15 +40,17 @@ export async function fetchCuratedVoices() {
   }
 }
 
-export async function cloneVoiceFromAudio(audio) {
+export async function cloneVoiceFromAudio(reference, consent) {
   const formData = new FormData();
-  formData.append('file', audio, audio.name || 'voice-sample.webm');
+  formData.append('reference', reference, 'reference.wav');
+  formData.append('consent', consent, 'consent.wav');
   const res = await fetch(`${API_BASE}/voice/clone`, {
     method: 'POST',
     headers: deviceHeaders(),
     body: formData,
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) window.dispatchEvent(new Event('vocalis:unauthorized'));
   if (!res.ok) throw new Error(data.detail || `Voice cloning failed: ${res.status}`);
   return data;
 }
@@ -59,9 +61,7 @@ export async function getSmartSuggestions({
   tone = 'natural',
   grammaticalForm = 'masculine',
   count = 6,
-  geminiApiKey = null, 
-  groqApiKey = null, 
-  preferredEngine = 'groq' 
+  preferredEngine = 'groq'
 }) {
   try {
     const res = await fetch(`${API_BASE}/suggest`, {
@@ -73,8 +73,6 @@ export async function getSmartSuggestions({
         tone,
         grammatical_form: grammaticalForm,
         count,
-        gemini_api_key: geminiApiKey || null,
-        groq_api_key: groqApiKey || null,
         preferred_engine: preferredEngine
       })
     });
@@ -125,6 +123,7 @@ export async function fetchEdgeTTSAudio(text, voice = 'en-US-GuyNeural', rate = 
   });
   
   if (!res.ok) {
+    if (res.status === 401) window.dispatchEvent(new Event('vocalis:unauthorized'));
     throw new Error(`TTS generation failed: ${res.status}`);
   }
   return res.blob();

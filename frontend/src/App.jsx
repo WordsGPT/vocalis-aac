@@ -13,15 +13,13 @@ const DEFAULT_SETTINGS = {
   speakTiles: true,
   pictogramSize: 100,
   ttsMode: 'edge-tts', // 'edge-tts' | 'browser'
-  edgeVoiceId: 'qwen-clone',
-  qwenEngine: 'streaming', // 'streaming' | 'standard'
+  edgeVoiceId: 'Puck',
+  qwenEngine: 'standard', // 'streaming' | 'standard'
   browserVoiceURI: '',
   speechRate: 1.0,
   speechPitch: 1.0,
-  preferredEngine: 'groq', // 'groq' | 'ollama' | 'gemini' | 'heuristic'
-  groqApiKey: '',
+  preferredEngine: 'groq', // 'groq' | 'gemini' | 'heuristic'
   tone: 'natural',
-  geminiApiKey: '',
   sttMode: 'whisper', // 'whisper' (automatic server transcription) | 'browser'
   sttLang: 'es-ES',
   suggestionCount: 6,
@@ -53,12 +51,17 @@ function preparationPhrases(form) {
   return { frequent, all };
 }
 
-export function App() {
+export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   // Load saved settings or defaults
   const [settings, setSettings] = useState(() => {
     try {
       const saved = localStorage.getItem('vocalis_settings');
-      return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+      if (!saved) return DEFAULT_SETTINGS;
+      const stored = JSON.parse(saved);
+      delete stored.geminiApiKey;
+      delete stored.groqApiKey;
+      return { ...DEFAULT_SETTINGS, ...stored,
+        edgeVoiceId: stored.edgeVoiceId?.startsWith('voice_') ? stored.edgeVoiceId : 'Puck', qwenEngine: 'standard' };
     } catch (_) {
       return DEFAULT_SETTINGS;
     }
@@ -87,6 +90,8 @@ export function App() {
   const handleUpdateSettings = (newSettings) => {
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings };
+      delete updated.geminiApiKey;
+      delete updated.groqApiKey;
       try {
         localStorage.setItem('vocalis_settings', JSON.stringify(updated));
       } catch (_) {}
@@ -149,8 +154,6 @@ export function App() {
         tone: settings.tone,
         grammaticalForm: settings.grammaticalForm,
         count: settings.suggestionCount || 6,
-        geminiApiKey: settings.geminiApiKey,
-        groqApiKey: settings.groqApiKey,
         preferredEngine: settings.preferredEngine
       });
 
@@ -163,7 +166,7 @@ export function App() {
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
     }
-  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
+  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.preferredEngine]);
 
   // Handle incoming speech recognized from partner
   const handleSpeechCompleted = useCallback((heardText) => {
@@ -206,13 +209,16 @@ export function App() {
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
-        voiceLabel={settings.ttsMode === 'browser' ? 'Voz del navegador' : settings.edgeVoiceId === 'qwen-clone' ? 'Mi voz personal' : 'Voz seleccionada'}
+        voiceLabel={settings.ttsMode === 'browser' ? 'Voz del navegador' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
       />
 
       {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={closeSettings}
+        voiceAuthenticated={voiceAuthenticated}
+        onVoiceLogin={onVoiceLogin}
+        onLogout={onLogout}
         settings={settings}
         onUpdateSettings={handleUpdateSettings}
         browserVoices={tts.browserVoices}
@@ -225,7 +231,7 @@ export function App() {
           tts.clearCache();
           handleUpdateSettings({
             ttsMode: 'edge-tts',
-            edgeVoiceId: voiceId || 'qwen-clone',
+            edgeVoiceId: voiceId || 'Puck',
             voiceRevision: String(Date.now())
           });
         }}

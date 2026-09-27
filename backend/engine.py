@@ -362,7 +362,7 @@ def generate_responses_gemini(
     if not api_key:
         return None
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
     prompt = f"""Eres un comunicador aumentativo (AAC) para una persona que no puede hablar y está conversando en vivo.
 Le acaban de decir:
 "{partner_text}"
@@ -386,7 +386,7 @@ Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en es
                 "temperature": 0.7
             }
         }
-        res = requests.post(url, json=payload, timeout=6)
+        res = requests.post(url, json=payload, headers={"x-goog-api-key": api_key}, timeout=20)
         if res.status_code == 200:
             data = res.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -532,7 +532,7 @@ def get_smart_suggestions(
         }
 
     # 1. Try Groq (Default / Primary)
-    if preferred_engine in ["groq", "auto"] or (groq_api_key and preferred_engine != "ollama"):
+    if preferred_engine in ["groq", "auto"]:
         responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form)
         if responses:
             return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "groq"}

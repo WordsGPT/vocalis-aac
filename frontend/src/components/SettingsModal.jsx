@@ -6,6 +6,9 @@ import { pictogramPath } from './vocabulary';
 export function SettingsModal({
   isOpen,
   onClose,
+  onLogout,
+  voiceAuthenticated,
+  onVoiceLogin,
   settings,
   onUpdateSettings,
   browserVoices = [],
@@ -138,10 +141,11 @@ export function SettingsModal({
               <label className="block text-xs text-slate-400 mb-1">Voz seleccionada:</label>
             {settings.ttsMode === 'edge-tts' ? (
                 <select
-                  value={settings.edgeVoiceId || 'qwen-clone'}
+                  value={settings.edgeVoiceId || 'Puck'}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
                   className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
                 >
+                  {settings.edgeVoiceId?.startsWith('voice_') && <option value={settings.edgeVoiceId}>Mi voz personal</option>}
                   {edgeVoices.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name} ({v.lang})
@@ -243,7 +247,7 @@ export function SettingsModal({
               {preparationStatus && <p className="text-xs text-slate-300 mt-2 mb-0" role="status">{preparationStatus}</p>}
             </div>
 
-            <VoiceCloner onCloned={onVoiceCloned} />
+            <VoiceCloner onCloned={onVoiceCloned} authenticated={voiceAuthenticated} onLogin={onVoiceLogin} />
           </div>
 
           <hr className="border-slate-800" />
@@ -363,7 +367,6 @@ export function SettingsModal({
           <details className="settings-advanced"><summary>Ajustes avanzados</summary><div className="space-y-4 pt-4"><h3>Motor de respuestas</h3>            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {[
                 { id: 'groq', label: 'Groq', desc: 'Respuestas en la nube' },
-                { id: 'ollama', label: 'Ollama', desc: 'Local Gemma 3' },
                 { id: 'gemini', label: 'Gemini', desc: 'Google Cloud' },
                 { id: 'heuristic', label: 'Respuestas básicas', desc: 'Sin esperar a la IA' }
               ].map((eng) => (
@@ -383,82 +386,20 @@ export function SettingsModal({
               ))}
             </div>
 
-            {settings.ttsMode === 'edge-tts' && (settings.edgeVoiceId || 'qwen-clone') === 'qwen-clone' && (
-              <div className="mb-4">
-                <label className="block text-xs text-slate-400 mb-1.5">Motor de la voz clonada:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onUpdateSettings({ qwenEngine: 'streaming' })}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                      settings.qwenEngine === 'streaming'
-                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
-                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz rápida</div>
-                    <div className="text-[11px] text-slate-400">Empieza a hablar mientras genera</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateSettings({ qwenEngine: 'standard' })}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                      settings.qwenEngine === 'standard'
-                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-400'
-                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz estándar</div>
-                    <div className="text-[11px] text-slate-400">Prepara el mensaje completo antes de hablar</div>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1.5 mb-0">Ambos motores usan la misma voz guardada en este dispositivo.</p>
-              </div>
+            <p className="text-xs text-slate-400">Groq genera las respuestas por defecto. Gemini 3.8 Flash es opcional para respuestas; Gemini 3.8 Flash TTS genera la voz. Las claves API se configuran en el servidor.</p>
+            {settings.edgeVoiceId?.startsWith('voice_') && (
+              <div className="text-xs text-slate-400">ID de voz personal: <code>{settings.edgeVoiceId}</code></div>
             )}
-
-            {/* Groq API Key */}
-            <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1 flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <Key className="w-3 h-3 text-amber-400" />
-                  <span>Clave de API de Groq:</span>
-                </span>
-                {settings.groqApiKey && (
-                  <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
-                    <ShieldCheck className="w-3 h-3" /> Activa
-                  </span>
-                )}
-              </label>
-              <input
-                type="password"
-                value={settings.groqApiKey || ''}
-                onChange={(e) => onUpdateSettings({ groqApiKey: e.target.value })}
-                placeholder="gsk_..."
-                className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
-
-            {/* Optional Gemini API Key */}
-            <div>
-              <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
-                <Key className="w-3 h-3 text-slate-500" />
-                <span>Clave opcional de Google Gemini:</span>
-              </label>
-              <input
-                type="password"
-                value={settings.geminiApiKey || ''}
-                onChange={(e) => onUpdateSettings({ geminiApiKey: e.target.value })}
-                placeholder="AIzaSy..."
-                className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700 focus:outline-none focus:border-indigo-500 font-mono"
-              />
-              <p className="text-[11px] text-slate-500 mt-1 mb-0">
-                Las claves se guardan de forma privada en tu navegador y en tu archivo local .env.
-              </p>
-            </div></div></details>
+            <label className="block text-xs text-slate-400">Usar un ID de voz personal guardado en otro dispositivo</label>
+            <input type="text" placeholder="voice_..." value={settings.edgeVoiceId?.startsWith('voice_') ? settings.edgeVoiceId : ''}
+              onChange={(e) => { if (!e.target.value || /^voice_[A-Za-z0-9_-]+$/.test(e.target.value)) onUpdateSettings({ edgeVoiceId: e.target.value || 'Puck' }); }}
+              className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700" />
+            </div></details>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex justify-end">
+        <div className="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex justify-between">
+          {voiceAuthenticated ? <button type="button" onClick={onLogout} className="text-xs text-slate-300 underline">Cerrar sesión de voz</button> : <span />}
           <button
             type="button"
             onClick={onClose}

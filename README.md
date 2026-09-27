@@ -1,3 +1,7 @@
+# Vercel deployment
+
+The Gemini 3.8 Flash and password protected Vercel setup is documented in [DEPLOY.md](DEPLOY.md). The details below describe the older local Qwen setup.
+
 # 🎙️ Vocalis AAC - Real-Time Voice Communication Assistant
 
 **Vocalis AAC** is an assistive speech application designed specifically for mute and non-verbal individuals to engage in natural, real-time spoken conversations.
