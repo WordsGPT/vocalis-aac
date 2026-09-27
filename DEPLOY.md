@@ -1,6 +1,6 @@
 # Deploy Vocalis to Vercel
 
-The Vercel project root is this repository root. `vercel.json` builds the React app in `frontend/` and routes `/api/*` to the small FastAPI function in `api/index.py`. The older `backend/app.py` and Qwen runtime are for the previous local setup and are not used by this deployment.
+The Vercel project root is this repository root. `vercel.json` builds the React app in `frontend/` and copies it into Vercel's `public/` directory. `/api/*` routes to the small FastAPI function in `api/index.py`. The older `backend/app.py` and Qwen runtime are for the previous local setup and are not used by this deployment.
 
 ## Configure
 
