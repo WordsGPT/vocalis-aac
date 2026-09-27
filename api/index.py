@@ -141,6 +141,8 @@ async def google_post(path: str, payload: dict, timeout: float = 45) -> dict:
             result.raise_for_status()
             return result.json()
         except httpx.HTTPStatusError as exc:
+            if path == "voices" and exc.response.status_code >= 500:
+                raise HTTPException(502, "Gemini devolvió un error interno al crear la voz. Graba de nuevo ambas muestras con la misma persona y el mismo micrófono, una detrás de otra. Si continúa, prueba a crear la voz en Google AI Studio.") from None
             raise HTTPException(502, f"Gemini rechazó la solicitud ({exc.response.status_code}).") from None
         except httpx.RequestError:
             raise HTTPException(502, "No se pudo conectar con Gemini.") from None

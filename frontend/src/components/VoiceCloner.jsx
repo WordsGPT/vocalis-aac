@@ -99,7 +99,7 @@ export function VoiceCloner({ onCloned, authenticated }) {
 
   return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-200">
     <h4 className="font-bold m-0">Crear mi voz con Gemini</h4>
-    <p className="text-xs text-slate-400">La persona propietaria de la voz debe ser adulta y grabar ambas muestras con el mismo micrófono en un lugar tranquilo.</p>
+    <p className="text-xs text-slate-400">La persona propietaria de la voz debe ser adulta. Graba las dos muestras seguidas, con el mismo micrófono en un lugar tranquilo, sin unir grabaciones distintas.</p>
     {[['reference', 'Muestra de voz: habla con naturalidad durante 10–30 segundos.'],
       ['consent', `Consentimiento: di exactamente «${CONSENT}»`]].map(([kind, label]) =>
       <div key={kind} className="my-3">
