@@ -3,8 +3,5 @@
   "buildCommand": "cd frontend && npm ci && npm run build && mkdir -p ../public && cp -R dist/. ../public/",
   "functions": {
     "api/index.py": { "maxDuration": 120, "includeFiles": "public/**", "excludeFiles": "{frontend/**,backend/app.py,backend/qwen_voice.py,backend/streaming_voice_server.py,backend/test_api.py}" }
-  },
-  "rewrites": [
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
-  ]
+  }
 }
