@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field
 from backend.engine import get_smart_suggestions, get_server_groq_api_key
 
 API = "https://generativelanguage.googleapis.com/v1beta"
-TEXT_MODEL = "gemini-3.8-flash"
 VOICE_MODEL = "gemini-3.8-flash-tts"
 COOKIE = "vocalis_session"
 SESSION_SECONDS = 60 * 60 * 24 * 7
@@ -209,29 +208,20 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("es")):
     if mime not in {"audio/webm", "audio/mp4", "audio/ogg", "audio/wav"}:
         raise HTTPException(400, "Formato de audio no compatible.")
     groq_key = get_server_groq_api_key()
-    if groq_key:
-        async with httpx.AsyncClient(timeout=45) as client:
-            try:
-                result = await client.post(
-                    "https://api.groq.com/openai/v1/audio/transcriptions",
-                    headers={"Authorization": f"Bearer {groq_key}"},
-                    data={"model": "whisper-large-v3-turbo", "language": language.split("-")[0].lower()},
-                    files={"file": (file.filename or "recording.webm", data, mime)},
-                )
-                result.raise_for_status()
-                return {"text": result.json().get("text", "").strip(), "engine": "groq-whisper"}
-            except (httpx.HTTPStatusError, httpx.RequestError):
-                raise HTTPException(502, "No se pudo transcribir el audio con Groq.") from None
-    result = await google_post(f"models/{TEXT_MODEL}:generateContent", {
-        "contents": [{"parts": [{"text": "Transcribe literalmente este audio. Devuelve solo las palabras pronunciadas."},
-                                {"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode()}}]}],
-        "generationConfig": {"temperature": 0},
-    })
-    try:
-        text = "".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"])
-    except (KeyError, IndexError, TypeError):
-        raise HTTPException(502, "Gemini no devolvió transcripción.") from None
-    return {"text": text.strip(), "engine": "gemini"}
+    if not groq_key:
+        raise HTTPException(503, "Falta configurar GROQ_API_KEY para la transcripción.")
+    async with httpx.AsyncClient(timeout=45) as client:
+        try:
+            result = await client.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {groq_key}"},
+                data={"model": "whisper-large-v3-turbo", "language": language.split("-")[0].lower()},
+                files={"file": (file.filename or "recording.webm", data, mime)},
+            )
+            result.raise_for_status()
+            return {"text": result.json().get("text", "").strip(), "engine": "groq-whisper"}
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            raise HTTPException(502, "No se pudo transcribir el audio con Groq.") from None
 
 
 # Serve the built app if Vercel routes the root path to this FastAPI function.
