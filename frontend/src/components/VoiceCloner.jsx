@@ -36,13 +36,11 @@ async function toWav(file) {
   } finally { await context.close(); }
 }
 
-export function VoiceCloner({ onCloned, authenticated, onLogin }) {
+export function VoiceCloner({ onCloned, authenticated }) {
   const [files, setFiles] = useState({ reference: null, consent: null });
   const [active, setActive] = useState(null);
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const recorder = useRef(null);
   const stream = useRef(null);
   useEffect(() => () => {
@@ -95,24 +93,9 @@ export function VoiceCloner({ onCloned, authenticated, onLogin }) {
     finally { setSaving(false); }
   };
 
-  if (!authenticated) return <form className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-200"
-    onSubmit={async event => {
-      event.preventDefault();
-      setStatus('');
-      try { await onLogin(username, password); setPassword(''); }
-      catch (error) { setStatus(error.message); }
-    }}>
-    <h4 className="font-bold m-0">Mi voz personal</h4>
-    <p className="text-xs text-slate-400">Inicia sesión para crear y usar una voz clonada con Gemini.</p>
-    <input aria-label="Usuario de voz" autoComplete="username" required value={username}
-      onChange={event => setUsername(event.target.value)} placeholder="Usuario"
-      className="block w-full mb-2 p-2 rounded bg-slate-800" />
-    <input aria-label="Contraseña de voz" type="password" autoComplete="current-password" required value={password}
-      onChange={event => setPassword(event.target.value)} placeholder="Contraseña"
-      className="block w-full mb-2 p-2 rounded bg-slate-800" />
-    <button type="submit" className="w-full p-2 rounded bg-violet-600 font-bold">Entrar</button>
-    {status && <p role="alert" className="text-xs mt-2">{status}</p>}
-  </form>;
+  if (!authenticated) return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-300">
+    Inicia sesión arriba para crear y usar una voz personal.
+  </div>;
 
   return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-200">
     <h4 className="font-bold m-0">Crear mi voz con Gemini</h4>

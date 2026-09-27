@@ -6,21 +6,21 @@ import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
+import { getSmartSuggestions, getOfflineSuggestions, fetchCuratedVoices } from './services/api';
 
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
   speakTiles: true,
   pictogramSize: 100,
-  ttsMode: 'edge-tts', // 'edge-tts' | 'browser'
+  ttsMode: 'browser', // 'edge-tts' | 'browser'
   edgeVoiceId: 'Puck',
   qwenEngine: 'standard', // 'streaming' | 'standard'
   browserVoiceURI: '',
   speechRate: 1.0,
   speechPitch: 1.0,
-  preferredEngine: 'groq', // 'groq' | 'gemini' | 'heuristic'
+  preferredEngine: 'heuristic', // 'groq' | 'gemini' | 'heuristic'
   tone: 'natural',
-  sttMode: 'whisper', // 'whisper' (automatic server transcription) | 'browser'
+  sttMode: 'browser', // 'whisper' (automatic server transcription) | 'browser'
   sttLang: 'es-ES',
   suggestionCount: 6,
   autoTriggerDelay: 1500
@@ -66,6 +66,9 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
       return DEFAULT_SETTINGS;
     }
   });
+  const activeSettings = voiceAuthenticated ? settings : {
+    ...settings, ttsMode: 'browser', preferredEngine: 'heuristic', sttMode: 'browser',
+  };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
@@ -73,7 +76,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   const [suggestions, setSuggestions] = useState([]);
   const suggestionRequest = useRef(0);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [aiEngine, setAiEngine] = useState('groq');
+  const [aiEngine, setAiEngine] = useState('client-offline');
 
   // Conversation history: chronological order [oldest, ..., newest]
   const [history, setHistory] = useState(() => {
@@ -123,7 +126,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   };
 
   // TTS Hook
-  const tts = useTTS(settings);
+  const tts = useTTS(activeSettings);
   const phrasesToPrepare = preparationPhrases(settings.grammaticalForm);
 
   // Fetch Server Edge-TTS voices on mount
@@ -148,14 +151,14 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         content: h.text
       }));
 
-      const res = await getSmartSuggestions({
+      const res = voiceAuthenticated ? await getSmartSuggestions({
         text: heardSpeech,
         history: contextHistory,
         tone: settings.tone,
         grammaticalForm: settings.grammaticalForm,
         count: settings.suggestionCount || 6,
         preferredEngine: settings.preferredEngine
-      });
+      }) : getOfflineSuggestions(settings.suggestionCount || 6, settings.grammaticalForm);
 
       if (requestId === suggestionRequest.current && res && Array.isArray(res.suggestions) && res.suggestions.length > 0) {
         setSuggestions(res.suggestions);
@@ -166,7 +169,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
     }
-  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.preferredEngine]);
+  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.preferredEngine, voiceAuthenticated]);
 
   // Handle incoming speech recognized from partner
   const handleSpeechCompleted = useCallback((heardText) => {
@@ -179,7 +182,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   const stt = useSpeechRecognition({
     onSpeechCompleted: handleSpeechCompleted,
     autoTriggerDelay: settings.autoTriggerDelay || 1500,
-    sttMode: settings.sttMode || 'whisper',
+    sttMode: activeSettings.sttMode || 'browser',
     sttLang: settings.sttLang || 'es-ES'
   });
 
@@ -198,7 +201,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   return (
     <div className="vocalis-redesign">
       <CommunicationBoard
-        settings={settings}
+        settings={activeSettings}
         tts={tts}
         stt={stt}
         suggestions={suggestions}
@@ -209,7 +212,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
-        voiceLabel={settings.ttsMode === 'browser' ? 'Voz del navegador' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
+        voiceLabel={activeSettings.ttsMode === 'browser' ? 'Voz del navegador' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
       />
 
       {/* Settings Modal */}
@@ -219,7 +222,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         voiceAuthenticated={voiceAuthenticated}
         onVoiceLogin={onVoiceLogin}
         onLogout={onLogout}
-        settings={settings}
+        settings={activeSettings}
         onUpdateSettings={handleUpdateSettings}
         browserVoices={tts.browserVoices}
         edgeVoices={edgeVoices}

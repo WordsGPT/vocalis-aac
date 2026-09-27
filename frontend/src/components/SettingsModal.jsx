@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
+import { AccessPanel } from './AccessPanel';
 import { pictogramPath } from './vocabulary';
 
 export function SettingsModal({
@@ -82,6 +83,7 @@ export function SettingsModal({
 
         {/* Modal Body */}
         <div className="settings-body p-5 sm:p-6 overflow-y-auto space-y-6 text-sm">
+          <AccessPanel authenticated={voiceAuthenticated} onLogin={onVoiceLogin} onLogout={onLogout} />
           <div>
             <label htmlFor="grammatical-form" className="block text-sm font-semibold mb-2">Cómo hablo de mí</label>
             <select id="grammatical-form" className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700" value={settings.grammaticalForm || 'masculine'} onChange={event => onUpdateSettings({ grammaticalForm: event.target.value })}>
@@ -112,6 +114,7 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ ttsMode: 'edge-tts' })}
+                disabled={!voiceAuthenticated}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.ttsMode === 'edge-tts'
                     ? 'bg-blue-600/20 border-blue-500 text-white font-medium ring-1 ring-blue-400'
@@ -247,7 +250,7 @@ export function SettingsModal({
               {preparationStatus && <p className="text-xs text-slate-300 mt-2 mb-0" role="status">{preparationStatus}</p>}
             </div>
 
-            <VoiceCloner onCloned={onVoiceCloned} authenticated={voiceAuthenticated} onLogin={onVoiceLogin} />
+            <VoiceCloner onCloned={onVoiceCloned} authenticated={voiceAuthenticated} />
           </div>
 
           <hr className="border-slate-800" />
@@ -324,6 +327,7 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ sttMode: 'whisper' })}
+                disabled={!voiceAuthenticated}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.sttMode !== 'browser'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
@@ -374,6 +378,7 @@ export function SettingsModal({
                   key={eng.id}
                   type="button"
                   onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
+                  disabled={!voiceAuthenticated && eng.id !== 'heuristic'}
                   className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
                     settings.preferredEngine === eng.id
                       ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 ring-1 ring-indigo-400'
@@ -386,7 +391,7 @@ export function SettingsModal({
               ))}
             </div>
 
-            <p className="text-xs text-slate-400">Groq genera las respuestas por defecto. Gemini 3.8 Flash es opcional para respuestas; Gemini 3.8 Flash TTS genera la voz. Las claves API se configuran en el servidor.</p>
+            <p className="text-xs text-slate-400">Tras iniciar sesión, Groq puede generar respuestas. Gemini 3.8 Flash es opcional para respuestas; Gemini 3.8 Flash TTS genera la voz. Las claves API se configuran en el servidor.</p>
             {settings.edgeVoiceId?.startsWith('voice_') && (
               <div className="text-xs text-slate-400">ID de voz personal: <code>{settings.edgeVoiceId}</code></div>
             )}
@@ -399,7 +404,7 @@ export function SettingsModal({
 
         {/* Modal Footer */}
         <div className="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex justify-between">
-          {voiceAuthenticated ? <button type="button" onClick={onLogout} className="text-xs text-slate-300 underline">Cerrar sesión de voz</button> : <span />}
+<span />
           <button
             type="button"
             onClick={onClose}

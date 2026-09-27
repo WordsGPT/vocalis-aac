@@ -55,6 +55,18 @@ export async function cloneVoiceFromAudio(reference, consent) {
   return data;
 }
 
+export function getOfflineSuggestions(count = 6, grammaticalForm = 'masculine') {
+  const suggestions = [
+    '¡Sí, suena genial!',
+    'De acuerdo, me parece bien.',
+    '¿Podrías contarme un poco más sobre eso?',
+    '¿Y si probamos otra alternativa diferente?',
+    'No podré en esta ocasión, muchas gracias.',
+    'Dame un momento para pensarlo con calma.',
+  ];
+  return { suggestions: suggestions.slice(0, count).map(text => personalForm(text, grammaticalForm)), engine: 'client-offline' };
+}
+
 export async function getSmartSuggestions({ 
   text, 
   history = [], 
@@ -80,19 +92,7 @@ export async function getSmartSuggestions({
     return await res.json();
   } catch (err) {
     console.warn('Backend suggestion call failed, using client fallback:', err);
-    // Offline client fallback (Spanish)
-    const fallbackList = [
-      "¡Sí, suena genial!",
-      "De acuerdo, me parece bien.",
-      "¿Podrías contarme un poco más sobre eso?",
-      "¿Y si probamos otra alternativa diferente?",
-      "No podré en esta ocasión, muchas gracias.",
-      "Dame un momento para pensarlo con calma."
-    ];
-    return {
-      suggestions: fallbackList.slice(0, count || 6).map(text => personalForm(text, grammaticalForm)),
-      engine: 'client-offline'
-    };
+    return getOfflineSuggestions(count || 6, grammaticalForm);
   }
 }
 
