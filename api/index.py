@@ -49,7 +49,7 @@ def valid_session(token: str) -> bool:
 @app.middleware("http")
 async def protect_api(request: Request, call_next):
     path = request.url.path
-    if path == "/api/voice/clone":
+    if path in {"/api/suggest", "/api/transcribe", "/api/tts", "/api/voice/clone"}:
         if not valid_session(request.cookies.get(COOKIE, "")):
             return JSONResponse({"detail": "Inicia sesión para continuar."}, status_code=401,
                                 headers={"Cache-Control": "no-store"})
