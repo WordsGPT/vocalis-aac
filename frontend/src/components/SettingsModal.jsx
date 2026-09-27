@@ -327,7 +327,6 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ sttMode: 'whisper' })}
-                disabled={!voiceAuthenticated}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.sttMode !== 'browser'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
@@ -378,7 +377,7 @@ export function SettingsModal({
                   key={eng.id}
                   type="button"
                   onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
-                  disabled={!voiceAuthenticated && eng.id !== 'heuristic'}
+                  disabled={!voiceAuthenticated && eng.id === 'gemini'}
                   className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
                     settings.preferredEngine === eng.id
                       ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 ring-1 ring-indigo-400'

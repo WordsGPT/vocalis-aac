@@ -48,7 +48,7 @@ def valid_session(token: str) -> bool:
 @app.middleware("http")
 async def protect_api(request: Request, call_next):
     path = request.url.path
-    if path in {"/api/suggest", "/api/transcribe", "/api/tts", "/api/voice/clone"}:
+    if path in {"/api/tts", "/api/voice/clone"}:
         if not valid_session(request.cookies.get(COOKIE, "")):
             return JSONResponse({"detail": "Inicia sesión para continuar."}, status_code=401,
                                 headers={"Cache-Control": "no-store"})
@@ -106,8 +106,10 @@ class Suggest(BaseModel):
 
 
 @app.post("/api/suggest")
-async def suggest(body: Suggest):
+async def suggest(body: Suggest, request: Request):
     engine = body.preferred_engine if body.preferred_engine in {"groq", "gemini", "heuristic"} else "groq"
+    if engine == "gemini" and not valid_session(request.cookies.get(COOKIE, "")):
+        raise HTTPException(401, "Inicia sesión para usar Gemini.")
     return get_smart_suggestions(body.text, body.history, body.tone, body.count,
                                  gemini_api_key=os.environ.get("GEMINI_API_KEY", ""),
                                  groq_api_key=get_server_groq_api_key(), preferred_engine=engine,

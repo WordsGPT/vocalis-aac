@@ -16,7 +16,7 @@ export function AccessPanel({ authenticated, onLogin, onLogout }) {
       catch (problem) { setError(problem.message); }
     }}>
     <h3 className="font-bold m-0">Acceso a servicios de IA</h3>
-    <p className="text-xs text-slate-400">Sin iniciar sesión, Vocalis usa la voz y el reconocimiento del navegador y respuestas básicas. Inicia sesión para usar Groq y Gemini.</p>
+    <p className="text-xs text-slate-400">Sin iniciar sesión, Vocalis usa Groq para transcribir y sugerir respuestas, y la voz del navegador para hablar. Inicia sesión para usar Gemini.</p>
     <input aria-label="Usuario" autoComplete="username" required value={username} onChange={event => setUsername(event.target.value)}
       placeholder="Usuario" className="block w-full mb-2 p-2 rounded bg-slate-800" />
     <input aria-label="Contraseña" type="password" autoComplete="current-password" required value={password}

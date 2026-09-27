@@ -6,7 +6,7 @@ import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { getSmartSuggestions, getOfflineSuggestions, fetchCuratedVoices } from './services/api';
+import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
 
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
@@ -18,9 +18,9 @@ const DEFAULT_SETTINGS = {
   browserVoiceURI: '',
   speechRate: 1.0,
   speechPitch: 1.0,
-  preferredEngine: 'heuristic', // 'groq' | 'gemini' | 'heuristic'
+  preferredEngine: 'groq', // 'groq' | 'gemini' | 'heuristic'
   tone: 'natural',
-  sttMode: 'browser', // 'whisper' (automatic server transcription) | 'browser'
+  sttMode: 'whisper', // 'whisper' (Groq transcription) | 'browser'
   sttLang: 'es-ES',
   suggestionCount: 6,
   autoTriggerDelay: 1500
@@ -67,7 +67,8 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
     }
   });
   const activeSettings = voiceAuthenticated ? settings : {
-    ...settings, ttsMode: 'browser', preferredEngine: 'heuristic', sttMode: 'browser',
+    ...settings, ttsMode: 'browser',
+    preferredEngine: settings.preferredEngine === 'gemini' ? 'groq' : settings.preferredEngine,
   };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -151,14 +152,14 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         content: h.text
       }));
 
-      const res = voiceAuthenticated ? await getSmartSuggestions({
+      const res = await getSmartSuggestions({
         text: heardSpeech,
         history: contextHistory,
         tone: settings.tone,
         grammaticalForm: settings.grammaticalForm,
         count: settings.suggestionCount || 6,
-        preferredEngine: settings.preferredEngine
-      }) : getOfflineSuggestions(settings.suggestionCount || 6, settings.grammaticalForm);
+        preferredEngine: activeSettings.preferredEngine
+      });
 
       if (requestId === suggestionRequest.current && res && Array.isArray(res.suggestions) && res.suggestions.length > 0) {
         setSuggestions(res.suggestions);
@@ -169,7 +170,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
     }
-  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.preferredEngine, voiceAuthenticated]);
+  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, activeSettings.preferredEngine]);
 
   // Handle incoming speech recognized from partner
   const handleSpeechCompleted = useCallback((heardText) => {
