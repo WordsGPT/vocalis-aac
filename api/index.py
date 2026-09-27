@@ -33,7 +33,11 @@ def config(name: str) -> str:
 
 
 def signature(value: str) -> str:
-    return hmac.new(config("AUTH_SECRET").encode(), value.encode(), hashlib.sha256).hexdigest()
+    # Derive the signing key from both secrets so changing the login password
+    # also revokes every previously issued session.
+    signing_key = hmac.new(config("AUTH_SECRET").encode(),
+                           config("AUTH_PASSWORD").encode(), hashlib.sha256).digest()
+    return hmac.new(signing_key, value.encode(), hashlib.sha256).hexdigest()
 
 
 def valid_session(token: str) -> bool:
@@ -65,8 +69,8 @@ async def protect_api(request: Request, call_next):
 
 
 class Login(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=1, max_length=256)
 
 
 @app.post("/api/login")

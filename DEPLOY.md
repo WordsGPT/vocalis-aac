@@ -7,7 +7,13 @@ The Vercel project root is this repository root. `vercel.json` builds the React 
 1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey). Ensure the project has access to `gemini-3.8-flash` and `gemini-3.8-flash-tts`, including the Voices API.
 2. Import this repository into Vercel. Set the **Root Directory** to the repository root.
 3. Add these **server-side** environment variables for every environment you will use (Production and Preview): `GROQ_API_KEY`, `GEMINI_API_KEY`, `AUTH_USERNAME`, `AUTH_PASSWORD`, and `AUTH_SECRET`. Generate the secret with `openssl rand -hex 32`. Choose a long unique password. Do not prefix any of these names with `VITE_`.
-4. Deploy. The AAC board opens publicly with Groq suggestions and transcription. Sign in inside settings to use Gemini suggestions, speech, and voice cloning. Changing `AUTH_SECRET` logs out existing sessions. Sessions last seven days.
+4. Deploy. The AAC board opens publicly with Groq suggestions and transcription. Sign in inside settings to use Gemini suggestions, speech, and voice cloning. Changing `AUTH_PASSWORD` or `AUTH_SECRET` logs out existing sessions. Sessions last seven days.
+
+## Limit login attempts
+
+In the Vercel project dashboard, open **Firewall → Configure → New Rule**. Add conditions for **Path = `/api/login`** and **Method = `POST`**. Set the action to **Rate Limit**, choose **Fixed Window**, **5 requests per 60 seconds**, keyed by **IP**, with the default **429** response. Save the rule, then **Review Changes → Publish**. This rule is available on all Vercel plans and applies across serverless instances. Until it is published, the app does not impose a login attempt limit. Vercel tracks rate limit counters per region, so this is a throttle rather than an absolute global lockout.
+
+Use a fresh, unique random `AUTH_PASSWORD`. If you replace it, redeploy so the new value is loaded; previous sessions will then be invalidated. Keep `AUTH_SECRET` random and private.
 
 Both API keys stay in the Python function; the browser never receives them. Gemini suggestions, speech, and voice cloning require the signed, HttpOnly session cookie. Groq suggestions and transcription are intentionally available to unsigned visitors and can use API credits. Unsigned visitors use browser speech synthesis.
 
