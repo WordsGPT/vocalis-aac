@@ -54,7 +54,8 @@ export function PocketCloner({ available, onSelected, onRemoved }) {
 
   return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-200">
     <h4 className="font-bold m-0">Mi voz con Pocket TTS</h4>
-    <p className="text-xs text-slate-400">No requiere iniciar sesión. Usa una muestra clara de 5–30 segundos. La muestra permanece en este navegador; la voz se genera con la CPU del dispositivo. La primera vez se descargan unos 150 MB de modelos.</p>
+    <p className="text-xs text-slate-400">No requiere iniciar sesión. Graba una sola voz en español durante 5–30 segundos, sin ruido ni música. No hace falta una frase fija ni escribir lo que se dijo. La muestra permanece en este navegador; la voz se genera con la CPU del dispositivo. La primera vez se descargan unos 145 MB de modelos.</p>
+    <p className="text-xs text-slate-400">Ejemplo para grabar: «Hola, esta es mi voz. Quiero poder pedir ayuda, conversar con mi familia y decir lo que necesito con claridad».</p>
     <label className="flex items-start gap-2 my-3 text-xs">
       <input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />
       Soy propietario de esta voz o tengo permiso explícito para clonarla.

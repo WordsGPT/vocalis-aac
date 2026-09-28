@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchEdgeTTSAudio, fetchStreamingTTSAudio, getClientId } from '../services/api';
 import { clearPreparedAudio, loadPreparedAudio, savePreparedAudio } from '../services/preparedAudio';
 import { loadPocketVoice } from '../services/pocketVoice';
-import { generatePocketAudio } from '../services/pocketBrowser';
+import { generatePocketAudio, POCKET_MODEL_VERSION } from '../services/pocketBrowser';
 
 const START_BUFFER_SECONDS = 0.2;
 const MAX_CACHE_BYTES = 24 * 1024 * 1024;
@@ -46,7 +46,8 @@ export function useTTS(settings = {}) {
   const speechPitch = settings.speechPitch ?? 1;
   const voiceRevision = settings.voiceRevision || 'original';
   const audioKey = useCallback((text, engine) => JSON.stringify([
-    getClientId(), voiceRevision, text, edgeVoiceId, ttsMode, engine, speechRate, speechPitch,
+    getClientId(), voiceRevision, ttsMode === 'pocket' ? POCKET_MODEL_VERSION : null,
+    text, edgeVoiceId, ttsMode, engine, speechRate, speechPitch,
   ]), [voiceRevision, edgeVoiceId, ttsMode, speechRate, speechPitch]);
 
   useEffect(() => {

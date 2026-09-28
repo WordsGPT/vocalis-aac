@@ -6,7 +6,7 @@ let ort = null;
 
 const DEFAULT_LANGUAGE = "spanish";
 const LANGUAGE_BUNDLES = ["spanish"];
-const MODEL_BASE = "https://huggingface.co/KevinAHM/pocket-tts-onnx/resolve/58a6d00cf13d239b6748cb0769f35c580a8f606c/onnx";
+const MODEL_BASE = "https://raw.githubusercontent.com/WordsGPT/vocalis-aac/28c044bb7cad2d11b715ffe498cf661523cc0d7b";
 const MODEL_STEMS = {
     mimi_encoder: "mimi_encoder_int8.onnx",
     text_conditioner: "text_conditioner_int8.onnx",
@@ -419,6 +419,8 @@ function prepareTextPrompt(text) {
         return { text: "", framesAfterEos: 1 };
     }
 
+    // Match Kyutai's v3.3 Spanish text normalization before tokenization.
+    prompt = prompt.replace(/["“”„«»()[\]¡¿]/g, "").replace(/[’‘]/g, "'");
     prompt = prompt.replace(/\r/g, " ").replace(/\n/g, " ").replace(/\s+/g, " ");
     if (bundleMetadata.remove_semicolons) {
         prompt = prompt.replace(/;/g, ",");
@@ -841,12 +843,12 @@ async function runGenerationPipeline(voiceName, chunks, framesAfterEos) {
             const conditioning = arResult.conditioning;
             const eosLogit = arResult.eos_logit.data[0];
             const isEos = eosLogit > -4.0;
-            if (isEos && eosStep == null) {
+            if (isEos && eosStep == null && step >= 6) {
                 eosStep = step;
             }
             const shouldStop = eosStep != null && step >= eosStep + framesAfterEos;
 
-            const temperature = 0.7;
+            const temperature = 0.3;
             const std = Math.sqrt(temperature);
             const latentData = new Float32Array(currentLatentDim);
             for (let i = 0; i < currentLatentDim; i++) {

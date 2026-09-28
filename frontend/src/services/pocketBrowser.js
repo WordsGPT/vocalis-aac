@@ -1,4 +1,5 @@
 // Pocket TTS runs in a Web Worker. Model weights are fetched by the visitor's browser.
+export const POCKET_MODEL_VERSION = 'spanish-v3.3.0-28c044b';
 let worker;
 let ready;
 let encodedReference;
@@ -33,7 +34,7 @@ async function encodeReference(reference) {
     .map(value => value.toString(16).padStart(2, '0')).join('');
   if (fingerprint === encodedReference) return;
   const view = new DataView(buffer);
-  const count = Math.min(Math.floor((buffer.byteLength - 44) / 2), 24000 * 10);
+  const count = Math.min(Math.floor((buffer.byteLength - 44) / 2), 24000 * 30);
   const samples = new Float32Array(count);
   for (let i = 0; i < count; i += 1) samples[i] = view.getInt16(44 + i * 2, true) / 32768;
   const done = listen('voice_encoded');
