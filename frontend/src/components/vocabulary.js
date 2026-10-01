@@ -166,3 +166,44 @@ export const CORE_STRIP = ['Yo', 'Quiero', 'Necesito', 'No', 'Más', 'Por favor'
   .map(text => AAC_VOCABULARY.core.find(item => item.text === text));
 
 export function pictogramPath(id) { return '/pictograms/' + (id || 9837) + '.png'; }
+
+export const TOPIC_KEYWORD_MAP = {
+  mercado: 35695, tienda: 35695, compra: 8986, compras: 8986, comprar: 8986,
+  comida: 4610, queso: 4610, cena: 4610, almuerzo: 4610, desayuno: 4610, fruta: 28339,
+  restaurante: 32408, bar: 32408, cafe: 2296, bebida: 2276, agua: 2248,
+  cine: 34320, pelicula: 34320, peliculas: 34320, serie: 25498, television: 25498,
+  musica: 24791, cancion: 6960, concierto: 24791,
+  medico: 6561, hospital: 6523, salud: 2367, medicina: 8163, pastilla: 8163, dolor: 2367,
+  familia: 38351, amigo: 25790, amigos: 25790, amiga: 25790, hermano: 2423, hermana: 2422,
+  padre: 2497, madre: 31148, hijo: 34560, hija: 34560,
+  casa: 2317, hogar: 2317, habitacion: 2304, cocina: 10752, salon: 6211,
+  trabajo: 16087, oficina: 16087, empleo: 16087,
+  colegio: 32446, escuela: 32446, estudios: 6495, clase: 32446, universidad: 32446,
+  parque: 2859, paseo: 8649, calle: 2299,
+  viaje: 2339, coche: 2339, auto: 2339, tren: 2603, autobus: 2262, vuelo: 2339, avion: 2339, bici: 6935, bicicleta: 6935,
+  tiempo: 7131, hora: 7129, horario: 7129, dia: 7131, semana: 37732,
+  dinero: 8986, precio: 8986, pago: 8986,
+  deporte: 16743, futbol: 16743, partido: 16743, juego: 23392, videojuego: 21945, videojuegos: 21945,
+  ordenador: 7190, telefono: 26479, movil: 26479, internet: 37366, mensaje: 37867,
+  bano: 6929, ducha: 32426, dormir: 6479, descanso: 3299, ropa: 2309,
+};
+
+export function findTopicPictogram(topic) {
+  if (!topic || typeof topic !== 'string') return 6517;
+  const clean = topic.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (!clean) return 6517;
+  if (TOPIC_KEYWORD_MAP[clean]) return TOPIC_KEYWORD_MAP[clean];
+  const words = clean.split(/[\s,.-]+/).filter(Boolean);
+  for (const w of words) {
+    if (TOPIC_KEYWORD_MAP[w]) return TOPIC_KEYWORD_MAP[w];
+  }
+  for (const category of Object.values(AAC_VOCABULARY)) {
+    const found = category.find(t => {
+      if (!t.pictogram || !t.text) return false;
+      const tNorm = t.text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return words.includes(tNorm) || clean === tNorm;
+    });
+    if (found) return found.pictogram;
+  }
+  return 6517;
+}

@@ -107,6 +107,7 @@ class SuggestRequest(BaseModel):
     groq_api_key: Optional[str] = None
     preferred_engine: Optional[str] = "groq"
     automatic: bool = False
+    focus_topic: Optional[str] = None
 
 class TTSRequest(BaseModel):
     text: str
@@ -222,11 +223,11 @@ async def clone_voice(
 
 @app.post("/api/suggest")
 async def suggest(req: SuggestRequest):
-    if req.automatic:
+    if req.automatic or req.focus_topic:
         return await asyncio.to_thread(
             conversation_suggestions, req.text, req.history, req.count or 6,
             req.tone or "natural", req.grammatical_form, req.groq_api_key,
-            req.user_context
+            req.user_context, req.focus_topic
         )
     res = await asyncio.to_thread(get_smart_suggestions,
         partner_text=req.text,

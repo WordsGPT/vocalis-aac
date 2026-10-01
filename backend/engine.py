@@ -306,21 +306,19 @@ def generate_responses_ollama(
 Alguien le acaba de decir:
 "{partner_text}"
 
-Genera exactamente {count} respuestas habladas naturales, variadas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta:
-Incluye:
-1. Acuerdo entusiasta o positivo
-2. Acuerdo suave o neutral
-3. Pregunta aclaratoria sobre el tema
-4. Propuesta alternativa o sugerencia
-5. Rechazo cortés o límite
-6. Pedir tiempo para pensar o pausar
+Genera exactamente {count} respuestas habladas naturales, variadas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta.
+Adapta las intenciones con sentido común según lo escuchado:
+- Si es una pregunta abierta o de datos: responde directamente con el dato, devuelve la pregunta amablemente, o añade un detalle (NUNCA fuerces "sí" o "no").
+- Si es una elección: ofrece una opción, la otra o una alternativa.
+- Si es una invitación o propuesta: aceptación, condición/matiz, declinación educada o alternativa.
+- Si es una anécdota u opinión: empatía, apoyo, curiosidad por saber más o validación.
 
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas:
 - Habla directamente en primera persona ("yo", "me", "nosotros").
-- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 4 a 12 palabras).
-- No generes fragmentos incompletos.
+- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 3 a 10 palabras).
+- Prohibido repetir opciones redundantes.
 - NUNCA uses corchetes ni marcadores como [tema].
 - Listas para ser reproducidas por un sintetizador de voz (TTS) de inmediato."""
 
@@ -368,15 +366,14 @@ Le acaban de decir:
 "{partner_text}"
 
 {grammatical_instruction(grammatical_form)}
-Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL:
-- Acuerdo entusiasta
-- Aceptación suave
-- Pregunta o aclaración
-- Alternativa o sugerencia
-- Rechazo educado
-- Pedir tiempo para pensar
+Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL.
+Adapta las opciones inteligentemente a lo que se ha dicho:
+- Si es pregunta abierta o de datos: responde directamente, devuelve la pregunta o añade un matiz (sin forzar "sí" o "no").
+- Si es una elección: elige una opción, la otra o una alternativa.
+- Si es una propuesta: acepta, matiza, declina educadamente o propón otro plan.
+- Si es una anécdota o noticia: muestra empatía, apoyo o curiosidad.
 
-Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en español. Ejemplo: ["¡Sí, me parece genial!", "De acuerdo, me parece bien.", "¿Podríamos hacerlo mañana?", "¿Y si probamos otra cosa?", "No podré en esta ocasión, lo siento.", "Déjame pensarlo un momento."][:count]"""
+Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en español."""
 
     try:
         payload = {
@@ -435,23 +432,30 @@ En el historial de mensajes:
 - 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
 {user_info}
 El interlocutor acaba de decir el último mensaje.
-Tu objetivo principal es ofrecer MÁXIMA DIVERSIDAD DE INTENCIONES para que la persona tenga opciones reales de respuesta y no repeticiones de la misma idea.
+Tu objetivo principal es ofrecer {count} opciones de respuesta COHERENTES, ÚTILES y NATURALES, con VARIEDAD REAL DE POSTURAS CONVERSACIONALES sin forzar plantillas fijas de "sí/no".
 
-Genera exactamente {count} respuestas en primera persona, cada una con una INTENCIÓN TOTALMENTE DIFERENTE a las demás:
-1. ACUERDO / AFIRMACIÓN: Decir que sí, aceptar con entusiasmo o sumarse.
-2. RECHAZO / NEGATIVA: Decir que no educadamente, declinar o discrepar con respeto.
-3. PREGUNTA CLAVE: Indagar un detalle concreto sobre el tema para saber más.
-4. ALTERNATIVA / SUGERENCIA: Proponer otro plan, otra hora, otra idea o alternativa.
-5. REACCIÓN / EMPATÍA: Comentario espontáneo de apoyo, sorpresa, humor o empatía.
-6. DUDA / TIEMPO / MATIZ: Pedir tiempo para pensar, "luego te digo", "depende" o respuesta neutral.
+ADAPTACIÓN INTELIGENTE SEGÚN EL TIPO DE MENSAJE:
+1. PREGUNTAS ABIERTAS O DE DATOS (ej. "¿Cómo te llamas?", "¿Dónde vives?", "¿Qué tal estás?", "¿Qué hora es?", "¿A qué te dedicas?"):
+   - Ofrece respuestas directas y completas (usando fielmente la información personal del usuario si aplica).
+   - Ofrece variedad de intenciones útiles: respuesta directa cordial, respuesta que devuelve la pregunta amablemente ("¿Y tú cómo te llamas?"), añadir un detalle relacionado agradable, o preguntar un detalle afín.
+   - NUNCA fuerces "Sí", "No" ni respuestas defensivas o cortantes como "No te lo digo".
+2. PREGUNTAS DE ELECCIÓN (ej. "¿Pizza o hamburguesa?", "¿Cine o paseo?"):
+   - Ofrece elegir una opción, elegir la otra, proponer una alternativa diferente, o dejar que elija la otra persona ("Lo que tú prefieras", "Me da igual, tú mandas").
+3. PROPUESTAS, INVITACIONES O PREGUNTAS DE SÍ/NO (ej. "¿Quieres un café?", "¿Vamos al parque?", "¿Tienes hambre?"):
+   - Ofrece aceptación positiva, aceptación con condición o matiz ("sí, pero solo un rato"), declinación educada, o contrapropuesta.
+4. HISTORIAS, OPINIONES O NOTICIAS (ej. "He tenido un mal día", "Mira lo que compré", "Mi abuela está enferma"):
+   - Ofrece empatía, apoyo, curiosidad por saber más, validación o una opinión/experiencia afín.
+5. SALUDOS O CORDIALIDAD (ej. "¡Hola!", "¿Qué tal?", "Muchas gracias"):
+   - Ofrece saludos cálidos, devoluciones de saludo, agradecimiento o comentarios casuales según el estado de ánimo.
 
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas estrictas:
-- Si la pregunta se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL de arriba.
-- Las {count} respuestas DEBEN estar en ESPAÑOL y en primera persona.
-- Las opciones DEBEN ser mutuamente distintas en su intención: prohibido generar múltiples preguntas redundantes o afirmaciones repetidas.
+- Genera exactamente {count} respuestas en primera persona, en ESPAÑOL natural y fluido.
+- Cada opción debe tener una postura conversacional distinta (afinidad, matiz, curiosidad, alternativa o empatía), adaptada con sentido común al tema.
+- Si la pregunta se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL de arriba de forma exacta.
 - Frases completas, naturales y listas para voz artificial (3 a 10 palabras).
+- Prohibido repetir la misma idea con palabras similares o generar múltiples preguntas redundantes.
 - No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1".
 Devuelve JSON con la clave "suggestions"."""
 

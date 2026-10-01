@@ -105,6 +105,23 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(response.json()['suggestions'], ['Sí.'])
         self.assertEqual(mock_conv.call_args[0][6], 'Vivo en Madrid')
 
+    def test_focus_topic_injected_into_prompt_and_topics_returned(self):
+        with self.decision('{"should_suggest": true, "reason": "topic_pivot", "suggestions": ["Volviendo al mercado..."], "topics": ["Mercado", "Queso"]}') as request:
+            result = conversation_suggestions('¿Qué compramos?', api_key='test', focus_topic='Mercado')
+        prompt = request.call_args.kwargs['json']['messages'][0]['content']
+        self.assertIn("Mercado", prompt)
+        self.assertIn("ENFOQUE DE TEMA SOLICITADO", prompt)
+        self.assertEqual(result['suggestions'], ['Volviendo al mercado...'])
+        self.assertIn('Mercado', result['topics'])
+
+    def test_focus_topic_fallback_generates_pivot_phrases(self):
+        with patch('backend.conversation.get_server_groq_api_key', return_value=''):
+            result = conversation_suggestions('Hola', focus_topic='Mercado')
+        self.assertEqual(result['reason'], 'topic_pivot')
+        self.assertTrue(any('Mercado' in s for s in result['suggestions']))
+        self.assertEqual(result['topics'], ['Mercado'])
+
 
 if __name__ == '__main__':
     unittest.main()
+

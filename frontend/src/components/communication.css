@@ -308,3 +308,103 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
   .aac-context-chip { display: none; }
 }
 
+/* Topic chips in header */
+.aac-header-topics {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  max-width: calc(100% - 300px);
+  padding: 2px 4px;
+}
+.aac-header-topics::-webkit-scrollbar {
+  display: none;
+}
+.aac-topic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  min-height: 36px;
+  background: #f1f5fa;
+  border: 1.5px solid #cdd8e6;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #274263;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.aac-topic-chip img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.aac-topic-chip:hover {
+  background: #e3ecf8;
+  border-color: #9cb8dd;
+}
+.aac-topic-chip.active {
+  background: #e7effb;
+  border-color: #2558b3;
+  color: #173b7d;
+  box-shadow: 0 0 0 1px #2558b3;
+}
+.aac-topic-clear {
+  margin-left: 2px;
+  opacity: 0.7;
+}
+.aac-topic-clear:hover {
+  opacity: 1;
+}
+
+/* Active topic title badge in conversation */
+.aac-reply-heading-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.aac-active-topic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 14px;
+  background: #e7effb;
+  border: 1px solid #9cb8dd;
+  color: #173b7d;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.aac-active-topic-badge:hover {
+  background: #d8e5f7;
+}
+
+@media (max-width: 700px) {
+  .aac-header-topics {
+    max-width: calc(100% - 150px);
+    gap: 4px;
+  }
+  .aac-topic-chip {
+    padding: 3px 8px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+  .aac-topic-chip img {
+    width: 18px;
+    height: 18px;
+  }
+}
+@media (max-width: 480px) {
+  .aac-header-topics {
+    max-width: calc(100% - 110px);
+  }
+}
+

@@ -64,6 +64,7 @@ export async function getSmartSuggestions({
   groqApiKey = null, 
   preferredEngine = 'groq',
   automatic = false,
+  focusTopic = null,
   signal,
 }) {
   try {
@@ -82,6 +83,7 @@ export async function getSmartSuggestions({
         groq_api_key: groqApiKey || null,
         preferred_engine: preferredEngine,
         automatic,
+        focus_topic: focusTopic || null,
       })
     });
     if (!res.ok) throw new Error(`Suggest failed with status ${res.status}`);

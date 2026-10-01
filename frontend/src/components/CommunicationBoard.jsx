@@ -40,7 +40,7 @@ function Credits() {
   return <p className="pictogram-credit">Pictogramas: Sergio Palao · Gobierno de Aragón · <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA</a></p>;
 }
 
-export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus }) {
+export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus, topics = [], activeTopic = null, onSelectTopic = () => {} }) {
   const [quick, setQuick] = useState(readQuick);
   const [quickText, setQuickText] = useState('');
   const [editingQuick, setEditingQuick] = useState(null);
@@ -214,6 +214,24 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
   return <div ref={workspace} className={'aac-app' + (pictogramScale >= 1.3 ? ' aac-large-pictograms' : '')} style={pictogramStyle}>
     <header className="aac-header">
       <button className="aac-brand" aria-label="Ir al tablero principal" onClick={() => { changeView('board'); openCategory('core'); }}><Volume2 /> <span>vocalis</span></button>
+      {view === 'conversation' && topics && topics.length > 0 && (
+        <div className="aac-header-topics" role="region" aria-label="Temas de la conversación">
+          {topics.map((t) => (
+            <button
+              key={t.name}
+              type="button"
+              className={'aac-topic-chip' + (activeTopic === t.name ? ' active' : '')}
+              aria-pressed={activeTopic === t.name}
+              title={activeTopic === t.name ? `Tema activo: ${t.name}. Toca para volver a conversación general` : `Volver al tema: ${t.name}`}
+              onClick={() => onSelectTopic(t.name)}
+            >
+              <Picto id={t.pictogram || 9837} />
+              <span>{t.name}</span>
+              {activeTopic === t.name && <X size={13} className="aac-topic-clear" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      )}
       <span className="aac-voice-label">{voiceLabel}</span>
       <button
         type="button"
@@ -340,7 +358,21 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
             <details className="aac-partner-input"><summary>Escribir o corregir lo que dijo</summary><form onSubmit={event => { event.preventDefault(); if (partnerText.trim()) { event.currentTarget.querySelector('input')?.blur(); event.currentTarget.closest('details').open = false; stt.simulateSpeech(partnerText); setPartnerText(''); } }}><label htmlFor="partner-text">Mensaje del interlocutor</label><input id="partner-text" value={partnerText} onChange={event => setPartnerText(event.target.value)} placeholder={heard || '¿Qué te han dicho?'} /><button className="aac-tool" disabled={!partnerText.trim()}>Generar respuestas</button></form></details>
           </section>
           <div className="aac-reply-heading">
-            <h2>Podrías decir</h2>
+            <div className="aac-reply-heading-title">
+              <h2>{activeTopic ? `Volviendo a: ${activeTopic}` : 'Podrías decir'}</h2>
+              {activeTopic && (
+                <button
+                  type="button"
+                  className="aac-active-topic-badge"
+                  onClick={() => onSelectTopic(activeTopic)}
+                  title="Quitar tema y volver a sugerencias generales"
+                  aria-label={`Quitar tema activo: ${activeTopic}`}
+                >
+                  <span>Quitar tema</span>
+                  <X size={12} aria-hidden="true" />
+                </button>
+              )}
+            </div>
             <div className="aac-reply-heading-actions">
               {settings.userContext?.trim() && (
                 <button

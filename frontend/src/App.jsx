@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CommunicationBoard } from './components/CommunicationBoard';
 import { SettingsModal } from './components/SettingsModal';
 import { ContextModal } from './components/ContextModal';
-import { AAC_VOCABULARY, CORE_STRIP, QUICK_PHRASES } from './components/vocabulary';
+import { AAC_VOCABULARY, CORE_STRIP, QUICK_PHRASES, findTopicPictogram } from './components/vocabulary';
 import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
@@ -85,6 +85,8 @@ export function App() {
   const [conversationStatus, setConversationStatus] = useState('');
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [aiEngine, setAiEngine] = useState('groq');
+  const [conversationTopics, setConversationTopics] = useState([]);
+  const [activeTopic, setActiveTopic] = useState(null);
 
   // Conversation history: chronological order [oldest, ..., newest]
   const [history, setHistory] = useState(() => {
@@ -139,6 +141,8 @@ export function App() {
 
   const handleClearHistory = () => {
     clearSuggestions();
+    setConversationTopics([]);
+    setActiveTopic(null);
     historyRef.current = [];
     conversationStart.current = 0;
     setHistory([]);
@@ -163,7 +167,7 @@ export function App() {
   }, []);
 
   // Fetch Smart Suggestions from backend with full conversation thread
-  const fetchSuggestions = useCallback(async (heardSpeech, automatic = false) => {
+  const fetchSuggestions = useCallback(async (heardSpeech, automatic = false, focusTopic = null) => {
     if (!heardSpeech || !heardSpeech.trim()) return;
     const requestId = ++suggestionRequest.current;
     suggestionAbort.current?.abort();
@@ -190,6 +194,7 @@ export function App() {
         groqApiKey: settings.groqApiKey,
         preferredEngine: settings.preferredEngine,
         automatic,
+        focusTopic,
         signal: controller.signal,
       });
 
@@ -198,11 +203,34 @@ export function App() {
           setSuggestions(res.suggestions);
           setAiEngine(res.engine || 'groq');
         }
-        setConversationStatus(res.reason === 'service_unavailable'
-          ? 'No se pudo valorar el turno. Puedes pedir respuestas con el botón.'
-          : automatic && !res.should_suggest
-            ? 'Siguiendo la conversación · esperando un momento para participar.'
-            : 'Hay un momento para participar. Elige una respuesta o escribe la tuya.');
+        if (Array.isArray(res.topics) && res.topics.length > 0) {
+          setConversationTopics((prev) => {
+            const next = [...prev];
+            for (const t of res.topics) {
+              const name = typeof t === 'string' ? t.trim() : (t.name || '').trim();
+              if (!name) continue;
+              const existingIdx = next.findIndex(item => item.name.toLowerCase() === name.toLowerCase());
+              const entry = {
+                name,
+                pictogram: (typeof t === 'object' && t.pictogram) || findTopicPictogram(name)
+              };
+              if (existingIdx !== -1) {
+                next.splice(existingIdx, 1);
+              }
+              next.push(entry);
+            }
+            return next.slice(-6);
+          });
+        }
+        setConversationStatus(
+          focusTopic
+            ? `Respuestas para volver al tema: ${focusTopic}`
+            : res.reason === 'service_unavailable'
+              ? 'No se pudo valorar el turno. Puedes pedir respuestas con el botón.'
+              : automatic && !res.should_suggest
+                ? 'Siguiendo la conversación · esperando un momento para participar.'
+                : 'Hay un momento para participar. Elige una respuesta o escribe la tuya.'
+        );
       }
     } catch (err) {
       if (err.name !== 'AbortError') console.error('Error fetching suggestions:', err);
@@ -246,10 +274,23 @@ export function App() {
 
   useEffect(() => () => suggestionAbort.current?.abort(), []);
 
+  const handleSelectTopic = useCallback((topicName) => {
+    if (activeTopic === topicName) {
+      setActiveTopic(null);
+      const lastPartner = [...historyRef.current].reverse().find(m => m.sender === 'partner');
+      if (lastPartner?.text) fetchSuggestions(lastPartner.text, false, null);
+    } else {
+      setActiveTopic(topicName);
+      const lastPartner = [...historyRef.current].reverse().find(m => m.sender === 'partner');
+      fetchSuggestions(lastPartner?.text || topicName, false, topicName);
+    }
+  }, [activeTopic, fetchSuggestions]);
+
   // Action: User picks a response (or types) to speak aloud
   const handleSelectAndSpeak = useCallback((text, options) => {
     if (!text || !text.trim()) return;
     clearSuggestions();
+    setActiveTopic(null);
     setConversationStatus('');
     stt.pauseForPlayback();
     tts.speak(text.trim(), options);
@@ -273,12 +314,15 @@ export function App() {
         onSpeak={handleSelectAndSpeak}
         onSettings={() => setIsSettingsOpen(true)}
         onOpenContext={() => setIsContextOpen(true)}
-        onRegenerate={(text) => fetchSuggestions(text, false)}
+        onRegenerate={(text) => fetchSuggestions(text, false, activeTopic)}
         conversationStatus={conversationStatus}
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
         voiceLabel={settings.ttsMode === 'browser' ? 'Voz del navegador' : settings.edgeVoiceId === 'qwen-clone' ? 'Mi voz personal' : 'Voz seleccionada'}
+        topics={conversationTopics}
+        activeTopic={activeTopic}
+        onSelectTopic={handleSelectTopic}
       />
 
       {/* Settings Modal */}
