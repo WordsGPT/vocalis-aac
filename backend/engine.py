@@ -405,7 +405,8 @@ def generate_responses_groq(
     tone: str = "natural",
     count: int = 6,
     model: str = DEFAULT_GROQ_MODEL,
-    grammatical_form: str = "masculine"
+    grammatical_form: str = "masculine",
+    user_context: Optional[str] = None
 ) -> Optional[List[str]]:
     """Calls Groq API for ultra-fast (100ms) high quality LLM inference."""
     key = (api_key or "").strip() or get_server_groq_api_key()
@@ -419,24 +420,40 @@ def generate_responses_groq(
         "warm": "Respuestas cálidas, empáticas y afectuosas."
     }.get(tone, "Respuestas naturales, conversacionales y directas.")
 
-    system_prompt = f"""Eres un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
+    user_info = ""
+    if user_context and user_context.strip():
+        user_info = f"""
+INFORMACIÓN Y DATOS PERSONALES DEL USUARIO (úsalos para responder fielmente a preguntas sobre su nombre, vida, gustos o circunstancias):
+\"\"\"
+{user_context.strip()[:2000]}
+\"\"\"
+"""
+
+    system_prompt = f"""Eres el sistema de sugerencias de un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
 En el historial de mensajes:
 - 'user' representa lo que dijo el interlocutor en voz alta.
 - 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
-
+{user_info}
 El interlocutor acaba de decir el último mensaje.
-Sugiere exactamente {count} respuestas que la persona no verbal podría decir ahora. Devuelve JSON con la clave "suggestions".
+Tu objetivo principal es ofrecer MÁXIMA DIVERSIDAD DE INTENCIONES para que la persona tenga opciones reales de respuesta y no repeticiones de la misma idea.
+
+Genera exactamente {count} respuestas en primera persona, cada una con una INTENCIÓN TOTALMENTE DIFERENTE a las demás:
+1. ACUERDO / AFIRMACIÓN: Decir que sí, aceptar con entusiasmo o sumarse.
+2. RECHAZO / NEGATIVA: Decir que no educadamente, declinar o discrepar con respeto.
+3. PREGUNTA CLAVE: Indagar un detalle concreto sobre el tema para saber más.
+4. ALTERNATIVA / SUGERENCIA: Proponer otro plan, otra hora, otra idea o alternativa.
+5. REACCIÓN / EMPATÍA: Comentario espontáneo de apoyo, sorpresa, humor o empatía.
+6. DUDA / TIEMPO / MATIZ: Pedir tiempo para pensar, "luego te digo", "depende" o respuesta neutral.
+
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas estrictas:
-- Las {count} respuestas DEBEN estar en ESPAÑOL.
-- Cada opción debe responder directamente al significado del ÚLTIMO mensaje y conservar su tema concreto.
-- No uses respuestas genéricas que funcionarían igual para cualquier conversación.
-- Adapta las intenciones al mensaje: por ejemplo empatía ante malas noticias, respuesta directa ante preguntas, y curiosidad ante relatos.
-- Ofrece opciones variadas y plausibles, pero no inventes datos personales, decisiones ni hechos que no aparecen en el contexto.
-- Habla desde la perspectiva de la persona no verbal, normalmente en primera persona.
-- Frases completas, naturales y listas para voz artificial, idealmente de 3 a 14 palabras.
-- No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1"."""
+- Si la pregunta se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL de arriba.
+- Las {count} respuestas DEBEN estar en ESPAÑOL y en primera persona.
+- Las opciones DEBEN ser mutuamente distintas en su intención: prohibido generar múltiples preguntas redundantes o afirmaciones repetidas.
+- Frases completas, naturales y listas para voz artificial (3 a 10 palabras).
+- No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1".
+Devuelve JSON con la clave "suggestions"."""
 
     messages = [{"role": "system", "content": system_prompt}]
 
@@ -450,7 +467,8 @@ Reglas estrictas:
             
             # Partner is 'user', AAC mute user is 'assistant'
             if sender in ["partner", "them", "other", "speaker"]:
-                messages.append({"role": "user", "content": content})
+                label = msg.get("speaker_label") or "Interlocutor"
+                messages.append({"role": "user", "content": f"{label}: {content}"})
             else:
                 messages.append({"role": "assistant", "content": content})
 
@@ -505,7 +523,8 @@ def get_smart_suggestions(
     gemini_api_key: Optional[str] = None,
     groq_api_key: Optional[str] = None,
     preferred_engine: str = "groq",
-    grammatical_form: str = "masculine"
+    grammatical_form: str = "masculine",
+    user_context: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Returns up to `count` (default 6) smart responses using the best available engine.
@@ -533,7 +552,7 @@ def get_smart_suggestions(
 
     # 1. Try Groq (Default / Primary)
     if preferred_engine in ["groq", "auto"] or (groq_api_key and preferred_engine != "ollama"):
-        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form)
+        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form, user_context=user_context)
         if responses:
             return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "groq"}
 

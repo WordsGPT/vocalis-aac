@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CommunicationBoard } from './components/CommunicationBoard';
 import { SettingsModal } from './components/SettingsModal';
+import { ContextModal } from './components/ContextModal';
 import { AAC_VOCABULARY, CORE_STRIP, QUICK_PHRASES } from './components/vocabulary';
 import { personalForm } from './utils/spanish';
 
@@ -25,7 +26,8 @@ const DEFAULT_SETTINGS = {
   sttMode: 'whisper', // 'whisper' (automatic server transcription) | 'browser'
   sttLang: 'es-ES',
   suggestionCount: 6,
-  autoTriggerDelay: 1500
+  autoTriggerDelay: 1000,
+  userContext: ''
 };
 
 function preparationPhrases(form) {
@@ -58,17 +60,29 @@ export function App() {
   const [settings, setSettings] = useState(() => {
     try {
       const saved = localStorage.getItem('vocalis_settings');
-      return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.autoTriggerDelay === 1500 || parsed.autoTriggerDelay === 1800) {
+          parsed.autoTriggerDelay = 1000;
+        }
+        return { ...DEFAULT_SETTINGS, ...parsed };
+      }
+      return DEFAULT_SETTINGS;
     } catch (_) {
       return DEFAULT_SETTINGS;
     }
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isContextOpen, setIsContextOpen] = useState(false);
+  const [view, setView] = useState('conversation');
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
+  const closeContext = useCallback(() => setIsContextOpen(false), []);
   const [edgeVoices, setEdgeVoices] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const suggestionRequest = useRef(0);
+  const suggestionAbort = useRef(null);
+  const [conversationStatus, setConversationStatus] = useState('');
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [aiEngine, setAiEngine] = useState('groq');
 
@@ -83,6 +97,9 @@ export function App() {
     }
   });
 
+  const historyRef = useRef(history);
+  const conversationStart = useRef(history.length);
+
   // Save settings on update
   const handleUpdateSettings = (newSettings) => {
     setSettings((prev) => {
@@ -95,23 +112,38 @@ export function App() {
   };
 
   // Add message in chronological order [oldest, ..., newest]
-  const addToHistory = useCallback((sender, text) => {
-    const entry = {
-      sender,
-      text,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    };
-    setHistory((prev) => {
-      const updated = [...prev, entry].slice(-50);
-      try {
-        localStorage.setItem('vocalis_history', JSON.stringify(updated));
-      } catch (_) {}
-      return updated;
-    });
+  const addToHistory = useCallback((sender, text, turns = []) => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const entries = (turns.length ? turns : [{ text }]).map(turn => ({
+      sender, text: turn.text, speaker: turn.speaker || null,
+      speaker_label: sender === 'user' ? 'Tú' : turn.speaker_label || 'Voz sin identificar', time,
+    }));
+    const all = [...historyRef.current, ...entries];
+    conversationStart.current = Math.max(0, conversationStart.current - Math.max(0, all.length - 50));
+    const updated = all.slice(-50);
+    historyRef.current = updated;
+    setHistory(updated);
+    try { localStorage.setItem('vocalis_history', JSON.stringify(updated)); } catch { /* Storage may be full. */ }
   }, []);
 
+  const abortPendingSuggestions = useCallback(() => {
+    suggestionRequest.current += 1;
+    suggestionAbort.current?.abort();
+    setIsLoadingSuggestions(false);
+  }, []);
+
+  const clearSuggestions = useCallback(() => {
+    abortPendingSuggestions();
+    setSuggestions([]);
+  }, [abortPendingSuggestions]);
+
   const handleClearHistory = () => {
+    clearSuggestions();
+    historyRef.current = [];
+    conversationStart.current = 0;
     setHistory([]);
+    setConversationStatus('');
+    stt.resetConversation();
     try {
       localStorage.removeItem('vocalis_history');
     } catch (_) {}
@@ -131,16 +163,20 @@ export function App() {
   }, []);
 
   // Fetch Smart Suggestions from backend with full conversation thread
-  const fetchSuggestions = useCallback(async (heardSpeech) => {
+  const fetchSuggestions = useCallback(async (heardSpeech, automatic = false) => {
     if (!heardSpeech || !heardSpeech.trim()) return;
     const requestId = ++suggestionRequest.current;
+    suggestionAbort.current?.abort();
+    const controller = new AbortController();
+    suggestionAbort.current = controller;
     setIsLoadingSuggestions(true);
 
     try {
       // Pass recent chronological conversation context (both what was heard and spoken)
-      const contextHistory = history.slice(-8).map((h) => ({
+      const contextHistory = historyRef.current.slice(conversationStart.current).slice(-16).map((h) => ({
         role: h.sender,
-        content: h.text
+        content: h.text,
+        speaker_label: h.speaker_label || 'Voz sin identificar',
       }));
 
       const res = await getSmartSuggestions({
@@ -149,44 +185,76 @@ export function App() {
         tone: settings.tone,
         grammaticalForm: settings.grammaticalForm,
         count: settings.suggestionCount || 6,
+        userContext: settings.userContext,
         geminiApiKey: settings.geminiApiKey,
         groqApiKey: settings.groqApiKey,
-        preferredEngine: settings.preferredEngine
+        preferredEngine: settings.preferredEngine,
+        automatic,
+        signal: controller.signal,
       });
 
-      if (requestId === suggestionRequest.current && res && Array.isArray(res.suggestions) && res.suggestions.length > 0) {
-        setSuggestions(res.suggestions);
-        setAiEngine(res.engine || 'groq');
+      if (requestId === suggestionRequest.current && res) {
+        if (Array.isArray(res.suggestions) && (res.suggestions.length > 0 || !automatic)) {
+          setSuggestions(res.suggestions);
+          setAiEngine(res.engine || 'groq');
+        }
+        setConversationStatus(res.reason === 'service_unavailable'
+          ? 'No se pudo valorar el turno. Puedes pedir respuestas con el botón.'
+          : automatic && !res.should_suggest
+            ? 'Siguiendo la conversación · esperando un momento para participar.'
+            : 'Hay un momento para participar. Elige una respuesta o escribe la tuya.');
       }
     } catch (err) {
-      console.error('Error fetching suggestions:', err);
+      if (err.name !== 'AbortError') console.error('Error fetching suggestions:', err);
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
     }
-  }, [history, settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
+  }, [settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.userContext, settings.geminiApiKey, settings.groqApiKey, settings.preferredEngine]);
 
   // Handle incoming speech recognized from partner
-  const handleSpeechCompleted = useCallback((heardText) => {
+  const handleSpeechCompleted = useCallback((heardText, metadata = {}) => {
     if (!heardText || !heardText.trim()) return;
-    addToHistory('partner', heardText.trim());
-    fetchSuggestions(heardText.trim());
-  }, [addToHistory, fetchSuggestions]);
+    abortPendingSuggestions();
+    addToHistory('partner', heardText.trim(), metadata.turns);
+    fetchSuggestions(heardText.trim(), metadata.automatic !== false);
+  }, [addToHistory, abortPendingSuggestions, fetchSuggestions]);
+
+  const handleSpeechActivity = useCallback(() => {
+    setConversationStatus('Escuchando a las personas de la conversación…');
+  }, []);
 
   // STT Hook
   const stt = useSpeechRecognition({
     onSpeechCompleted: handleSpeechCompleted,
-    autoTriggerDelay: settings.autoTriggerDelay || 1500,
+    onSpeechActivity: handleSpeechActivity,
+    autoTriggerDelay: settings.autoTriggerDelay || 1000,
     sttMode: settings.sttMode || 'whisper',
-    sttLang: settings.sttLang || 'es-ES'
+    sttLang: settings.sttLang || 'es-ES',
+    autoListen: view === 'conversation',
+    suspended: tts.isSpeaking || tts.isLoading || isSettingsOpen || isContextOpen
   });
+
+  const handleSaveContext = useCallback((newContext) => {
+    handleUpdateSettings({ userContext: newContext });
+    const recent = [...historyRef.current].reverse().find(m => m.sender === 'partner');
+    if (recent && recent.text) {
+      setTimeout(() => {
+        fetchSuggestions(recent.text, false);
+      }, 50);
+    }
+  }, [handleUpdateSettings, fetchSuggestions]);
+
+  useEffect(() => () => suggestionAbort.current?.abort(), []);
 
   // Action: User picks a response (or types) to speak aloud
   const handleSelectAndSpeak = useCallback((text, options) => {
     if (!text || !text.trim()) return;
-    if (stt.isListening) stt.stopListening();
+    clearSuggestions();
+    setConversationStatus('');
+    stt.pauseForPlayback();
     tts.speak(text.trim(), options);
     addToHistory('user', text.trim());
-  }, [tts, addToHistory, stt]);
+  }, [tts, addToHistory, stt, clearSuggestions]);
 
   const handleTestVoice = () => {
     tts.speak("Hola, esta es una prueba de mi voz en español.");
@@ -195,6 +263,8 @@ export function App() {
   return (
     <div className="vocalis-redesign">
       <CommunicationBoard
+        view={view}
+        onChangeView={setView}
         settings={settings}
         tts={tts}
         stt={stt}
@@ -202,7 +272,9 @@ export function App() {
         loading={isLoadingSuggestions}
         onSpeak={handleSelectAndSpeak}
         onSettings={() => setIsSettingsOpen(true)}
-        onRegenerate={fetchSuggestions}
+        onOpenContext={() => setIsContextOpen(true)}
+        onRegenerate={(text) => fetchSuggestions(text, false)}
+        conversationStatus={conversationStatus}
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
@@ -229,6 +301,14 @@ export function App() {
             voiceRevision: String(Date.now())
           });
         }}
+      />
+
+      {/* Context Modal */}
+      <ContextModal
+        isOpen={isContextOpen}
+        onClose={closeContext}
+        contextValue={settings.userContext || ''}
+        onSaveContext={handleSaveContext}
       />
     </div>
   );

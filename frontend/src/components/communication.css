@@ -264,4 +264,47 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 }
 @media (max-width: 380px) {
   .aac-conversation .aac-replies { grid-template-columns: 1fr; }
+  .aac-conversation-controls .aac-listen { min-width: 0; padding: 8px 10px; font-size: 14px; }
+  .aac-conversation-controls .aac-tool { padding: 8px 10px; }
 }
+@media (max-width: 600px) {
+  .aac-transcript-btn-extra { display: none; }
+}
+.aac-hearing[hidden] { display: none !important; }
+.aac-hearing-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; margin-bottom: 6px; }
+.aac-hearing-title { font-size: 13px; font-weight: 600; color: #566c84; text-transform: uppercase; letter-spacing: 0.04em; }
+.aac-hearing-close { min-height: 32px; padding: 4px 10px; font-size: 13px; color: #566c84; background: transparent; border: 1px solid #c8d4e4; border-radius: 6px; cursor: pointer; }
+.aac-hearing-close:hover { background: #f1f5f9; color: #1e293b; }
+.aac-hearing-collapsed { margin-bottom: 12px; }
+.aac-show-hearing-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; min-height: 40px; font-size: 14px; color: #3b597d; background: #f4f7fb; border: 1px solid #cad7e7; border-radius: 8px; cursor: pointer; }
+.aac-show-hearing-btn:hover { background: #e9eff8; border-color: #b0c4de; }
+.aac-hearing-badge { font-size: 11px; font-weight: 700; background: #2753aa; color: #fff; padding: 2px 7px; border-radius: 10px; margin-left: 4px; }
+.aac-transcript-toggle.is-collapsed { background: #f0f4fa; border-color: #9cb5d6; color: #1d3e78; }
+.aac-speaker-turns { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.aac-speaker-turns li { display: grid; gap: 4px; }
+.aac-speaker-turns strong { font-size: 0.85rem; color: #475569; }
+.aac-speaker-turns span { font-size: 1.1rem; line-height: 1.5; }
+
+/* Context button in header */
+.aac-context-tool { position: relative; gap: 6px; }
+.aac-context-tool.has-context { background: #f0f5ff; border-color: #9cbbe8; color: #1e4688; }
+.aac-context-tool.has-context:hover { background: #e3efff; border-color: #7aa5df; }
+.aac-context-dot { width: 7px; height: 7px; background: #2563eb; border-radius: 50%; flex-shrink: 0; }
+@media (max-width: 700px) {
+  .aac-header .aac-context-tool { position: relative; min-width: 44px; }
+  .aac-header .aac-context-tool .aac-context-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; }
+}
+
+/* Context chip in conversation view */
+.aac-reply-heading-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.aac-context-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 6px 11px; border-radius: 20px; background: #edf4fe; border: 1px solid #c0d4ec; color: #214478; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease; }
+.aac-context-chip:hover { background: #e0edfd; border-color: #96bbe7; color: #153463; }
+.aac-context-chip svg { flex-shrink: 0; color: #2855ac; }
+.aac-context-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 650px) {
+  .aac-context-chip { max-width: 140px; }
+}
+@media (max-width: 440px) {
+  .aac-context-chip { display: none; }
+}
+
