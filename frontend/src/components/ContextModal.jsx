@@ -12,6 +12,13 @@ export function ContextModal({
   const [text, setText] = useState(contextValue || '');
   const [savedNotice, setSavedNotice] = useState(false);
 
+  const textRef = useRef(text);
+  const previousFocusRef = useRef(null);
+
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
+
   useEffect(() => {
     if (isOpen) {
       setText(contextValue || '');
@@ -31,7 +38,7 @@ export function ContextModal({
   // Focus trap & escape key
   useEffect(() => {
     if (!isOpen) return;
-    const previous = document.activeElement;
+    previousFocusRef.current = document.activeElement;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -42,7 +49,11 @@ export function ContextModal({
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        handleSave();
+        onSaveContext(textRef.current.trim());
+        setSavedNotice(true);
+        setTimeout(() => {
+          onClose();
+        }, 280);
       }
     };
 
@@ -50,9 +61,9 @@ export function ContextModal({
     return () => {
       window.removeEventListener('keydown', handleKey);
       document.body.style.overflow = overflow;
-      previous?.focus();
+      previousFocusRef.current?.focus();
     };
-  }, [isOpen, text]);
+  }, [isOpen, onClose, onSaveContext]);
 
   if (!isOpen) return null;
 
