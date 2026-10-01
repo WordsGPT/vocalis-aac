@@ -45,6 +45,8 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 .aac-quick button { display: flex; gap: 6px; align-items: center; min-width: 0; min-height: max(45px, calc(var(--aac-quick-picto) + 10px)); padding: 4px 9px; border: 1px solid #cbd7e6; border-radius: 7px; background: white; font-size: 12px; font-weight: 650; color: #324b6b; }
 .aac-quick img { width: var(--aac-quick-picto); height: var(--aac-quick-picto); flex-shrink: 0; object-fit: contain; }
 .aac-quick .aac-help { border-color: #d9999b; color: #8b2329; background: #fff5f5; }
+.aac-quick .aac-quick-yes { border-color: #70c491; color: #116233; background: #edf8f1; font-weight: 700; }
+.aac-quick .aac-quick-no { border-color: #e89591; color: #9c2729; background: #fdf2f2; font-weight: 700; }
 .aac-quick button span { white-space: nowrap; }
 .aac-scroll-area { overflow-y: auto; overscroll-behavior: contain; min-height: 0; scrollbar-color: #b0bfd1 #edf1f6; scroll-padding: 15px; }
 .aac-tab-content { max-width: 1500px; margin: 0 auto; padding: 18px 22px 24px; }
@@ -445,6 +447,94 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
   gap: 4px;
 }
 
+/* Quick direct Yes/No actions in conversation reply header */
+.aac-reply-quick-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(6px, 1vw, 10px);
+}
+
+.aac-quick-reply-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 0.7vw, 7px);
+  min-height: clamp(28px, 3.4vh, 35px);
+  padding: 2px clamp(8px, 1.2vw, 13px);
+  border-radius: 8px;
+  font-size: clamp(12px, 1.5vh, 15px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  touch-action: manipulation;
+  line-height: 1;
+}
+
+.aac-quick-reply-btn img {
+  width: clamp(18px, 2.2vh, 22px);
+  height: clamp(18px, 2.2vh, 22px);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.aac-quick-reply-btn svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+/* Affirmative (Sí) pill */
+.aac-quick-yes {
+  background: #edf8f1 !important;
+  border: 1.5px solid #58b87d !important;
+  color: #116233 !important;
+  box-shadow: 0 1px 2px rgba(17, 98, 51, 0.08);
+}
+
+.aac-quick-yes:hover {
+  background: #ddf4e4 !important;
+  border-color: #3fa567 !important;
+  color: #0b4e26 !important;
+}
+
+.aac-quick-yes:active {
+  background: #c7edd3 !important;
+  transform: translateY(1px);
+}
+
+/* Negation (No) pill */
+.aac-quick-no {
+  background: #fdf2f2 !important;
+  border: 1.5px solid #e89591 !important;
+  color: #9c2729 !important;
+  box-shadow: 0 1px 2px rgba(156, 39, 41, 0.08);
+}
+
+.aac-quick-no:hover {
+  background: #fce4e4 !important;
+  border-color: #d6615b !important;
+  color: #7d1a1b !important;
+}
+
+.aac-quick-no:active {
+  background: #f8c8c8 !important;
+  transform: translateY(1px);
+}
+
+.aac-quick-yes:focus-visible {
+  outline: 3px solid #27ae60 !important;
+  outline-offset: 2px;
+}
+
+.aac-quick-no:focus-visible {
+  outline: 3px solid #e74c3c !important;
+  outline-offset: 2px;
+}
+
+.aac-regenerate-short {
+  display: none;
+}
+
 /* Replies Grid: dynamically fills available viewport height without scrolling */
 .aac-conversation .aac-replies {
   flex: 1 1 0%;
@@ -667,6 +757,22 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
   .aac-conversation .aac-conversation-note {
     display: none !important;
   }
+}
+
+@media (max-width: 650px) {
+  .aac-regenerate-text { display: none; }
+  .aac-regenerate-short { display: inline; }
+  .aac-quick-reply-btn svg { display: none; }
+  .aac-quick-reply-btn { padding: 2px 7px; gap: 4px; font-size: 12px; }
+  .aac-quick-reply-btn img { width: 17px; height: 17px; }
+}
+
+@media (max-width: 440px) {
+  .aac-conversation .aac-reply-heading { gap: 4px; }
+  .aac-reply-heading-title h2 { font-size: 13px; }
+  .aac-reply-quick-actions { gap: 4px; }
+  .aac-quick-reply-btn { padding: 2px 5px; font-size: 11px; }
+  .aac-quick-reply-btn img { width: 15px; height: 15px; }
 }
 
 @media (max-width: 600px) {

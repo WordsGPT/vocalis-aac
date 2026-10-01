@@ -289,7 +289,24 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
         </button>)}
       </nav>
       <div className="aac-quick" aria-label="Hablar inmediatamente">
-        {quick.map((tile, index) => <button key={index} onClick={() => onSpeak(tile.text, { prepared: true })} aria-label={'Decir: ' + tile.text} className={tile.category === 'priority' ? 'aac-help' : ''}><Picto id={tile.pictogram} /><span>{tile.text}</span><Volume2 size={13} /></button>)}
+        {quick.map((tile, index) => {
+          const lower = (tile.text || '').trim().toLowerCase();
+          const isYes = lower === 'sí' || lower === 'si';
+          const isNo = lower === 'no';
+          const toneClass = tile.category === 'priority' ? 'aac-help' : isYes ? 'aac-quick-yes' : isNo ? 'aac-quick-no' : '';
+          return (
+            <button
+              key={index}
+              onClick={() => onSpeak(tile.text, { prepared: true })}
+              aria-label={'Decir: ' + tile.text}
+              className={toneClass}
+            >
+              <Picto id={tile.pictogram} />
+              <span>{tile.text}</span>
+              <Volume2 size={13} />
+            </button>
+          );
+        })}
       </div>
     </div>
 
@@ -433,6 +450,32 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
                 </button>
               )}
             </div>
+            <div className="aac-reply-quick-actions" role="group" aria-label="Respuestas directas">
+              <button
+                type="button"
+                id="conversation-quick-yes"
+                className="aac-quick-reply-btn aac-quick-yes"
+                onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak('Sí', { prepared: true }); }}
+                aria-label="Decir: Sí"
+                title="Decir Sí inmediatamente"
+              >
+                <Picto id={5584} />
+                <span>Sí</span>
+                <Volume2 size={13} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                id="conversation-quick-no"
+                className="aac-quick-reply-btn aac-quick-no"
+                onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak('No', { prepared: true }); }}
+                aria-label="Decir: No"
+                title="Decir No inmediatamente"
+              >
+                <Picto id={5526} />
+                <span>No</span>
+                <Volume2 size={13} aria-hidden="true" />
+              </button>
+            </div>
             <div className="aac-reply-heading-actions">
               {settings.userContext?.trim() && (
                 <button
@@ -451,7 +494,11 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
                   </span>
                 </button>
               )}
-              <button className="aac-tool" disabled={loading || !heard} onClick={() => onRegenerate(heard)}><RotateCcw size={18} />Otras respuestas</button>
+              <button className="aac-tool aac-regenerate-btn" disabled={loading || !heard} onClick={() => onRegenerate(heard)}>
+                <RotateCcw size={16} aria-hidden="true" />
+                <span className="aac-regenerate-text">Otras respuestas</span>
+                <span className="aac-regenerate-short">Otras</span>
+              </button>
             </div>
           </div>
           {loading && !suggestions.length && <p className="aac-loading" role="status">Preparando respuestas…</p>}

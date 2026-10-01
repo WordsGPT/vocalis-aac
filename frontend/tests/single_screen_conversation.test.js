@@ -35,3 +35,24 @@ test('CommunicationBoard assigns aac-reply-text span and dynamic count classes',
   assert.ok(content.includes('aac-reply-text'), 'CommunicationBoard must wrap reply text in aac-reply-text span');
   assert.ok(content.includes('aac-count-'), 'CommunicationBoard must apply aac-count- class to aac-replies container');
 });
+
+test('CommunicationBoard places Sí and No buttons directly adjacent to conversation suggestions', () => {
+  const jsxPath = path.resolve('src/components/CommunicationBoard.jsx');
+  const content = fs.readFileSync(jsxPath, 'utf8');
+
+  // Must have dedicated quick Sí and No buttons
+  assert.ok(content.includes('id="conversation-quick-yes"'), 'Must have conversation-quick-yes button');
+  assert.ok(content.includes('id="conversation-quick-no"'), 'Must have conversation-quick-no button');
+  assert.ok(content.includes("onSpeak('Sí'"), 'Sí button must trigger onSpeak with Sí');
+  assert.ok(content.includes("onSpeak('No'"), 'No button must trigger onSpeak with No');
+  assert.ok(content.includes('Picto id={5584}'), 'Sí button must use ARASAAC picto 5584');
+  assert.ok(content.includes('Picto id={5526}'), 'No button must use ARASAAC picto 5526');
+
+  const cssPath = path.resolve('src/components/communication.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  assert.ok(css.includes('.aac-reply-quick-actions'), 'Must have .aac-reply-quick-actions');
+  assert.ok(css.includes('.aac-quick-reply-btn'), 'Must have .aac-quick-reply-btn');
+  assert.ok(css.includes('.aac-quick-yes'), 'Must style .aac-quick-yes affirmative pill');
+  assert.ok(css.includes('.aac-quick-no'), 'Must style .aac-quick-no negation pill');
+});
