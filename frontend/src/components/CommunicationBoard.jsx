@@ -313,7 +313,7 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
     <main className={'aac-scroll-area' + (view === 'conversation' ? ' aac-conversation-workspace' : '')} ref={scrollArea}>
       {view === 'conversation' && <div className="aac-conversation-controls" aria-label="Controles de conversación">
         <button type="button" className={'aac-listen ' + (stt.isListening ? 'active' : '')} aria-pressed={stt.isListening} onClick={() => { document.activeElement?.closest('input, textarea')?.blur(); setIsComposing(false); tts.stop(); stt.toggleListening(); }}>{stt.isListening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}<span>{stt.isListening ? 'Detener escucha' : 'Escuchar'}</span></button>
-        <div className="aac-hearing-status" role="status">{!stt.isListening ? 'Micrófono apagado' : tts.isSpeaking || tts.isLoading ? 'La escucha se reanuda al terminar mi voz' : stt.isSpeechDetected ? 'Voz detectada · termina de hablar' : stt.isTranscribing ? 'Escuchando · transcribiendo lo anterior…' : 'Escucha continua · empieza a hablar'}{stt.isListening && <meter min="0" max="100" value={stt.audioLevel} aria-label="Nivel del micrófono" />}</div>
+        <div className="aac-hearing-status" role="status">{!stt.isListening ? 'Micrófono apagado' : tts.isSpeaking || tts.isLoading ? 'La escucha se reanuda al terminar mi voz' : stt.isSpeechDetected ? 'Escuchando voz…' : stt.isTranscribing ? 'Escuchando · transcribiendo lo anterior…' : 'Escuchando la conversación'}{stt.isListening && <meter min="0" max="100" value={stt.audioLevel} aria-label="Nivel del micrófono" />}</div>
         <button type="button" id="conversation-write" className="aac-tool" aria-expanded={isComposing} aria-controls="message-composer" onClick={() => (isComposing ? (input.current?.blur(), setIsComposing(false)) : startComposing())}><Keyboard aria-hidden="true" size={20} />Escribir</button>
         <button type="button" id="conversation-toggle-transcript" className={'aac-tool aac-transcript-toggle' + (!showTranscript ? ' is-collapsed' : '')} aria-expanded={showTranscript} aria-controls="conversation-hearing" aria-label={showTranscript ? 'Ocultar transcripción' : 'Mostrar transcripción'} title={showTranscript ? 'Ocultar transcripción' : 'Mostrar transcripción'} onClick={toggleTranscript}>
           {showTranscript ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
@@ -356,6 +356,7 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
 
         {view === 'conversation' && <div className="aac-conversation">
           <h1 className="sr-only">Escucha y responde</h1>
+          {stt.error && <p className="aac-error aac-conversation-error" role="alert">{stt.error}</p>}
           {!showTranscript && <div className="aac-hearing-collapsed">
             <button type="button" className="aac-tool aac-show-hearing-btn" onClick={toggleTranscript} aria-label="Mostrar transcripción">
               <Eye size={18} aria-hidden="true" />
@@ -392,7 +393,6 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
             {speakerLabels && stt.turns?.length ? <ol className="aac-speaker-turns" aria-label="Últimos turnos escuchados">{stt.turns.map((turn, index) => <li key={index}><strong>{turn.speaker_label}</strong><span>{turn.text}</span></li>)}</ol> : <p className="aac-heard">{stt.transcript || (speakerLabels ? 'La conversación aparecerá aquí, separada por voces.' : 'Lo que se diga aparecerá aquí.')}</p>}
             {stt.interimTranscript && <p className="aac-heard">{stt.interimTranscript}</p>}
             {speakerLabels && stt.turns?.length > 0 && <p className="aac-conversation-note">{stt.diarization === 'estimated' ? 'Las etiquetas de voz son aproximadas; pueden confundirse si hablan a la vez.' : 'No se han podido distinguir las voces de este audio.'}</p>}
-            {stt.error && <p className="aac-error" role="alert">{stt.error}</p>}
             <details
               ref={partnerDetailsRef}
               className="aac-partner-input"
@@ -502,9 +502,10 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
             </div>
           </div>
           {loading && !suggestions.length && <p className="aac-loading" role="status">Preparando respuestas…</p>}
-          {!loading && !suggestions.length && <p className="aac-empty-replies" role="status">{conversationStatus || 'Activa Escuchar. Las sugerencias aparecerán cuando haya un momento para participar.'}</p>}
+          {!isComposing && tts.error && <p className="aac-error" role="alert">{tts.error}</p>}
+          {!loading && !suggestions.length && <p className="aac-empty-replies" role="status">{conversationStatus || (stt.isListening ? 'Escuchando. Las respuestas aparecerán después de una pausa.' : 'Pulsa Escuchar o escribe lo que te han dicho para obtener respuestas.')}</p>}
           {conversationStatus && suggestions.length > 0 && <p className="aac-conversation-note" role="status">{conversationStatus}</p>}
-          <div className={'aac-replies' + (suggestions.length ? ' aac-count-' + suggestions.length : '')} aria-busy={loading}>{suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak(text); }} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span className="aac-reply-text">{text}</span><Volume2 size={20} aria-hidden="true" /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); startComposing(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={14} aria-hidden="true" /><span>Editar en mi mensaje</span></button></article>)}</div>
+          <div className={'aac-replies' + (suggestions.length ? ' aac-count-' + suggestions.length : '')} style={{ '--aac-reply-rows': Math.max(1, Math.ceil(suggestions.length / 3)), '--aac-reply-rows-mobile': Math.max(1, Math.ceil(suggestions.length / 2)) }} aria-busy={loading}>{suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak(text); }} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span className="aac-reply-text">{text}</span><Volume2 size={20} aria-hidden="true" /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); startComposing(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={14} aria-hidden="true" /><span>Editar en mi mensaje</span></button></article>)}</div>
           {suggestions.length > 0 && <p className="aac-conversation-note">El botón de voz habla directamente. «Editar» te permite cambiar la respuesta.{engine === 'heuristic' || engine === 'client-offline' ? ' Se están usando respuestas básicas de respaldo.' : ''}</p>}
         </div>}
 

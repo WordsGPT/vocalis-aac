@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
-test('Conversation mode CSS locks workspace and children to 100% viewport without scrollbars', () => {
+test('Conversation workspace stays bounded while replies remain readable and scroll when needed', () => {
   const cssPath = path.resolve('src/components/communication.css');
   const css = fs.readFileSync(cssPath, 'utf8');
 
@@ -19,9 +19,10 @@ test('Conversation mode CSS locks workspace and children to 100% viewport withou
   assert.ok(css.includes('grid-template-rows: repeat(2, minmax(0, 1fr))'), 'Desktop grid must distribute rows as 1fr');
   assert.ok(css.includes('grid-template-rows: repeat(3, minmax(0, 1fr))'), 'Mobile grid must distribute 3 rows as 1fr');
 
-  // Verify cards and reply text truncate cleanly
+  // Complete replies remain visible inside their cards.
   assert.ok(css.includes('.aac-conversation .aac-reply-text'), 'Must style .aac-reply-text');
-  assert.ok(css.includes('-webkit-line-clamp: 3'), 'Must clamp reply text to 3 lines');
+  assert.ok(css.includes('-webkit-line-clamp: unset'), 'Must show complete reply text');
+  assert.ok(css.includes('overflow-y: auto !important'), 'Reply list must scroll when space is limited');
 
   // Verify hearing section has bounded max-height
   assert.ok(css.includes('.aac-conversation .aac-hearing {'), 'Must target .aac-conversation .aac-hearing');
