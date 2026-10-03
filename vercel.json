@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd frontend && npm ci && npm run build && mkdir -p ../public && cp -R dist/. ../public/",
+  "buildCommand": "cd frontend && npm ci && VITE_SPEAKER_LABELS=false npm run build && mkdir -p ../public && cp -R dist/. ../public/",
   "functions": {
-    "api/index.py": { "maxDuration": 120, "includeFiles": "public/**", "excludeFiles": "{frontend/**,backend/app.py,backend/qwen_voice.py,backend/streaming_voice_server.py,backend/test_api.py}" }
+    "api/index.py": { "maxDuration": 120, "includeFiles": "public/**", "excludeFiles": "{frontend/**,backend/app.py,backend/diarization.py,backend/qwen_voice.py,backend/streaming_voice_server.py,backend/test*.py}" }
   }
 }

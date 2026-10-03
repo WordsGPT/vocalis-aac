@@ -6,6 +6,7 @@ import { AccessPanel } from './AccessPanel';
 import { pictogramPath } from './vocabulary';
 
 export function SettingsModal({
+  speakerLabels = true,
   isOpen,
   onClose,
   onLogout,
@@ -371,7 +372,7 @@ export function SettingsModal({
                 }`}
               >
                 <div className="font-semibold text-xs text-emerald-300 mb-0.5">Escucha de conversación</div>
-                <div className="text-[11px] text-slate-400">Propone respuestas en las pausas y sigue escuchando hasta que lo detengas. Las etiquetas de voz requieren el servidor local.</div>
+                <div className="text-[11px] text-slate-400">{speakerLabels ? 'Distingue voces y propone respuestas en las pausas. Sigue escuchando hasta que lo detengas.' : 'Transcribe la conversación y propone respuestas en las pausas. Sigue escuchando hasta que lo detengas.'}</div>
               </button>
 
               <button
@@ -384,7 +385,7 @@ export function SettingsModal({
                 }`}
               >
                 <div className="font-semibold text-xs text-emerald-300 mb-0.5">Texto en directo</div>
-                <div className="text-[11px] text-slate-400">Texto inmediato del navegador, sin distinguir voces</div>
+                <div className="text-[11px] text-slate-400">{speakerLabels ? 'Texto inmediato del navegador, sin distinguir voces' : 'Texto inmediato con el reconocimiento del navegador'}</div>
               </button>
             </div>
 

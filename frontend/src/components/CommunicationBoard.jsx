@@ -40,7 +40,7 @@ function Credits() {
   return <p className="pictogram-credit">Pictogramas: Sergio Palao · Gobierno de Aragón · <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA</a></p>;
 }
 
-export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus, topics = [], activeTopic = null, onSelectTopic = () => {} }) {
+export function CommunicationBoard({ speakerLabels = true, view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus, topics = [], activeTopic = null, onSelectTopic = () => {} }) {
   const [quick, setQuick] = useState(readQuick);
   const [quickText, setQuickText] = useState('');
   const [editingQuick, setEditingQuick] = useState(null);
@@ -389,9 +389,9 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
                 <span>Ocultar</span>
               </button>
             </div>
-            {stt.turns?.length ? <ol className="aac-speaker-turns" aria-label="Últimos turnos escuchados">{stt.turns.map((turn, index) => <li key={index}><strong>{turn.speaker_label}</strong><span>{turn.text}</span></li>)}</ol> : <p className="aac-heard">{heard || 'La conversación aparecerá aquí, separada por voces.'}</p>}
+            {speakerLabels && stt.turns?.length ? <ol className="aac-speaker-turns" aria-label="Últimos turnos escuchados">{stt.turns.map((turn, index) => <li key={index}><strong>{turn.speaker_label}</strong><span>{turn.text}</span></li>)}</ol> : <p className="aac-heard">{stt.transcript || (speakerLabels ? 'La conversación aparecerá aquí, separada por voces.' : 'Lo que se diga aparecerá aquí.')}</p>}
             {stt.interimTranscript && <p className="aac-heard">{stt.interimTranscript}</p>}
-            {stt.turns?.length > 0 && <p className="aac-conversation-note">{stt.diarization === 'estimated' ? 'Las etiquetas de voz son aproximadas; pueden confundirse si hablan a la vez.' : 'No se han podido distinguir las voces de este audio.'}</p>}
+            {speakerLabels && stt.turns?.length > 0 && <p className="aac-conversation-note">{stt.diarization === 'estimated' ? 'Las etiquetas de voz son aproximadas; pueden confundirse si hablan a la vez.' : 'No se han podido distinguir las voces de este audio.'}</p>}
             {stt.error && <p className="aac-error" role="alert">{stt.error}</p>}
             <details
               ref={partnerDetailsRef}
@@ -511,7 +511,7 @@ export function CommunicationBoard({ view, onChangeView, settings = {}, tts, stt
         {view === 'history' && <div className="aac-history">
           <div className="aac-section-heading"><div><h1>Historial</h1><p>Recupera un mensaje para volver a decirlo o editarlo.</p></div><button className="aac-tool" disabled={!history.length} onClick={() => { if (window.confirm('¿Borrar el historial de este navegador?')) onClearHistory(); }}><Trash2 size={18} />Borrar historial</button></div>
           {!history.length && <div className="aac-empty"><History size={36} /><h2>Aún no hay mensajes</h2><p>Lo que digas y escuches aparecerá aquí.</p></div>}
-          <ol>{[...history].reverse().map((item, index) => <li key={index} className={item.sender === 'user' ? 'aac-history-self' : ''}><div><small>{item.sender === 'user' ? 'Tú' : item.speaker_label || 'Interlocutor'} · {item.time}</small><p>{item.text}</p></div><button className="aac-icon-tool" aria-label={'Editar mensaje: ' + item.text} onClick={() => { updateMessage([{ text: item.text }]); input.current?.focus(); }}><Keyboard size={20} /></button><button className="aac-icon-tool" aria-label={'Repetir: ' + item.text} onClick={() => onSpeak(item.text)}><Volume2 size={22} /></button></li>)}</ol>
+          <ol>{[...history].reverse().map((item, index) => <li key={index} className={item.sender === 'user' ? 'aac-history-self' : ''}><div><small>{item.sender === 'user' ? 'Tú' : speakerLabels ? item.speaker_label || 'Interlocutor' : 'Conversación'} · {item.time}</small><p>{item.text}</p></div><button className="aac-icon-tool" aria-label={'Editar mensaje: ' + item.text} onClick={() => { updateMessage([{ text: item.text }]); input.current?.focus(); }}><Keyboard size={20} /></button><button className="aac-icon-tool" aria-label={'Repetir: ' + item.text} onClick={() => onSpeak(item.text)}><Volume2 size={22} /></button></li>)}</ol>
         </div>}
       </section>
     </main>

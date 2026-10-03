@@ -2,6 +2,7 @@
 // The app must be serving its latest build at VOCALIS_TEST_URL (default :8000).
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
+const speakerLabels = process.env.VOCALIS_TEST_SPEAKER_LABELS !== 'false';
 
 (async () => {
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--use-fake-device-for-media-stream',
@@ -65,6 +66,10 @@ const assert = require('node:assert/strict');
       assert.ok(requests.length >= count, `Expected ${count} requests, received ${requests.length}`);
     };
     await active();
+    if (!speakerLabels) {
+      await page.getByText('Lo que se diga aparecerá aquí.', { exact: true }).waitFor();
+      assert.equal(await page.getByText(/separada por voces/).count(), 0);
+    }
     await speak();
     await waitRequests(1);
     await page.getByText('Siguiendo la conversación · esperando un momento para participar.').waitFor();
@@ -76,7 +81,13 @@ const assert = require('node:assert/strict');
     delaySuggestions = true;
     await speak();
     await waitRequests(2);
-    await page.getByText('Persona 2', { exact: true }).waitFor();
+    if (speakerLabels) {
+      await page.getByText('Persona 2', { exact: true }).waitFor();
+    } else {
+      await page.locator('.aac-heard').filter({ hasText: '¿Qué te apetece hacer?' }).waitFor();
+      assert.equal(await page.locator('.aac-speaker-turns').count(), 0);
+      assert.equal(await page.getByText(/No se han podido distinguir|etiquetas de voz|Voz sin identificar/).count(), 0);
+    }
     assert.equal(requests[1].history[0].speaker_label, 'Persona 1');
     assert.equal(requests[1].history[1].speaker_label, 'Persona 2');
     // Wait for replies to arrive before checking that a subsequent incomplete
@@ -106,6 +117,15 @@ const assert = require('node:assert/strict');
     await page.waitForTimeout(800);
     await inactive();
     assert.equal(await page.getByRole('button', { name: 'Escuchar', exact: true }).count(), 1);
+    if (!speakerLabels) {
+      await page.getByRole('button', { name: 'Historial', exact: true }).click();
+      assert.equal(await page.getByText(/Persona [12]|Voz sin identificar/).count(), 0);
+      assert.ok(await page.getByText(/Conversación ·/).count() > 0);
+      await page.getByRole('button', { name: 'Ajustes y clonar mi voz' }).click();
+      await page.getByText('Transcribe la conversación y propone respuestas en las pausas. Sigue escuchando hasta que lo detengas.', { exact: true }).waitFor();
+      assert.equal(await page.getByText(/Distingue voces|sin distinguir voces|servidor local/).count(), 0);
+      console.log('PASS hosted transcript, history and settings contain no speaker-estimation UI');
+    }
     assert.deepEqual(errors, []);
     console.log('PASS manual stop remains stopped; no browser errors');
   } finally { await browser.close(); }

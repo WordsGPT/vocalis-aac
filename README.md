@@ -2,7 +2,7 @@
 
 The Gemini 3.8 Flash and password protected Vercel setup is documented in [DEPLOY.md](DEPLOY.md). The details below describe the older local Qwen setup.
 
-Both deployments support continuous conversation listening, topic anchors, personal context, transcript visibility, and adjacent Sí/No replies. The Vercel API uses public Groq suggestions and transcription while retaining login for paid Gemini inference. Speaker estimates require the local backend's Resemblyzer encoder and FFmpeg; the stateless Vercel API returns **Voz sin identificar** instead. Hosted API regression tests: `python -m unittest backend.test_hosted_conversation`.
+Both deployments support continuous conversation listening, topic anchors, personal context, transcript visibility, and adjacent Sí/No replies. The Vercel API uses public Groq suggestions and transcription while retaining login for paid Gemini inference. Its build sets `VITE_SPEAKER_LABELS=false`: transcripts appear without speaker badges or speaker-identification notices, and history distinguishes **Tú** from **Conversación**. Speaker estimates remain available in local builds using the backend's Resemblyzer encoder and FFmpeg. Hosted API regression tests: `python -m unittest backend.test_hosted_conversation`.
 
 # 🎙️ Vocalis AAC - Real-Time Voice Communication Assistant
 

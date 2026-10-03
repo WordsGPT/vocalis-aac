@@ -28,6 +28,8 @@ const DEFAULT_SETTINGS = {
   userContext: ''
 };
 
+const speakerLabels = import.meta.env.VITE_SPEAKER_LABELS !== 'false';
+
 function preparationPhrases(form) {
   let quick = QUICK_PHRASES;
   let saved = [];
@@ -310,6 +312,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   return (
     <div className="vocalis-redesign">
       <CommunicationBoard
+        speakerLabels={speakerLabels}
         view={view}
         onChangeView={setView}
         settings={activeSettings}
@@ -333,6 +336,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
 
       {/* Settings Modal */}
       <SettingsModal
+        speakerLabels={speakerLabels}
         isOpen={isSettingsOpen}
         onClose={closeSettings}
         voiceAuthenticated={voiceAuthenticated}
