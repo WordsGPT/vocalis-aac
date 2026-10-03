@@ -295,6 +295,7 @@ export function SettingsModal({
               <textarea
                 id="user-context"
                 rows={4}
+                maxLength={2000}
                 value={settings.userContext || ''}
                 onChange={(e) => onUpdateSettings({ userContext: e.target.value })}
                 placeholder="Ej.: Me llamo Clara. Tengo 24 años. Vivo en Valencia. Estudio informática. Tengo un perro que se llama Toby. Me encanta la pizza pero no el picante."

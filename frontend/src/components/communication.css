@@ -895,6 +895,73 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
   background: #d8e5f7;
 }
 
+/* Keep complete reply text readable when space is limited or the keyboard opens. */
+.aac-conversation .aac-replies {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  grid-template-rows: repeat(var(--aac-reply-rows, 2), minmax(min-content, 1fr));
+  scrollbar-width: thin;
+}
+.aac-conversation .aac-reply {
+  min-height: 132px;
+  height: auto;
+  max-height: none;
+}
+.aac-conversation .aac-reply-speak {
+  height: auto;
+  min-height: 88px;
+  font-size: clamp(15px, 1.8vh, 18px);
+  line-height: 1.4;
+}
+.aac-conversation .aac-reply-text {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+.aac-conversation .aac-reply-edit {
+  min-height: 44px;
+  height: 44px;
+  font-size: 12px;
+}
+.aac-conversation .aac-reply-edit::after { font-size: 12px; }
+.aac-quick-reply-btn, .aac-active-topic-badge { min-height: 44px; }
+.aac-reply-heading-title { min-width: 0; }
+.aac-conversation .aac-reply-heading { flex-wrap: wrap; }
+.aac-reply-heading-title { flex: 1 1 120px; }
+.aac-reply-heading-title h2 { overflow-wrap: anywhere; max-width: 100%; }
+.aac-reply-heading-actions { margin-left: auto; }
+.aac-app .aac-hearing-status { line-height: 1.4; }
+.aac-conversation-error { flex-shrink: 0; }
+@media (max-width: 700px) {
+  .aac-header { flex-wrap: wrap; }
+  .aac-header-topics {
+    order: 4;
+    flex: 1 0 100%;
+    max-width: 100% !important;
+    padding: 4px 0;
+    border-top: 1px solid #e2e8f0;
+  }
+  .aac-header-topics .aac-topic-chip { min-height: 44px; }
+  .aac-conversation-controls .aac-listen, .aac-conversation-controls .aac-tool { min-height: 44px; }
+  .aac-header .aac-tool { min-width: 44px; }
+}
+@media (max-width: 768px) {
+  .aac-conversation .aac-replies {
+    grid-template-rows: repeat(var(--aac-reply-rows-mobile, 3), minmax(min-content, 1fr)) !important;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .aac-conversation .aac-replies {
+    grid-template-rows: repeat(var(--aac-reply-rows, 2), minmax(min-content, 1fr)) !important;
+  }
+}
+@media (max-height: 650px) {
+  .aac-conversation-workspace > .aac-tab-content { overflow-y: auto !important; }
+  .aac-conversation { flex: none; height: auto; max-height: none; overflow: visible !important; }
+  .aac-conversation .aac-replies { flex: none; height: auto; max-height: none; overflow: visible !important; }
+}
+
 @media (max-width: 700px) {
   .aac-header-topics {
     max-width: calc(100% - 150px);
@@ -915,4 +982,3 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
     max-width: calc(100% - 110px);
   }
 }
-

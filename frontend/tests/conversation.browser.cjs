@@ -79,6 +79,7 @@ const assert = require('node:assert/strict');
     await page.getByText('Persona 2', { exact: true }).waitFor();
     assert.equal(requests[1].history[0].speaker_label, 'Persona 1');
     assert.equal(requests[1].history[1].speaker_label, 'Persona 2');
+    await page.getByRole('button', { name: /Decir respuesta 1:/ }).waitFor();
     await speak();
     await waitRequests(3);
     await page.waitForTimeout(1100);

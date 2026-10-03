@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, User, Check, Trash2 } from 'lucide-react';
+import { X, User, Trash2 } from 'lucide-react';
 
 export function ContextModal({
   isOpen,
@@ -10,7 +10,6 @@ export function ContextModal({
   const dialogRef = useRef(null);
   const textareaRef = useRef(null);
   const [text, setText] = useState(contextValue || '');
-  const [savedNotice, setSavedNotice] = useState(false);
 
   const textRef = useRef(text);
   const previousFocusRef = useRef(null);
@@ -22,7 +21,6 @@ export function ContextModal({
   useEffect(() => {
     if (isOpen) {
       setText(contextValue || '');
-      setSavedNotice(false);
       // Focus textarea shortly after modal mounts
       const timer = setTimeout(() => {
         if (textareaRef.current) {
@@ -50,10 +48,19 @@ export function ContextModal({
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         onSaveContext(textRef.current.trim());
-        setSavedNotice(true);
-        setTimeout(() => {
-          onClose();
-        }, 280);
+        onClose();
+      }
+      if (e.key === 'Tab') {
+        const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), textarea:not(:disabled)')];
+        const first = nodes[0];
+        const last = nodes[nodes.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
       }
     };
 
@@ -69,10 +76,7 @@ export function ContextModal({
 
   const handleSave = () => {
     onSaveContext(text.trim());
-    setSavedNotice(true);
-    setTimeout(() => {
-      onClose();
-    }, 280);
+    onClose();
   };
 
   const handleClear = () => {
@@ -81,11 +85,17 @@ export function ContextModal({
   };
 
   const insertTemplate = (snippet) => {
+    const offset = text.trim() ? text.trim().length + 1 : 0;
     setText((prev) => {
       const trimmed = prev.trim();
-      return trimmed ? `${trimmed} ${snippet}` : snippet;
+      return (trimmed ? `${trimmed} ${snippet}` : snippet).slice(0, 2000);
     });
-    textareaRef.current?.focus();
+    requestAnimationFrame(() => {
+      const input = textareaRef.current;
+      input?.focus();
+      const placeholder = snippet.match(/\[[^\]]+\]|\.\.\./);
+      if (placeholder) input?.setSelectionRange(offset + placeholder.index, offset + placeholder.index + placeholder[0].length);
+    });
   };
 
   return (
@@ -101,7 +111,7 @@ export function ContextModal({
         aria-modal="true"
         aria-labelledby="context-modal-title"
         tabIndex={-1}
-        className="settings-dialog rounded-2xl w-full max-w-lg flex flex-col overflow-hidden text-left shadow-2xl border border-slate-300"
+        className="settings-dialog rounded-2xl w-full max-w-lg max-h-[92dvh] flex flex-col overflow-hidden text-left shadow-2xl border border-slate-300"
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
@@ -123,9 +133,9 @@ export function ContextModal({
         </div>
 
         {/* Modal Body */}
-        <div className="settings-body p-5 sm:p-6 overflow-y-auto space-y-4 text-sm">
+        <div className="settings-body flex-1 min-h-0 p-5 sm:p-6 overflow-y-auto space-y-4 text-sm">
           <p className="text-xs text-slate-400 m-0 leading-relaxed">
-            Escribe quién eres, tus gustos, datos personales o la situación en la que te encuentras. Las respuestas sugeridas por la IA se adaptarán fielmente a estos datos.
+            Añade tu nombre, gustos o la situación actual para ayudar a personalizar las respuestas. Revisa las sugerencias antes de hablar.
           </p>
 
           <div>
@@ -147,11 +157,13 @@ export function ContextModal({
               id="user-context-textarea"
               ref={textareaRef}
               rows={5}
+              maxLength={2000}
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Ej.: Me llamo Clara. Tengo 24 años. Vivo en Valencia. Estudio informática. Tengo un perro que se llama Toby. Me encanta la pizza pero odio los champiñones."
               className="w-full bg-slate-950 text-white rounded-lg p-3 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium resize-y placeholder:text-slate-500 leading-relaxed"
             />
+            <p className="text-[11px] text-slate-500 mt-1">{text.length}/2000 caracteres · Se guarda en este navegador y se envía al servicio de IA al pedir respuestas.</p>
           </div>
 
           {/* Quick Starter Templates */}
@@ -215,13 +227,7 @@ export function ContextModal({
               onClick={handleSave}
               className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              {savedNotice ? (
-                <>
-                  <Check className="w-4 h-4" /> Guardado
-                </>
-              ) : (
-                'Guardar contexto'
-              )}
+              Guardar contexto
             </button>
           </div>
         </div>

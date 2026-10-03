@@ -167,7 +167,7 @@ export function App() {
   }, []);
 
   // Fetch Smart Suggestions from backend with full conversation thread
-  const fetchSuggestions = useCallback(async (heardSpeech, automatic = false, focusTopic = null) => {
+  const fetchSuggestions = useCallback(async (heardSpeech, automatic = false, focusTopic = null, userContext = settings.userContext) => {
     if (!heardSpeech || !heardSpeech.trim()) return;
     const requestId = ++suggestionRequest.current;
     suggestionAbort.current?.abort();
@@ -189,7 +189,7 @@ export function App() {
         tone: settings.tone,
         grammaticalForm: settings.grammaticalForm,
         count: settings.suggestionCount || 6,
-        userContext: settings.userContext,
+        userContext,
         geminiApiKey: settings.geminiApiKey,
         groqApiKey: settings.groqApiKey,
         preferredEngine: settings.preferredEngine,
@@ -244,8 +244,8 @@ export function App() {
     if (!heardText || !heardText.trim()) return;
     abortPendingSuggestions();
     addToHistory('partner', heardText.trim(), metadata.turns);
-    fetchSuggestions(heardText.trim(), metadata.automatic !== false);
-  }, [addToHistory, abortPendingSuggestions, fetchSuggestions]);
+    fetchSuggestions(heardText.trim(), metadata.automatic !== false, activeTopic);
+  }, [addToHistory, abortPendingSuggestions, fetchSuggestions, activeTopic]);
 
   const handleSpeechActivity = useCallback(() => {
     setConversationStatus('Escuchando a las personas de la conversación…');
@@ -266,11 +266,9 @@ export function App() {
     handleUpdateSettings({ userContext: newContext });
     const recent = [...historyRef.current].reverse().find(m => m.sender === 'partner');
     if (recent && recent.text) {
-      setTimeout(() => {
-        fetchSuggestions(recent.text, false);
-      }, 50);
+      fetchSuggestions(recent.text, false, activeTopic, newContext);
     }
-  }, [handleUpdateSettings, fetchSuggestions]);
+  }, [handleUpdateSettings, fetchSuggestions, activeTopic]);
 
   useEffect(() => () => suggestionAbort.current?.abort(), []);
 

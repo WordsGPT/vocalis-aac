@@ -226,7 +226,13 @@ export function useSpeechRecognition({ onSpeechCompleted, onSpeechActivity, auto
       meter();
     } catch (err) {
       if (!current.closed && epoch === generation.current) {
-        setError(err.message || 'No se pudo abrir el micrófono. Revisa el permiso del navegador.');
+        setError(err.name === 'NotAllowedError'
+          ? 'Permite el acceso al micrófono en tu navegador y pulsa Escuchar.'
+          : err.name === 'NotFoundError'
+            ? 'No se ha encontrado un micrófono. Conecta uno y pulsa Escuchar.'
+            : err.name === 'NotReadableError'
+              ? 'No se puede usar el micrófono. Comprueba si otra aplicación lo está usando.'
+              : 'No se pudo abrir el micrófono. Revisa el permiso del navegador.');
         desired.current = false;
         setIsListening(false);
         dispose();
