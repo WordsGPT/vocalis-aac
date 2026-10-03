@@ -1,4 +1,5 @@
 """Small, stateless Vercel API for Vocalis."""
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -17,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.engine import get_smart_suggestions, get_server_groq_api_key
+from backend.conversation import conversation_suggestions
 
 API = "https://generativelanguage.googleapis.com/v1beta"
 VOICE_MODEL = "gemini-3.8-flash-tts"
@@ -107,6 +109,9 @@ class Suggest(BaseModel):
     tone: str = "natural"
     count: int = Field(default=6, ge=3, le=8)
     preferred_engine: str = "groq"
+    user_context: str | None = Field(default=None, max_length=2000)
+    automatic: bool = False
+    focus_topic: str | None = Field(default=None, max_length=100)
 
 
 @app.post("/api/suggest")
@@ -114,10 +119,17 @@ async def suggest(body: Suggest, request: Request):
     engine = body.preferred_engine if body.preferred_engine in {"groq", "gemini", "heuristic"} else "groq"
     if engine == "gemini" and not valid_session(request.cookies.get(COOKIE, "")):
         raise HTTPException(401, "Inicia sesión para usar Gemini.")
-    return get_smart_suggestions(body.text, body.history, body.tone, body.count,
+    if body.automatic or body.focus_topic:
+        return await asyncio.to_thread(
+            conversation_suggestions, body.text, body.history, body.count,
+            body.tone, body.grammatical_form, get_server_groq_api_key(),
+            body.user_context, body.focus_topic,
+        )
+    return await asyncio.to_thread(get_smart_suggestions, body.text, body.history, body.tone, body.count,
                                  gemini_api_key=os.environ.get("GEMINI_API_KEY", ""),
                                  groq_api_key=get_server_groq_api_key(), preferred_engine=engine,
-                                 grammatical_form=body.grammatical_form)
+                                 grammatical_form=body.grammatical_form,
+                                 user_context=body.user_context)
 
 
 @app.get("/api/health")
@@ -208,7 +220,8 @@ async def tts(body: TTS, request: Request):
 
 
 @app.post("/api/transcribe")
-async def transcribe(file: UploadFile = File(...), language: str = Form("es")):
+async def transcribe(file: UploadFile = File(...), language: str = Form("es"),
+                     session_id: str = Form("")):
     data = await file.read(3_000_001)
     if not data or len(data) > 3_000_000:
         raise HTTPException(413, "El audio debe ocupar menos de 3 MB.")
@@ -227,7 +240,12 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("es")):
                 files={"file": (file.filename or "recording.webm", data, mime)},
             )
             result.raise_for_status()
-            return {"text": result.json().get("text", "").strip(), "engine": "groq-whisper"}
+            text = result.json().get("text", "").strip()
+            # Stateless hosting has no local speaker encoder; preserve the turn
+            # contract without guessing speaker identities.
+            return {"text": text, "engine": "groq-whisper", "diarization": "unavailable",
+                    "turns": [{"text": text, "speaker": None,
+                               "speaker_label": "Voz sin identificar"}] if text else []}
         except (httpx.HTTPStatusError, httpx.RequestError):
             raise HTTPException(502, "No se pudo transcribir el audio con Groq.") from None
 

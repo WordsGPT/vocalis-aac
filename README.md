@@ -2,6 +2,8 @@
 
 The Gemini 3.8 Flash and password protected Vercel setup is documented in [DEPLOY.md](DEPLOY.md). The details below describe the older local Qwen setup.
 
+Both deployments support continuous conversation listening, topic anchors, personal context, transcript visibility, and adjacent Sí/No replies. The Vercel API uses public Groq suggestions and transcription while retaining login for paid Gemini inference. Speaker estimates require the local backend's Resemblyzer encoder and FFmpeg; the stateless Vercel API returns **Voz sin identificar** instead. Hosted API regression tests: `python -m unittest backend.test_hosted_conversation`.
+
 # 🎙️ Vocalis AAC - Real-Time Voice Communication Assistant
 
 **Vocalis AAC** is an assistive speech application designed specifically for mute and non-verbal individuals to engage in natural, real-time spoken conversations.
@@ -12,24 +14,30 @@ The Gemini 3.8 Flash and password protected Vercel setup is documented in [DEPLO
 
 ```mermaid
 graph TD
-    A["Partner Speaks"] -->|"Microphone (Web Speech / Whisper GPU)"| B["Speech-to-Text (STT)"]
-    B -->|"Live Transcript"| C["Smart Response Engine"]
-    C -->|"Ollama Gemma 3 / Gemini / Heuristics"| D["3 Contextual Response Cards"]
-    D -->|"Mute User selects Option 1, 2, or 3"| E["Text-to-Speech (TTS)"]
-    E -->|"Edge-TTS Neural / Browser Synthesis"| F["Spoken Aloud Aloud to Partner"]
+    A["People speak"] --> B["Whisper transcript + anonymous speaker labels"]
+    B --> C{"Pause and natural opening?"}
+    C -->|"Wait"| A
+    C -->|"Yes"| D["Contextual reply options"]
+    D -->|"User chooses"| E["Speak with selected voice"]
+    E -->|"Resume listening"| A
 ```
 
-1. **Ambient Listening (Speech-to-Text)**:
-   - The conversational partner speaks naturally.
-   - Captured in real-time via Web Speech API with interim typing results or local GPU Whisper (`/api/transcribe`).
-   - Live visual audio meter indicates incoming speech.
+1. **Continuous conversation listening**:
+   - In conversation mode, audio is captured continuously until stopped, with a live microphone meter.
+   - Each pause (default 1 second) closes an audio recording; uninterrupted speech is split at 12 seconds. Recordings are transcribed in order with Groq `whisper-large-v3-turbo`, or local Whisper `tiny` if no Groq key is configured. This is transcription of completed chunks, not streaming word-by-word Whisper.
+   - Local Resemblyzer voice embeddings, clustered and aligned with Whisper word timestamps, estimate anonymous **Persona 1 / Persona 2** labels across recordings. No enrollment or additional cloud provider is needed. Short, ambiguous, and overlapping speech may remain unidentified or be mislabeled; labels are not verified identities.
+   - Browser live-text mode remains available, but cannot distinguish speakers.
 
-2. **3 Contextual Smart Suggestions**:
-   - The app instantly generates 3 natural, first-person replies matching different conversational intents:
-     - **Option 1**: Affirmative / Enthusiastic / Agree
-     - **Option 2**: Inquiry / Alternative / Thoughtful
-     - **Option 3**: Polite Decline / Boundary / Pass
-   - Powered locally by **Ollama (`gemma3:4b`)**, with instant heuristic fallback (0ms) and optional **Google Gemini** cloud support.
+2. **Suggestions at conversational openings**:
+   - After speech stops and pending transcriptions finish, Groq considers the last 16 speaker-labeled turns, including the AAC user's own selected messages.
+   - It offers replies for questions, invitations, and natural openings, and can wait during incomplete thoughts, exchanges between other speakers, or already-answered questions. These are model judgments, not guaranteed turn detection.
+   - New speech cancels obsolete suggestion requests. Suggestions never speak automatically. The user can request replies manually with **Otras respuestas** or enter a message themselves.
+   - Automatic turn assessment requires the existing Groq key. If unavailable, the app shows a status instead of unrelated automatic replies; manual suggestions retain the selected engine and existing fallbacks.
+   - Listening pauses during the app's voice playback and resumes afterward. An explicit **Detener escucha** stays stopped. A slow connection pauses capture if the transcription queue fills.
+
+Voice embeddings are kept only in server memory, isolated by a random conversation session (up to 100 sessions, 30-minute idle expiry, at most eight speaker profiles). Clearing history or reloading starts fresh speaker labels. Transcript history remains in the browser as before; recorded audio is sent to Groq for transcription when configured, and its temporary server file is deleted afterward. Conversation context is sent to Groq for automatic turn assessment.
+
+The speaker encoder and its bundled weights install with `backend/requirements.txt`; FFmpeg must be available. Tests: `python -m unittest backend.test_conversation`; frontend: `node --test tests/*.test.js`. The browser regression test `frontend/tests/conversation.browser.cjs` uses Playwright and a running built app; set `PLAYWRIGHT_MODULE` if Playwright is installed elsewhere and optionally `VOCALIS_TEST_URL`. Use Node 22+ for the current frontend toolchain.
 
 3. **Single-Tap or Hotkey Selection & TTS**:
    - The user selects an option by tapping the card or pressing keyboard keys **`1`**, **`2`**, or **`3`**.
@@ -138,7 +146,7 @@ Open the **Settings** modal in the top right to customize:
 - **Voice Rate & Pitch**: Fine-tune speed and pitch with a live "Test Voice" preview.
 - **AI Tone**: Natural, Casual & Friendly, Professional, Concise (1-3 words), or Warm & Empathetic.
 - **AI Engine**: Auto, Local Ollama Gemma 3, Cloud Gemini, or Instant Heuristic.
-- **STT Engine**: Auto (Web Speech with Whisper fallback) or Dedicated Whisper GPU.
+- **STT Engine**: Conversation listening (Whisper plus local speaker estimates) or browser live text (without speaker labels).
 ### Optional low-latency cloned voice
 
 Vocalis can keep the original whole-WAV Qwen engine and run a second, isolated

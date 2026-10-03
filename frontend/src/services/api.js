@@ -73,37 +73,49 @@ export async function getSmartSuggestions({
   tone = 'natural',
   grammaticalForm = 'masculine',
   count = 6,
-  preferredEngine = 'groq'
+  userContext = '',
+  preferredEngine = 'groq',
+  automatic = false,
+  focusTopic = null,
+  signal,
 }) {
   try {
     const res = await fetch(`${API_BASE}/suggest`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal,
       body: JSON.stringify({
         text,
         history,
         tone,
         grammatical_form: grammaticalForm,
         count,
-        preferred_engine: preferredEngine
+        user_context: userContext.slice(0, 2000) || null,
+        preferred_engine: preferredEngine,
+        automatic,
+        focus_topic: focusTopic || null,
       })
     });
     if (!res.ok) throw new Error(`Suggest failed with status ${res.status}`);
     return await res.json();
   } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    if (automatic) return { should_suggest: false, reason: 'service_unavailable', suggestions: [], engine: 'conversation-offline' };
     console.warn('Backend suggestion call failed, using client fallback:', err);
     return getOfflineSuggestions(count || 6, grammaticalForm);
   }
 }
 
-export async function transcribeAudioBlob(blob, language = 'es-ES') {
+export async function transcribeAudioBlob(blob, language = 'es-ES', sessionId = '', signal) {
   const formData = new FormData();
   const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm';
   formData.append('file', blob, `recording.${extension}`);
   formData.append('language', language);
+  formData.append('session_id', sessionId);
   
   const res = await fetch(`${API_BASE}/transcribe`, {
     method: 'POST',
+    signal,
     body: formData
   });
   

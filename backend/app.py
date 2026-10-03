@@ -29,6 +29,8 @@ except ImportError:  # Browser recognition remains available without local Whisp
 
 from backend.engine import get_smart_suggestions, OLLAMA_URL
 from backend.qwen_voice import qwen_voice
+from backend.diarization import diarizer
+from backend.conversation import conversation_suggestions
 
 logger = logging.getLogger("echo_flow_api")
 logging.basicConfig(level=logging.INFO)
@@ -100,9 +102,12 @@ class SuggestRequest(BaseModel):
     grammatical_form: str = "masculine"
     tone: Optional[str] = "natural"
     count: Optional[int] = 6
+    user_context: Optional[str] = None
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
     preferred_engine: Optional[str] = "groq"
+    automatic: bool = False
+    focus_topic: Optional[str] = None
 
 class TTSRequest(BaseModel):
     text: str
@@ -218,12 +223,19 @@ async def clone_voice(
 
 @app.post("/api/suggest")
 async def suggest(req: SuggestRequest):
-    res = get_smart_suggestions(
+    if req.automatic or req.focus_topic:
+        return await asyncio.to_thread(
+            conversation_suggestions, req.text, req.history, req.count or 6,
+            req.tone or "natural", req.grammatical_form, req.groq_api_key,
+            req.user_context, req.focus_topic
+        )
+    res = await asyncio.to_thread(get_smart_suggestions,
         partner_text=req.text,
         history=req.history,
         tone=req.tone or "natural",
         grammatical_form=req.grammatical_form,
         count=req.count or 6,
+        user_context=req.user_context,
         gemini_api_key=req.gemini_api_key,
         groq_api_key=req.groq_api_key,
         preferred_engine=req.preferred_engine or "groq"
@@ -231,7 +243,8 @@ async def suggest(req: SuggestRequest):
     return res
 
 @app.post("/api/transcribe")
-async def transcribe_audio(file: UploadFile = File(...), language: str = Form("es")):
+async def transcribe_audio(file: UploadFile = File(...), language: str = Form("es"),
+                           session_id: str = Form("")):
     """Transcribe browser audio with Groq Whisper, or local Whisper as fallback."""
     tmp_path = None
     try:
@@ -254,13 +267,16 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = Form("e
                     response = await client.post(
                         "https://api.groq.com/openai/v1/audio/transcriptions",
                         headers={"Authorization": f"Bearer {key}"},
-                        data={"model": "whisper-large-v3-turbo", "language": short_language},
+                        data={"model": "whisper-large-v3-turbo", "language": short_language,
+                              "response_format": "verbose_json", "timestamp_granularities[]": "word"},
                         files={"file": (file.filename or f"recording{suffix}", audio, file.content_type or "audio/webm")},
                     )
             if response.is_error:
                 logger.error("Groq transcription failed with status %s", response.status_code)
                 raise HTTPException(status_code=502, detail="El servicio de transcripción no respondió correctamente.")
-            return {"text": response.json().get("text", "").strip(), "engine": "groq-whisper"}
+            result = response.json()
+            speakers = await asyncio.to_thread(diarizer.annotate, tmp_path, result, session_id[:128])
+            return {"text": result.get("text", "").strip(), "engine": "groq-whisper", **speakers}
 
         model = get_whisper_model()
         result = await asyncio.to_thread(
@@ -268,8 +284,10 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = Form("e
             tmp_path,
             fp16=torch.cuda.is_available(),
             language=short_language,
+            word_timestamps=True,
         )
-        return {"text": result.get("text", "").strip(), "engine": "local-whisper"}
+        speakers = await asyncio.to_thread(diarizer.annotate, tmp_path, result, session_id[:128])
+        return {"text": result.get("text", "").strip(), "engine": "local-whisper", **speakers}
     except HTTPException:
         raise
     except Exception as e:

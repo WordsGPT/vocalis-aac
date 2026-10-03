@@ -313,7 +313,24 @@ export function SettingsModal({
               </select>
             </div>
 
-
+            {/* User Personal Context / Details */}
+            <div className="mb-1">
+              <label htmlFor="user-context" className="block text-xs text-slate-400 mb-1 flex items-center justify-between">
+                <span>Sobre mí (contexto para la IA):</span>
+                <span className="text-[11px] text-slate-500">Opcional</span>
+              </label>
+              <textarea
+                id="user-context"
+                rows={4}
+                value={settings.userContext || ''}
+                onChange={(e) => onUpdateSettings({ userContext: e.target.value })}
+                placeholder="Ej.: Me llamo Clara. Tengo 24 años. Vivo en Valencia. Estudio informática. Tengo un perro que se llama Toby. Me encanta la pizza pero no el picante."
+                className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500 font-medium resize-y placeholder:text-slate-600 leading-relaxed"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Escribe aquí tu nombre, gustos, familia, mascotas o cualquier detalle para que las sugerencias respondan con tu información real.
+              </p>
+            </div>
           </div>
 
           <hr className="border-slate-800" />
@@ -353,8 +370,8 @@ export function SettingsModal({
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Automático (recomendado)</div>
-                <div className="text-[11px] text-slate-400">Detecta cuándo habla la otra persona y escribe al terminar</div>
+                <div className="font-semibold text-xs text-emerald-300 mb-0.5">Escucha de conversación</div>
+                <div className="text-[11px] text-slate-400">Propone respuestas en las pausas y sigue escuchando hasta que lo detengas. Las etiquetas de voz requieren el servidor local.</div>
               </button>
 
               <button
@@ -367,22 +384,22 @@ export function SettingsModal({
                 }`}
               >
                 <div className="font-semibold text-xs text-emerald-300 mb-0.5">Texto en directo</div>
-                <div className="text-[11px] text-slate-400">Más inmediato, pero depende del navegador</div>
+                <div className="text-[11px] text-slate-400">Texto inmediato del navegador, sin distinguir voces</div>
               </button>
             </div>
 
             <div>
               <div className="flex justify-between text-xs text-slate-400 mb-1">
                 <span>Pausa de silencio para sugerir respuestas:</span>
-                <span className="font-mono font-bold text-emerald-300">{(settings.autoTriggerDelay || 1500) / 1000}s</span>
+                <span className="font-mono font-bold text-emerald-300">{((settings.autoTriggerDelay || 1000) / 1000).toFixed(1)}s</span>
               </div>
               <input
                 type="range"
-                min="800"
+                min="600"
                 max="3000"
-                step="200"
-                value={settings.autoTriggerDelay || 1500}
-                onChange={(e) => onUpdateSettings({ autoTriggerDelay: parseInt(e.target.value) })}
+                step="100"
+                value={settings.autoTriggerDelay || 1000}
+                onChange={(e) => onUpdateSettings({ autoTriggerDelay: parseInt(e.target.value, 10) })}
                 className="w-full accent-emerald-500 cursor-pointer"
               />
             </div>

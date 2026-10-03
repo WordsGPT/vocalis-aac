@@ -306,21 +306,19 @@ def generate_responses_ollama(
 Alguien le acaba de decir:
 "{partner_text}"
 
-Genera exactamente {count} respuestas habladas naturales, variadas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta:
-Incluye:
-1. Acuerdo entusiasta o positivo
-2. Acuerdo suave o neutral
-3. Pregunta aclaratoria sobre el tema
-4. Propuesta alternativa o sugerencia
-5. Rechazo cortés o límite
-6. Pedir tiempo para pensar o pausar
+Genera exactamente {count} respuestas habladas naturales, variadas, en primera persona y SIEMPRE EN ESPAÑOL que pueda pulsar para hablar en voz alta.
+Adapta las intenciones con sentido común según lo escuchado:
+- Si es una pregunta abierta o de datos: responde directamente con el dato, devuelve la pregunta amablemente, o añade un detalle (NUNCA fuerces "sí" o "no").
+- Si es una elección: ofrece una opción, la otra o una alternativa.
+- Si es una invitación o propuesta: aceptación, condición/matiz, declinación educada o alternativa.
+- Si es una anécdota u opinión: empatía, apoyo, curiosidad por saber más o validación.
 
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas:
 - Habla directamente en primera persona ("yo", "me", "nosotros").
-- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 4 a 12 palabras).
-- No generes fragmentos incompletos.
+- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 3 a 10 palabras).
+- Prohibido repetir opciones redundantes.
 - NUNCA uses corchetes ni marcadores como [tema].
 - Listas para ser reproducidas por un sintetizador de voz (TTS) de inmediato."""
 
@@ -368,15 +366,14 @@ Le acaban de decir:
 "{partner_text}"
 
 {grammatical_instruction(grammatical_form)}
-Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL:
-- Acuerdo entusiasta
-- Aceptación suave
-- Pregunta o aclaración
-- Alternativa o sugerencia
-- Rechazo educado
-- Pedir tiempo para pensar
+Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL.
+Adapta las opciones inteligentemente a lo que se ha dicho:
+- Si es pregunta abierta o de datos: responde directamente, devuelve la pregunta o añade un matiz (sin forzar "sí" o "no").
+- Si es una elección: elige una opción, la otra o una alternativa.
+- Si es una propuesta: acepta, matiza, declina educadamente o propón otro plan.
+- Si es una anécdota o noticia: muestra empatía, apoyo o curiosidad.
 
-Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en español. Ejemplo: ["¡Sí, me parece genial!", "De acuerdo, me parece bien.", "¿Podríamos hacerlo mañana?", "¿Y si probamos otra cosa?", "No podré en esta ocasión, lo siento.", "Déjame pensarlo un momento."][:count]"""
+Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en español."""
 
     try:
         payload = {
@@ -405,7 +402,8 @@ def generate_responses_groq(
     tone: str = "natural",
     count: int = 6,
     model: str = DEFAULT_GROQ_MODEL,
-    grammatical_form: str = "masculine"
+    grammatical_form: str = "masculine",
+    user_context: Optional[str] = None
 ) -> Optional[List[str]]:
     """Calls Groq API for ultra-fast (100ms) high quality LLM inference."""
     key = (api_key or "").strip() or get_server_groq_api_key()
@@ -419,24 +417,47 @@ def generate_responses_groq(
         "warm": "Respuestas cálidas, empáticas y afectuosas."
     }.get(tone, "Respuestas naturales, conversacionales y directas.")
 
-    system_prompt = f"""Eres un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
+    user_info = ""
+    if user_context and user_context.strip():
+        user_info = f"""
+INFORMACIÓN Y DATOS PERSONALES DEL USUARIO (úsalos para responder fielmente a preguntas sobre su nombre, vida, gustos o circunstancias):
+\"\"\"
+{user_context.strip()[:2000]}
+\"\"\"
+"""
+
+    system_prompt = f"""Eres el sistema de sugerencias de un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
 En el historial de mensajes:
 - 'user' representa lo que dijo el interlocutor en voz alta.
 - 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
-
+{user_info}
 El interlocutor acaba de decir el último mensaje.
-Sugiere exactamente {count} respuestas que la persona no verbal podría decir ahora. Devuelve JSON con la clave "suggestions".
+Tu objetivo principal es ofrecer {count} opciones de respuesta COHERENTES, ÚTILES y NATURALES, con VARIEDAD REAL DE POSTURAS CONVERSACIONALES sin forzar plantillas fijas de "sí/no".
+
+ADAPTACIÓN INTELIGENTE SEGÚN EL TIPO DE MENSAJE:
+1. PREGUNTAS ABIERTAS O DE DATOS (ej. "¿Cómo te llamas?", "¿Dónde vives?", "¿Qué tal estás?", "¿Qué hora es?", "¿A qué te dedicas?"):
+   - Ofrece respuestas directas y completas (usando fielmente la información personal del usuario si aplica).
+   - Ofrece variedad de intenciones útiles: respuesta directa cordial, respuesta que devuelve la pregunta amablemente ("¿Y tú cómo te llamas?"), añadir un detalle relacionado agradable, o preguntar un detalle afín.
+   - NUNCA fuerces "Sí", "No" ni respuestas defensivas o cortantes como "No te lo digo".
+2. PREGUNTAS DE ELECCIÓN (ej. "¿Pizza o hamburguesa?", "¿Cine o paseo?"):
+   - Ofrece elegir una opción, elegir la otra, proponer una alternativa diferente, o dejar que elija la otra persona ("Lo que tú prefieras", "Me da igual, tú mandas").
+3. PROPUESTAS, INVITACIONES O PREGUNTAS DE SÍ/NO (ej. "¿Quieres un café?", "¿Vamos al parque?", "¿Tienes hambre?"):
+   - Ofrece aceptación positiva, aceptación con condición o matiz ("sí, pero solo un rato"), declinación educada, o contrapropuesta.
+4. HISTORIAS, OPINIONES O NOTICIAS (ej. "He tenido un mal día", "Mira lo que compré", "Mi abuela está enferma"):
+   - Ofrece empatía, apoyo, curiosidad por saber más, validación o una opinión/experiencia afín.
+5. SALUDOS O CORDIALIDAD (ej. "¡Hola!", "¿Qué tal?", "Muchas gracias"):
+   - Ofrece saludos cálidos, devoluciones de saludo, agradecimiento o comentarios casuales según el estado de ánimo.
+
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas estrictas:
-- Las {count} respuestas DEBEN estar en ESPAÑOL.
-- Cada opción debe responder directamente al significado del ÚLTIMO mensaje y conservar su tema concreto.
-- No uses respuestas genéricas que funcionarían igual para cualquier conversación.
-- Adapta las intenciones al mensaje: por ejemplo empatía ante malas noticias, respuesta directa ante preguntas, y curiosidad ante relatos.
-- Ofrece opciones variadas y plausibles, pero no inventes datos personales, decisiones ni hechos que no aparecen en el contexto.
-- Habla desde la perspectiva de la persona no verbal, normalmente en primera persona.
-- Frases completas, naturales y listas para voz artificial, idealmente de 3 a 14 palabras.
-- No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1"."""
+- Genera exactamente {count} respuestas en primera persona, en ESPAÑOL natural y fluido.
+- Cada opción debe tener una postura conversacional distinta (afinidad, matiz, curiosidad, alternativa o empatía), adaptada con sentido común al tema.
+- Si la pregunta se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL de arriba de forma exacta.
+- Frases completas, naturales y listas para voz artificial (3 a 10 palabras).
+- Prohibido repetir la misma idea con palabras similares o generar múltiples preguntas redundantes.
+- No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1".
+Devuelve JSON con la clave "suggestions"."""
 
     messages = [{"role": "system", "content": system_prompt}]
 
@@ -450,7 +471,8 @@ Reglas estrictas:
             
             # Partner is 'user', AAC mute user is 'assistant'
             if sender in ["partner", "them", "other", "speaker"]:
-                messages.append({"role": "user", "content": content})
+                label = msg.get("speaker_label") or "Interlocutor"
+                messages.append({"role": "user", "content": f"{label}: {content}"})
             else:
                 messages.append({"role": "assistant", "content": content})
 
@@ -505,7 +527,8 @@ def get_smart_suggestions(
     gemini_api_key: Optional[str] = None,
     groq_api_key: Optional[str] = None,
     preferred_engine: str = "groq",
-    grammatical_form: str = "masculine"
+    grammatical_form: str = "masculine",
+    user_context: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Returns up to `count` (default 6) smart responses using the best available engine.
@@ -533,7 +556,7 @@ def get_smart_suggestions(
 
     # 1. Try Groq (Default / Primary)
     if preferred_engine in ["groq", "auto"]:
-        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form)
+        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form, user_context=user_context)
         if responses:
             return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "groq"}
 
