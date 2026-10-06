@@ -95,6 +95,61 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   const [aiEngine, setAiEngine] = useState('client-offline');
   const [conversationTopics, setConversationTopics] = useState([]);
   const [activeTopic, setActiveTopic] = useState(null);
+  const [activeTopicContext, setActiveTopicContext] = useState('');
+  const [speakMode, setSpeakMode] = useState(false);
+
+  const suggestionsRef = useRef(suggestions);
+  useEffect(() => {
+    suggestionsRef.current = suggestions;
+  }, [suggestions]);
+
+  // Cursor movement tracking: prevent suggestions from updating while moving cursor
+  const isCursorMovingRef = useRef(false);
+  const cursorStopTimerRef = useRef(null);
+  const pendingUpdateRef = useRef(null);
+  const isHoveringRepliesRef = useRef(false);
+
+  useEffect(() => {
+    const handleMove = () => {
+      isCursorMovingRef.current = true;
+      if (cursorStopTimerRef.current) {
+        clearTimeout(cursorStopTimerRef.current);
+      }
+      cursorStopTimerRef.current = setTimeout(() => {
+        isCursorMovingRef.current = false;
+        if (pendingUpdateRef.current && !isHoveringRepliesRef.current) {
+          const { newSuggestions, engine, status } = pendingUpdateRef.current;
+          pendingUpdateRef.current = null;
+          setSuggestions(newSuggestions);
+          if (engine) setAiEngine(engine);
+          if (status) setConversationStatus(status);
+        }
+      }, 1200);
+    };
+
+    window.addEventListener('mousemove', handleMove, { passive: true });
+    window.addEventListener('pointermove', handleMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('pointermove', handleMove);
+      if (cursorStopTimerRef.current) clearTimeout(cursorStopTimerRef.current);
+    };
+  }, []);
+
+  const handleRepliesMouseEnter = useCallback(() => {
+    isHoveringRepliesRef.current = true;
+  }, []);
+
+  const handleRepliesMouseLeave = useCallback(() => {
+    isHoveringRepliesRef.current = false;
+    if (pendingUpdateRef.current && !isCursorMovingRef.current) {
+      const { newSuggestions, engine, status } = pendingUpdateRef.current;
+      pendingUpdateRef.current = null;
+      setSuggestions(newSuggestions);
+      if (engine) setAiEngine(engine);
+      if (status) setConversationStatus(status);
+    }
+  }, []);
 
   // Conversation history: chronological order [oldest, ..., newest]
   const [history, setHistory] = useState(() => {
@@ -146,6 +201,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
 
   const clearSuggestions = useCallback(() => {
     abortPendingSuggestions();
+    pendingUpdateRef.current = null;
     setSuggestions([]);
   }, [abortPendingSuggestions]);
 
@@ -153,6 +209,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
     clearSuggestions();
     setConversationTopics([]);
     setActiveTopic(null);
+    setActiveTopicContext('');
     historyRef.current = [];
     conversationStart.current = 0;
     setHistory([]);
@@ -177,7 +234,14 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
   }, []);
 
   // Fetch Smart Suggestions from backend with full conversation thread
-  const fetchSuggestions = useCallback(async (heardSpeech, automatic = false, focusTopic = null, userContext = settings.userContext) => {
+  const fetchSuggestions = useCallback(async (
+    heardSpeech,
+    automatic = false,
+    focusTopic = null,
+    userContext = settings.userContext,
+    mode = speakMode ? 'speak' : 'reply',
+    topicContext = null
+  ) => {
     if (!heardSpeech || !heardSpeech.trim()) return;
     const requestId = ++suggestionRequest.current;
     suggestionAbort.current?.abort();
@@ -187,7 +251,9 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
 
     try {
       // Pass recent chronological conversation context (both what was heard and spoken)
-      const contextHistory = historyRef.current.slice(conversationStart.current).slice(-16).map((h) => ({
+      // When focusing on a topic (callback), provide a wider slice of history so prior mentions aren't lost
+      const historySliceLimit = focusTopic ? -36 : -16;
+      const contextHistory = historyRef.current.slice(conversationStart.current).slice(historySliceLimit).map((h) => ({
         role: h.sender,
         content: h.text,
         speaker_label: h.speaker_label || 'Voz sin identificar',
@@ -203,13 +269,39 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         preferredEngine: activeSettings.preferredEngine,
         automatic,
         focusTopic,
+        mode,
+        topicContext: topicContext || (focusTopic ? activeTopicContext : null),
         signal: controller.signal,
       });
 
       if (requestId === suggestionRequest.current && res) {
-        if (Array.isArray(res.suggestions) && (res.suggestions.length > 0 || !automatic)) {
-          setSuggestions(res.suggestions);
-          setAiEngine(res.engine || 'groq');
+        const newSuggestions = Array.isArray(res.suggestions) ? res.suggestions : [];
+        const nextEngine = res.engine || 'groq';
+        const nextStatus = focusTopic
+          ? `Respuestas para volver al tema: ${focusTopic}`
+          : mode === 'speak'
+            ? 'Modo hablar: opciones para dirigir la conversación o decir lo que piensas.'
+            : res.reason === 'service_unavailable'
+              ? 'No se pudo valorar el turno. Puedes pedir respuestas con el botón.'
+              : automatic && !res.should_suggest
+                ? 'Siguiendo la conversación · esperando un momento para participar.'
+                : 'Hay un momento para participar. Elige una respuesta o escribe la tuya.';
+
+        if (newSuggestions.length > 0 || !automatic) {
+          // If cursor is moving or hovering replies and we already have suggestions showing,
+          // hold the update so suggestions don't disappear in front of user while trying to click!
+          if (automatic && suggestionsRef.current.length > 0 && (isCursorMovingRef.current || isHoveringRepliesRef.current)) {
+            pendingUpdateRef.current = {
+              newSuggestions,
+              engine: nextEngine,
+              status: nextStatus,
+            };
+          } else {
+            pendingUpdateRef.current = null;
+            setSuggestions(newSuggestions);
+            setAiEngine(nextEngine);
+            setConversationStatus(nextStatus);
+          }
         }
         if (Array.isArray(res.topics) && res.topics.length > 0) {
           setConversationTopics((prev) => {
@@ -230,30 +322,21 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
             return next.slice(-6);
           });
         }
-        setConversationStatus(
-          focusTopic
-            ? `Respuestas para volver al tema: ${focusTopic}`
-            : res.reason === 'service_unavailable'
-              ? 'No se pudo valorar el turno. Puedes pedir respuestas con el botón.'
-              : automatic && !res.should_suggest
-                ? 'Siguiendo la conversación · esperando un momento para participar.'
-                : 'Hay un momento para participar. Elige una respuesta o escribe la tuya.'
-        );
       }
     } catch (err) {
       if (err.name !== 'AbortError') console.error('Error fetching suggestions:', err);
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
     }
-  }, [settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.userContext, activeSettings.preferredEngine]);
+  }, [settings.grammaticalForm, settings.tone, settings.suggestionCount, settings.userContext, activeSettings.preferredEngine, speakMode, activeTopicContext]);
 
   // Handle incoming speech recognized from partner
   const handleSpeechCompleted = useCallback((heardText, metadata = {}) => {
     if (!heardText || !heardText.trim()) return;
     abortPendingSuggestions();
     addToHistory('partner', heardText.trim(), metadata.turns);
-    fetchSuggestions(heardText.trim(), metadata.automatic !== false, activeTopic);
-  }, [addToHistory, abortPendingSuggestions, fetchSuggestions, activeTopic]);
+    fetchSuggestions(heardText.trim(), metadata.automatic !== false, activeTopic, settings.userContext, speakMode ? 'speak' : 'reply');
+  }, [addToHistory, abortPendingSuggestions, fetchSuggestions, activeTopic, settings.userContext, speakMode]);
 
   const handleSpeechActivity = useCallback(() => {
     setConversationStatus('Escuchando a las personas de la conversación…');
@@ -274,23 +357,52 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
     handleUpdateSettings({ userContext: newContext });
     const recent = [...historyRef.current].reverse().find(m => m.sender === 'partner');
     if (recent && recent.text) {
-      fetchSuggestions(recent.text, false, activeTopic, newContext);
+      fetchSuggestions(recent.text, false, activeTopic, newContext, speakMode ? 'speak' : 'reply');
     }
-  }, [handleUpdateSettings, fetchSuggestions, activeTopic]);
+  }, [handleUpdateSettings, fetchSuggestions, activeTopic, speakMode]);
 
   useEffect(() => () => suggestionAbort.current?.abort(), []);
+
+  const handleToggleSpeakMode = useCallback(() => {
+    setSpeakMode((prev) => {
+      const next = !prev;
+      const lastPartner = [...historyRef.current].reverse().find(m => m.sender === 'partner');
+      const textToUse = lastPartner?.text || (activeTopic ? `Sobre ${activeTopic}` : '');
+      if (textToUse) {
+        fetchSuggestions(textToUse, false, activeTopic, settings.userContext, next ? 'speak' : 'reply');
+      }
+      return next;
+    });
+  }, [activeTopic, fetchSuggestions, settings.userContext]);
 
   const handleSelectTopic = useCallback((topicName) => {
     if (activeTopic === topicName) {
       setActiveTopic(null);
+      setActiveTopicContext('');
       const lastPartner = [...historyRef.current].reverse().find(m => m.sender === 'partner');
-      if (lastPartner?.text) fetchSuggestions(lastPartner.text, false, null);
+      if (lastPartner?.text) fetchSuggestions(lastPartner.text, false, null, settings.userContext, speakMode ? 'speak' : 'reply');
     } else {
       setActiveTopic(topicName);
+      // For the callback feature: scan conversation history for prior mentions to provide rich context
+      const relevantTurns = historyRef.current.filter(item =>
+        (item.text || '').toLowerCase().includes(topicName.toLowerCase())
+      );
+      const snippet = relevantTurns.length > 0
+        ? relevantTurns.slice(-4).map(item => `${item.sender === 'user' ? 'Tú' : item.speaker_label || 'Interlocutor'}: "${item.text}"`).join(' · ')
+        : '';
+      setActiveTopicContext(snippet);
+
       const lastPartner = [...historyRef.current].reverse().find(m => m.sender === 'partner');
-      fetchSuggestions(lastPartner?.text || topicName, false, topicName);
+      fetchSuggestions(
+        lastPartner?.text || topicName,
+        false,
+        topicName,
+        settings.userContext,
+        speakMode ? 'speak' : 'reply',
+        snippet
+      );
     }
-  }, [activeTopic, fetchSuggestions]);
+  }, [activeTopic, fetchSuggestions, settings.userContext, speakMode]);
 
   // Action: User picks a response (or types) to speak aloud
   const handleSelectAndSpeak = useCallback((text, options) => {
@@ -321,7 +433,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         onSpeak={handleSelectAndSpeak}
         onSettings={() => setIsSettingsOpen(true)}
         onOpenContext={() => setIsContextOpen(true)}
-        onRegenerate={(text) => fetchSuggestions(text, false, activeTopic)}
+        onRegenerate={(text) => fetchSuggestions(text, false, activeTopic, settings.userContext, speakMode ? 'speak' : 'reply')}
         conversationStatus={conversationStatus}
         history={history}
         onClearHistory={handleClearHistory}
@@ -329,7 +441,12 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         voiceLabel={activeSettings.ttsMode === 'browser' ? 'Voz del navegador' : activeSettings.ttsMode === 'pocket' ? 'Mi voz Pocket TTS' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
         topics={conversationTopics}
         activeTopic={activeTopic}
+        activeTopicContext={activeTopicContext}
         onSelectTopic={handleSelectTopic}
+        speakMode={speakMode}
+        onToggleSpeakMode={handleToggleSpeakMode}
+        onRepliesMouseEnter={handleRepliesMouseEnter}
+        onRepliesMouseLeave={handleRepliesMouseLeave}
       />
 
       {/* Settings Modal */}

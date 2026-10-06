@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { ArrowLeft, ChevronRight, CircleStop, Delete, Eye, EyeOff, Folder, Grid2X2, Heart, History, Keyboard, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Trash2, User, Volume2, X } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CircleStop, Delete, Eye, EyeOff, Folder, Grid2X2, Heart, History, Keyboard, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Sparkles, Trash2, User, Volume2, X } from 'lucide-react';
 import { AAC_VOCABULARY, BOARD_CATEGORIES, CORE_STRIP, QUICK_PHRASES, pictogramPath } from './vocabulary';
 import './communication.css';
 import { composeSentence, personalForm, spokenTile, suggestSentence } from '../utils/spanish';
@@ -40,7 +40,7 @@ function Credits() {
   return <p className="pictogram-credit">Pictogramas: Sergio Palao · Gobierno de Aragón · <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA</a></p>;
 }
 
-export function CommunicationBoard({ speakerLabels = true, view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus, topics = [], activeTopic = null, onSelectTopic = () => {} }) {
+export function CommunicationBoard({ speakerLabels = true, view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus, topics = [], activeTopic = null, onSelectTopic = () => {}, speakMode = false, onToggleSpeakMode = () => {}, activeTopicContext = '', onRepliesMouseEnter, onRepliesMouseLeave }) {
   const [quick, setQuick] = useState(readQuick);
   const [quickText, setQuickText] = useState('');
   const [editingQuick, setEditingQuick] = useState(null);
@@ -314,6 +314,19 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
       {view === 'conversation' && <div className="aac-conversation-controls" aria-label="Controles de conversación">
         <button type="button" className={'aac-listen ' + (stt.isListening ? 'active' : '')} aria-pressed={stt.isListening} onClick={() => { document.activeElement?.closest('input, textarea')?.blur(); setIsComposing(false); tts.stop(); stt.toggleListening(); }}>{stt.isListening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}<span>{stt.isListening ? 'Detener escucha' : 'Escuchar'}</span></button>
         <div className="aac-hearing-status" role="status">{!stt.isListening ? 'Micrófono apagado' : tts.isSpeaking || tts.isLoading ? 'La escucha se reanuda al terminar mi voz' : stt.isSpeechDetected ? 'Escuchando voz…' : stt.isTranscribing ? 'Escuchando · transcribiendo lo anterior…' : 'Escuchando la conversación'}{stt.isListening && <meter min="0" max="100" value={stt.audioLevel} aria-label="Nivel del micrófono" />}</div>
+        <button
+          type="button"
+          id="conversation-speak-mode"
+          className={'aac-tool aac-speak-mode-btn' + (speakMode ? ' is-active' : '')}
+          aria-pressed={speakMode}
+          aria-label={speakMode ? 'Modo hablar activo (dirigir conversación). Toca para volver a modo respuesta' : 'Cambiar a modo hablar (dirigir conversación)'}
+          title={speakMode ? 'Modo hablar activo: sugerencias para dirigir la conversación. Pulsa para volver a modo respuesta.' : 'Cambiar a modo hablar: sugerencias para dirigir la conversación o decir lo que tú quieres decir.'}
+          onClick={onToggleSpeakMode}
+        >
+          <Sparkles aria-hidden="true" size={20} />
+          <span>Modo hablar</span>
+          {speakMode && <span className="aac-speak-mode-dot" aria-label="Activo" />}
+        </button>
         <button type="button" id="conversation-write" className="aac-tool" aria-expanded={isComposing} aria-controls="message-composer" onClick={() => (isComposing ? (input.current?.blur(), setIsComposing(false)) : startComposing())}><Keyboard aria-hidden="true" size={20} />Escribir</button>
         <button type="button" id="conversation-toggle-transcript" className={'aac-tool aac-transcript-toggle' + (!showTranscript ? ' is-collapsed' : '')} aria-expanded={showTranscript} aria-controls="conversation-hearing" aria-label={showTranscript ? 'Ocultar transcripción' : 'Mostrar transcripción'} title={showTranscript ? 'Ocultar transcripción' : 'Mostrar transcripción'} onClick={toggleTranscript}>
           {showTranscript ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
@@ -436,18 +449,44 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
           </section>
           <div className="aac-reply-heading">
             <div className="aac-reply-heading-title">
-              <h2>{activeTopic ? `Volviendo a: ${activeTopic}` : 'Podrías decir'}</h2>
-              {activeTopic && (
+              <h2>
+                {activeTopic
+                  ? `Volviendo a: ${activeTopic}`
+                  : speakMode
+                    ? 'Qué quieres decir · Dirigir'
+                    : 'Podrías decir'}
+              </h2>
+              {speakMode && !activeTopic && (
                 <button
                   type="button"
-                  className="aac-active-topic-badge"
-                  onClick={() => onSelectTopic(activeTopic)}
-                  title="Quitar tema y volver a sugerencias generales"
-                  aria-label={`Quitar tema activo: ${activeTopic}`}
+                  className="aac-speak-mode-badge"
+                  onClick={onToggleSpeakMode}
+                  title="Modo hablar activo: pulsa para volver a modo respuesta"
+                  aria-label="Modo hablar activo: volver a modo respuesta"
                 >
-                  <span>Quitar tema</span>
+                  <Sparkles size={13} aria-hidden="true" />
+                  <span>Modo hablar</span>
                   <X size={12} aria-hidden="true" />
                 </button>
+              )}
+              {activeTopic && (
+                <div className="aac-active-topic-wrap">
+                  <button
+                    type="button"
+                    className="aac-active-topic-badge"
+                    onClick={() => onSelectTopic(activeTopic)}
+                    title="Quitar tema y volver a sugerencias generales"
+                    aria-label={`Quitar tema activo: ${activeTopic}`}
+                  >
+                    <span>Quitar tema</span>
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                  {activeTopicContext && (
+                    <span className="aac-topic-context-hint" title={activeTopicContext}>
+                      Contexto: {activeTopicContext.length > 55 ? activeTopicContext.slice(0, 55) + '…' : activeTopicContext}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
             <div className="aac-reply-quick-actions" role="group" aria-label="Respuestas directas">
@@ -505,7 +544,7 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
           {!isComposing && tts.error && <p className="aac-error" role="alert">{tts.error}</p>}
           {!loading && !suggestions.length && <p className="aac-empty-replies" role="status">{conversationStatus || (stt.isListening ? 'Escuchando. Las respuestas aparecerán después de una pausa.' : 'Pulsa Escuchar o escribe lo que te han dicho para obtener respuestas.')}</p>}
           {conversationStatus && suggestions.length > 0 && <p className="aac-conversation-note" role="status">{conversationStatus}</p>}
-          <div className={'aac-replies' + (suggestions.length ? ' aac-count-' + suggestions.length : '')} style={{ '--aac-reply-rows': Math.max(1, Math.ceil(suggestions.length / 3)), '--aac-reply-rows-mobile': Math.max(1, Math.ceil(suggestions.length / 2)) }} aria-busy={loading}>{suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak(text); }} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span className="aac-reply-text">{text}</span><Volume2 size={20} aria-hidden="true" /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); startComposing(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={14} aria-hidden="true" /><span>Editar en mi mensaje</span></button></article>)}</div>
+          <div className={'aac-replies' + (suggestions.length ? ' aac-count-' + suggestions.length : '')} style={{ '--aac-reply-rows': Math.max(1, Math.ceil(suggestions.length / 3)), '--aac-reply-rows-mobile': Math.max(1, Math.ceil(suggestions.length / 2)) }} aria-busy={loading} onMouseEnter={onRepliesMouseEnter} onMouseLeave={onRepliesMouseLeave}>{suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak(text); }} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span className="aac-reply-text">{text}</span><Volume2 size={20} aria-hidden="true" /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); startComposing(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={14} aria-hidden="true" /><span>Editar en mi mensaje</span></button></article>)}</div>
           {suggestions.length > 0 && <p className="aac-conversation-note">El botón de voz habla directamente. «Editar» te permite cambiar la respuesta.{engine === 'heuristic' || engine === 'client-offline' ? ' Se están usando respuestas básicas de respaldo.' : ''}</p>}
         </div>}
 

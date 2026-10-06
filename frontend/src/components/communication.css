@@ -877,6 +877,12 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
   gap: 10px;
   flex-wrap: wrap;
 }
+.aac-active-topic-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .aac-active-topic-badge {
   display: inline-flex;
   align-items: center;
@@ -893,6 +899,69 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 }
 .aac-active-topic-badge:hover {
   background: #d8e5f7;
+}
+
+/* Topic context hint for callback feature */
+.aac-topic-context-hint {
+  display: inline-block;
+  font-size: 11px;
+  color: #3b5a82;
+  background: #eef4fc;
+  border: 1px solid #c9daf0;
+  border-radius: 12px;
+  padding: 2px 8px;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+/* Speak mode button & badge */
+.aac-speak-mode-btn {
+  position: relative;
+  transition: all 0.15s ease;
+}
+.aac-speak-mode-btn.is-active {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #8b5cf6;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px #8b5cf6;
+}
+.aac-speak-mode-btn:hover {
+  background: #f5f3ff;
+  border-color: #a78bfa;
+}
+.aac-speak-mode-btn.is-active:hover {
+  background: #ddd6fe;
+}
+.aac-speak-mode-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7c3aed;
+  margin-left: 2px;
+}
+.aac-speak-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 14px;
+  background: #ede9fe;
+  border: 1px solid #8b5cf6;
+  color: #5b21b6;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  transition: all 0.15s ease;
+}
+.aac-speak-mode-badge:hover {
+  background: #ddd6fe;
+  border-color: #7c3aed;
 }
 
 /* Keep complete reply text readable when space is limited or the keyboard opens. */

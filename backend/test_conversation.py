@@ -122,5 +122,43 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(result['topics'], ['Mercado'])
 
 
+    def test_speak_mode_injected_into_prompt(self):
+        with self.decision('{"should_suggest": true, "reason": "speak_initiative", "suggestions": ["Propongo que vayamos ya."]}') as request:
+            result = conversation_suggestions('¿Qué hacemos?', api_key='test', mode='speak')
+        prompt = request.call_args.kwargs['json']['messages'][0]['content']
+        self.assertIn("MODO HABLAR / DIRIGIR LA CONVERSACIÓN", prompt)
+        self.assertIn("DIRIGIR LA CONVERSACIÓN Y TOMAR LA INICIATIVA", prompt)
+        self.assertEqual(result['suggestions'], ['Propongo que vayamos ya.'])
+        self.assertEqual(result['reason'], 'speak_initiative')
+
+    def test_speak_mode_fallback_generates_initiative_phrases(self):
+        with patch('backend.conversation.get_server_groq_api_key', return_value=''):
+            result = conversation_suggestions('Hola', mode='speak')
+        self.assertEqual(result['reason'], 'speak_initiative')
+        self.assertTrue(any('prop' in s.lower() or 'idea' in s.lower() or 'iniciativa' in s.lower() or 'opino' in s.lower() for s in result['suggestions']))
+
+    def test_topic_callback_extracts_previous_mentions_from_history(self):
+        history = [
+            {'role': 'partner', 'content': 'Ayer compramos manzanas en el mercado central.', 'speaker_label': 'Persona 1'},
+            {'role': 'user', 'content': 'Sí, estaban muy ricas.'},
+            {'role': 'partner', 'content': 'Hoy podríamos ir a pasear.', 'speaker_label': 'Persona 1'}
+        ]
+        with self.decision('{"should_suggest": true, "reason": "topic_pivot", "suggestions": ["Volviendo a las manzanas del mercado..."], "topics": ["Mercado"]}') as request:
+            result = conversation_suggestions('¿Vamos?', history=history, api_key='test', focus_topic='Mercado')
+        prompt = request.call_args.kwargs['json']['messages'][0]['content']
+        self.assertIn("Ayer compramos manzanas en el mercado central.", prompt)
+        self.assertIn("LO QUE SE DIJO PREVIAMENTE EN LA CONVERSACIÓN SOBRE 'Mercado':", prompt)
+        self.assertIn("INSTRUCCIONES PARA EL CALLBACK", prompt)
+
+    def test_api_speak_mode_forwards_to_conversation_suggestions(self):
+        with patch('backend.app.conversation_suggestions', return_value={
+            'should_suggest': True, 'reason': 'speak_initiative', 'suggestions': ['Propongo un plan.'], 'engine': 'test'
+        }) as mock_conv:
+            response = TestClient(app).post('/api/suggest', json={'text': 'Hola', 'mode': 'speak'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['suggestions'], ['Propongo un plan.'])
+        self.assertEqual(mock_conv.call_args[0][8], 'speak')
+
+
 if __name__ == '__main__':
     unittest.main()

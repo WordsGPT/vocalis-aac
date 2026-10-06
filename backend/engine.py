@@ -146,8 +146,17 @@ DEFAULT_FALLBACK = [
     "Déjame pensarlo con calma un momento."
 ]
 
-def generate_heuristic_responses(text: str, count: int = 6) -> List[str]:
+def generate_heuristic_responses(text: str, count: int = 6, mode: str = "reply") -> List[str]:
     """Pattern matching fallback when LLM is unavailable or offline."""
+    if mode == "speak":
+        return [
+            "Tengo una idea sobre eso que podríamos probar.",
+            "Quería decirte lo que opino sobre este tema.",
+            "¿Y si lo enfocamos de otra manera totalmente distinta?",
+            "A mí me gustaría mucho que hiciéramos un plan con eso.",
+            "Cambiando un poco de rumbo, quería comentarte algo.",
+            "¿Qué te parecería si tomamos la iniciativa nosotros?"
+        ][:count]
     lower = text.lower().strip()
     if not lower:
         return [
@@ -354,24 +363,36 @@ def generate_responses_gemini(
     api_key: str,
     tone: str = "natural",
     count: int = 6,
-    grammatical_form: str = "masculine"
+    grammatical_form: str = "masculine",
+    mode: str = "reply",
+    user_context: Optional[str] = None,
+    focus_topic: Optional[str] = None,
+    topic_context: Optional[str] = None
 ) -> Optional[List[str]]:
     """Calls Gemini REST API with user's key if configured."""
     if not api_key:
         return None
     
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
+    topic_extra = f"\nEnfoque en volver al tema '{focus_topic}'. Contexto previo: {topic_context}" if focus_topic else ""
+    user_extra = f"\nInformación del usuario: {user_context}" if user_context else ""
+    if mode == "speak":
+        guidance = f"""MODO HABLAR / DIRIGIR LA CONVERSACIÓN:
+No te limites a contestar de forma reactiva a lo que dijeron. Ofrece {count} opciones para que la persona no verbal TOME LA INICIATIVA, dirija la conversación, proponga nuevos planes o ideas, y diga lo que piensa o quiere hacer basándose en lo hablado.{topic_extra}{user_extra}"""
+    else:
+        guidance = f"""Adapta las opciones inteligentemente a lo que se ha dicho:
+- Si es pregunta abierta o de datos: responde directamente, devuelve la pregunta o añade un matiz (sin forzar "sí" o "no").
+- Si es una elección: elige una opción, la otra o una alternativa.
+- Si es una propuesta: acepta, matiza, declina educadamente o propón otro plan.
+- Si es una anécdota o noticia: muestra empatía, apoyo o curiosidad.{topic_extra}{user_extra}"""
+
     prompt = f"""Eres un comunicador aumentativo (AAC) para una persona que no puede hablar y está conversando en vivo.
 Le acaban de decir:
 "{partner_text}"
 
 {grammatical_instruction(grammatical_form)}
 Sugiere exactamente {count} respuestas habladas diversas en primera persona SIEMPRE EN ESPAÑOL.
-Adapta las opciones inteligentemente a lo que se ha dicho:
-- Si es pregunta abierta o de datos: responde directamente, devuelve la pregunta o añade un matiz (sin forzar "sí" o "no").
-- Si es una elección: elige una opción, la otra o una alternativa.
-- Si es una propuesta: acepta, matiza, declina educadamente o propón otro plan.
-- Si es una anécdota o noticia: muestra empatía, apoyo o curiosidad.
+{guidance}
 
 Responde ÚNICAMENTE con un array JSON válido de {count} cadenas de texto en español."""
 
@@ -403,7 +424,10 @@ def generate_responses_groq(
     count: int = 6,
     model: str = DEFAULT_GROQ_MODEL,
     grammatical_form: str = "masculine",
-    user_context: Optional[str] = None
+    user_context: Optional[str] = None,
+    mode: str = "reply",
+    focus_topic: Optional[str] = None,
+    topic_context: Optional[str] = None
 ) -> Optional[List[str]]:
     """Calls Groq API for ultra-fast (100ms) high quality LLM inference."""
     key = (api_key or "").strip() or get_server_groq_api_key()
@@ -425,16 +449,20 @@ INFORMACIÓN Y DATOS PERSONALES DEL USUARIO (úsalos para responder fielmente a 
 {user_context.strip()[:2000]}
 \"\"\"
 """
+    topic_extra = ""
+    if focus_topic and focus_topic.strip():
+        topic_extra = f"\nENFOQUE EN RETOMAR EL TEMA: '{focus_topic}'. Contexto previo: {topic_context or 'Mencionado antes en la conversación.'}\n"
 
-    system_prompt = f"""Eres el sistema de sugerencias de un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
-En el historial de mensajes:
-- 'user' representa lo que dijo el interlocutor en voz alta.
-- 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
-{user_info}
-El interlocutor acaba de decir el último mensaje.
-Tu objetivo principal es ofrecer {count} opciones de respuesta COHERENTES, ÚTILES y NATURALES, con VARIEDAD REAL DE POSTURAS CONVERSACIONALES sin forzar plantillas fijas de "sí/no".
-
-ADAPTACIÓN INTELIGENTE SEGÚN EL TIPO DE MENSAJE:
+    if mode == "speak":
+        guidance = f"""MODO ACTIVO: MODO HABLAR / DIRIGIR LA CONVERSACIÓN.
+El usuario ha activado el MODO HABLAR. En este modo, las sugerencias NO DEBEN SER REACTIVAS NI LIMITARSE A RESPONDER pasivamente a lo que acaban de decir.
+En su lugar, deben DIRIGIR LA CONVERSACIÓN y proponer lo que el usuario QUIERE DECIR, PROPONER O CONTAR, basándose en lo hablado pero tomando la iniciativa y llevando el rumbo del diálogo:
+1. DIRIGIR Y PROPONER: Plantear nuevos temas, planes o siguientes pasos relacionados con lo hablado.
+2. EXPRESAR LO QUE QUIERE DECIR: Compartir opiniones propias, convicciones, anécdotas o deseos de forma asertiva.
+3. PREGUNTAS DE LIDERAZGO: Preguntas que orientan al interlocutor hacia una acción o nuevo rumbo.
+4. CONECTAR CON LO DICHO: Construye sobre lo escuchado sin ser pasivo.{topic_extra}"""
+    else:
+        guidance = f"""ADAPTACIÓN INTELIGENTE SEGÚN EL TIPO DE MENSAJE:
 1. PREGUNTAS ABIERTAS O DE DATOS (ej. "¿Cómo te llamas?", "¿Dónde vives?", "¿Qué tal estás?", "¿Qué hora es?", "¿A qué te dedicas?"):
    - Ofrece respuestas directas y completas (usando fielmente la información personal del usuario si aplica).
    - Ofrece variedad de intenciones útiles: respuesta directa cordial, respuesta que devuelve la pregunta amablemente ("¿Y tú cómo te llamas?"), añadir un detalle relacionado agradable, o preguntar un detalle afín.
@@ -446,7 +474,17 @@ ADAPTACIÓN INTELIGENTE SEGÚN EL TIPO DE MENSAJE:
 4. HISTORIAS, OPINIONES O NOTICIAS (ej. "He tenido un mal día", "Mira lo que compré", "Mi abuela está enferma"):
    - Ofrece empatía, apoyo, curiosidad por saber más, validación o una opinión/experiencia afín.
 5. SALUDOS O CORDIALIDAD (ej. "¡Hola!", "¿Qué tal?", "Muchas gracias"):
-   - Ofrece saludos cálidos, devoluciones de saludo, agradecimiento o comentarios casuales según el estado de ánimo.
+   - Ofrece saludos cálidos, devoluciones de saludo, agradecimiento o comentarios casuales según el estado de ánimo.{topic_extra}"""
+
+    system_prompt = f"""Eres el sistema de sugerencias de un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en vivo.
+En el historial de mensajes:
+- 'user' representa lo que dijo el interlocutor en voz alta.
+- 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
+{user_info}
+El interlocutor acaba de decir el último mensaje.
+Tu objetivo principal es ofrecer {count} opciones de respuesta COHERENTES, ÚTILES y NATURALES, con VARIEDAD REAL DE POSTURAS CONVERSACIONALES sin forzar plantillas fijas de "sí/no".
+
+{guidance}
 
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
@@ -528,7 +566,10 @@ def get_smart_suggestions(
     groq_api_key: Optional[str] = None,
     preferred_engine: str = "groq",
     grammatical_form: str = "masculine",
-    user_context: Optional[str] = None
+    user_context: Optional[str] = None,
+    mode: str = "reply",
+    focus_topic: Optional[str] = None,
+    topic_context: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Returns up to `count` (default 6) smart responses using the best available engine.
@@ -541,14 +582,24 @@ def get_smart_suggestions(
     target_count = max(3, min(count, 8))
     partner_text = (partner_text or "").strip()
     if not partner_text:
-        presets = [
-            "¡Hola! ¿Cómo estás hoy?",
-            "Estoy totalmente de acuerdo, me parece bien.",
-            "¿Podrías contarme un poco más sobre eso?",
-            "¿Y si buscamos otra opción diferente?",
-            "No puedo en esta ocasión, muchas gracias.",
-            "Dame un momento para pensarlo con calma."
-        ]
+        if mode == "speak":
+            presets = [
+                "Tengo una propuesta sobre esto que podríamos probar.",
+                "Quería decirte lo que opino sobre este tema.",
+                "¿Y si lo enfocamos de otra manera totalmente distinta?",
+                "A mí me gustaría mucho que hiciéramos un plan con eso.",
+                "Cambiando un poco de rumbo, quería comentarte algo.",
+                "¿Qué te parecería si tomamos la iniciativa nosotros?"
+            ]
+        else:
+            presets = [
+                "¡Hola! ¿Cómo estás hoy?",
+                "Estoy totalmente de acuerdo, me parece bien.",
+                "¿Podrías contarme un poco más sobre eso?",
+                "¿Y si buscamos otra opción diferente?",
+                "No puedo en esta ocasión, muchas gracias.",
+                "Dame un momento para pensarlo con calma."
+            ]
         return {
             "suggestions": presets[:target_count],
             "engine": "preset"
@@ -556,13 +607,23 @@ def get_smart_suggestions(
 
     # 1. Try Groq (Default / Primary)
     if preferred_engine in ["groq", "auto"]:
-        responses = generate_responses_groq(partner_text, groq_api_key, history, tone, count=target_count, grammatical_form=grammatical_form, user_context=user_context)
+        responses = generate_responses_groq(
+            partner_text, groq_api_key, history, tone,
+            count=target_count, grammatical_form=grammatical_form,
+            user_context=user_context, mode=mode,
+            focus_topic=focus_topic, topic_context=topic_context
+        )
         if responses:
             return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "groq"}
 
     # 2. Try Gemini if specifically requested
     if preferred_engine == "gemini" and gemini_api_key:
-        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count, grammatical_form=grammatical_form)
+        responses = generate_responses_gemini(
+            partner_text, gemini_api_key, tone,
+            count=target_count, grammatical_form=grammatical_form,
+            mode=mode, user_context=user_context,
+            focus_topic=focus_topic, topic_context=topic_context
+        )
         if responses:
             return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "gemini"}
 
@@ -574,10 +635,15 @@ def get_smart_suggestions(
 
     # 4. If Gemini key was provided in auto mode
     if preferred_engine == "auto" and gemini_api_key:
-        responses = generate_responses_gemini(partner_text, gemini_api_key, tone, count=target_count, grammatical_form=grammatical_form)
+        responses = generate_responses_gemini(
+            partner_text, gemini_api_key, tone,
+            count=target_count, grammatical_form=grammatical_form,
+            mode=mode, user_context=user_context,
+            focus_topic=focus_topic, topic_context=topic_context
+        )
         if responses:
             return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "gemini"}
 
     # 5. Instant heuristic fallback
-    responses = generate_heuristic_responses(partner_text, count=target_count)
+    responses = generate_heuristic_responses(partner_text, count=target_count, mode=mode)
     return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "heuristic"}

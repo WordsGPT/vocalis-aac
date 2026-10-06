@@ -104,7 +104,7 @@ async def logout(response: Response):
 
 class Suggest(BaseModel):
     text: str = Field(max_length=2000)
-    history: list[dict[str, str]] = Field(default_factory=list, max_length=20)
+    history: list[dict[str, str]] = Field(default_factory=list, max_length=50)
     grammatical_form: str = "masculine"
     tone: str = "natural"
     count: int = Field(default=6, ge=3, le=8)
@@ -112,6 +112,8 @@ class Suggest(BaseModel):
     user_context: str | None = Field(default=None, max_length=2000)
     automatic: bool = False
     focus_topic: str | None = Field(default=None, max_length=100)
+    mode: str = "reply"
+    topic_context: str | None = Field(default=None, max_length=2000)
 
 
 @app.post("/api/suggest")
@@ -119,17 +121,21 @@ async def suggest(body: Suggest, request: Request):
     engine = body.preferred_engine if body.preferred_engine in {"groq", "gemini", "heuristic"} else "groq"
     if engine == "gemini" and not valid_session(request.cookies.get(COOKIE, "")):
         raise HTTPException(401, "Inicia sesión para usar Gemini.")
-    if body.automatic or body.focus_topic:
+    if body.automatic or body.focus_topic or body.mode == "speak":
         return await asyncio.to_thread(
             conversation_suggestions, body.text, body.history, body.count,
             body.tone, body.grammatical_form, get_server_groq_api_key(),
-            body.user_context, body.focus_topic,
+            body.user_context, body.focus_topic, body.mode,
+            body.topic_context,
         )
     return await asyncio.to_thread(get_smart_suggestions, body.text, body.history, body.tone, body.count,
                                  gemini_api_key=os.environ.get("GEMINI_API_KEY", ""),
                                  groq_api_key=get_server_groq_api_key(), preferred_engine=engine,
                                  grammatical_form=body.grammatical_form,
-                                 user_context=body.user_context)
+                                 user_context=body.user_context,
+                                 mode=body.mode,
+                                 focus_topic=body.focus_topic,
+                                 topic_context=body.topic_context)
 
 
 @app.get("/api/health")

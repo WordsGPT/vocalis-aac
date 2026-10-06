@@ -1,4 +1,4 @@
-import { personalForm } from '../utils/spanish';
+import { personalForm } from '../utils/spanish.js';
 // API client for Vocalis AAC backend
 
 const API_BASE = '/api';
@@ -55,7 +55,18 @@ export async function cloneVoiceFromAudio(reference, consent) {
   return data;
 }
 
-export function getOfflineSuggestions(count = 6, grammaticalForm = 'masculine') {
+export function getOfflineSuggestions(count = 6, grammaticalForm = 'masculine', mode = 'reply') {
+  if (mode === 'speak') {
+    const speakSuggestions = [
+      'Tengo una idea sobre eso que podríamos probar.',
+      'Quería decirte lo que opino sobre este tema.',
+      '¿Y si lo enfocamos de otra manera totalmente distinta?',
+      'A mí me gustaría mucho que hiciéramos un plan con eso.',
+      'Cambiando un poco de rumbo, quería comentarte algo.',
+      '¿Qué te parecería si tomamos la iniciativa nosotros?',
+    ];
+    return { suggestions: speakSuggestions.slice(0, count).map(text => personalForm(text, grammaticalForm)), engine: 'client-offline' };
+  }
   const suggestions = [
     '¡Sí, suena genial!',
     'De acuerdo, me parece bien.',
@@ -77,6 +88,8 @@ export async function getSmartSuggestions({
   preferredEngine = 'groq',
   automatic = false,
   focusTopic = null,
+  mode = 'reply',
+  topicContext = null,
   signal,
 }) {
   try {
@@ -94,6 +107,8 @@ export async function getSmartSuggestions({
         preferred_engine: preferredEngine,
         automatic,
         focus_topic: focusTopic || null,
+        mode: mode || 'reply',
+        topic_context: topicContext || null,
       })
     });
     if (!res.ok) throw new Error(`Suggest failed with status ${res.status}`);
@@ -102,7 +117,7 @@ export async function getSmartSuggestions({
     if (err.name === 'AbortError') throw err;
     if (automatic) return { should_suggest: false, reason: 'service_unavailable', suggestions: [], engine: 'conversation-offline' };
     console.warn('Backend suggestion call failed, using client fallback:', err);
-    return getOfflineSuggestions(count || 6, grammaticalForm);
+    return getOfflineSuggestions(count || 6, grammaticalForm, mode);
   }
 }
 
