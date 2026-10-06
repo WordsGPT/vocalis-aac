@@ -224,3 +224,96 @@ export async function clearAuditLogs() {
   return await res.json();
 }
 
+export async function fetchAgentState() {
+  try {
+    const res = await fetch(`${API_BASE}/agent/state`);
+    if (!res.ok) throw new Error(`Failed to fetch agent state: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Agent state fetch failed:', err);
+    return {
+      light: { state: 'off', color: 'green', brightness: 100 },
+      calendar_events: [],
+      action_log: [],
+    };
+  }
+}
+
+export async function processAgentMessage(text, userContext = '', history = []) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        user_context: userContext || null,
+        history,
+      }),
+    });
+    if (!res.ok) throw new Error(`Agent process failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Agent process failed:', err);
+    return { status: 'error', tool_calls: [], state: null };
+  }
+}
+
+export async function setAgentLight({ state, color = 'green', brightness = 100 }) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/light`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state, color, brightness }),
+    });
+    if (!res.ok) throw new Error(`Set agent light failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Set agent light error:', err);
+    return { status: 'error', light: { state, color, brightness } };
+  }
+}
+
+export async function addAgentCalendarEvent({ title, date, time, description }) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/calendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, date, time, description }),
+    });
+    if (!res.ok) throw new Error(`Add agent calendar event failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Add agent calendar event error:', err);
+    return { status: 'error' };
+  }
+}
+
+export async function deleteAgentCalendarEvent(eventId) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/calendar/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error(`Delete agent calendar event failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Delete agent calendar event error:', err);
+    return { status: 'error' };
+  }
+}
+
+export async function updateAgentContext(context, action = 'replace', currentContext = '') {
+  try {
+    const res = await fetch(`${API_BASE}/agent/context`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context, action, current_context: currentContext }),
+    });
+    if (!res.ok) throw new Error(`Update agent context failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Update agent context error:', err);
+    return { status: 'error' };
+  }
+}
+
+

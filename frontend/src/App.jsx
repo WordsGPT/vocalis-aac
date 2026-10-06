@@ -7,7 +7,17 @@ import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { getSmartSuggestions, fetchCuratedVoices, logConversationTurn } from './services/api';
+import {
+  getSmartSuggestions,
+  fetchCuratedVoices,
+  logConversationTurn,
+  fetchAgentState,
+  processAgentMessage,
+  setAgentLight,
+  addAgentCalendarEvent,
+  deleteAgentCalendarEvent,
+} from './services/api';
+
 
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
@@ -103,11 +113,26 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
   const [activeTopic, setActiveTopic] = useState(null);
   const [activeTopicContext, setActiveTopicContext] = useState('');
   const [speakMode, setSpeakMode] = useState(false);
+  const [agentLight, setAgentLightState] = useState({ state: 'off', color: 'green', brightness: 100 });
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [agentActionLog, setAgentActionLog] = useState([]);
+  const [lastAgentAction, setLastAgentAction] = useState(null);
+
+  useEffect(() => {
+    fetchAgentState().then((state) => {
+      if (state) {
+        if (state.light) setAgentLightState(state.light);
+        if (Array.isArray(state.calendar_events)) setCalendarEvents(state.calendar_events);
+        if (Array.isArray(state.action_log)) setAgentActionLog(state.action_log);
+      }
+    });
+  }, []);
 
   const suggestionsRef = useRef(suggestions);
   useEffect(() => {
     suggestionsRef.current = suggestions;
   }, [suggestions]);
+
 
   // Cursor movement tracking: prevent suggestions from updating while moving cursor
   const isCursorMovingRef = useRef(false);
@@ -237,7 +262,51 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     setSuggestions([]);
   }, [abortPendingSuggestions]);
 
+  const handleToggleLight = useCallback(async (targetState, targetColor = 'green') => {
+    const res = await setAgentLight({ state: targetState, color: targetColor, brightness: 100 });
+    if (res?.light) {
+      setAgentLightState(res.light);
+      const action = { tool: 'control_light', result: res, timestamp: new Date().toISOString() };
+      setLastAgentAction(action);
+      setAgentActionLog(prev => [action, ...prev.slice(0, 49)]);
+    }
+  }, []);
+
+  const handleAddCalendarEvent = useCallback(async (eventData) => {
+    const res = await addAgentCalendarEvent(eventData);
+    if (res?.event) {
+      setCalendarEvents(prev => [...prev, res.event].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)));
+      const action = { tool: 'add_calendar_event', result: res, timestamp: new Date().toISOString() };
+      setLastAgentAction(action);
+      setAgentActionLog(prev => [action, ...prev.slice(0, 49)]);
+    }
+  }, []);
+
+  const handleDeleteCalendarEvent = useCallback(async (eventId) => {
+    const res = await deleteAgentCalendarEvent(eventId);
+    if (res?.status === 'success') {
+      setCalendarEvents(prev => prev.filter(e => e.id !== eventId));
+    }
+  }, []);
+
+  const handleProcessAgentCommand = useCallback(async (text) => {
+    const res = await processAgentMessage(text, settingsRef.current?.userContext, historyRef.current);
+    if (res?.state) {
+      if (res.state.light) setAgentLightState(res.state.light);
+      if (Array.isArray(res.state.calendar_events)) setCalendarEvents(res.state.calendar_events);
+      if (Array.isArray(res.state.action_log)) setAgentActionLog(res.state.action_log);
+    }
+    if (Array.isArray(res?.tool_calls) && res.tool_calls.length > 0) {
+      setLastAgentAction(res.tool_calls[0]);
+    }
+    if (res?.updated_context) {
+      handleUpdateSettings({ userContext: res.updated_context });
+    }
+    return res;
+  }, []);
+
   const handleClearHistory = () => {
+
     clearSuggestions();
     setConversationTopics([]);
     setActiveTopic(null);
@@ -354,8 +423,20 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
             return next.slice(-6);
           });
         }
+        if (res.agent_state) {
+          if (res.agent_state.light) setAgentLightState(res.agent_state.light);
+          if (Array.isArray(res.agent_state.calendar_events)) setCalendarEvents(res.agent_state.calendar_events);
+          if (Array.isArray(res.agent_state.action_log)) setAgentActionLog(res.agent_state.action_log);
+        }
+        if (Array.isArray(res.tool_calls) && res.tool_calls.length > 0) {
+          setLastAgentAction(res.tool_calls[0]);
+        }
+        if (res.updated_user_context) {
+          handleUpdateSettings({ userContext: res.updated_user_context });
+        }
       }
     } catch (err) {
+
       if (err.name !== 'AbortError') console.error('Error fetching suggestions:', err);
     } finally {
       if (requestId === suggestionRequest.current) setIsLoadingSuggestions(false);
@@ -445,6 +526,21 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     stt.pauseForPlayback();
     tts.speak(text.trim(), options);
     addToHistory('user', text.trim());
+    processAgentMessage(text.trim(), settingsRef.current?.userContext, historyRef.current)
+      .then((agentRes) => {
+        if (agentRes?.state) {
+          if (agentRes.state.light) setAgentLightState(agentRes.state.light);
+          if (Array.isArray(agentRes.state.calendar_events)) setCalendarEvents(agentRes.state.calendar_events);
+          if (Array.isArray(agentRes.state.action_log)) setAgentActionLog(agentRes.state.action_log);
+        }
+        if (Array.isArray(agentRes?.tool_calls) && agentRes.tool_calls.length > 0) {
+          setLastAgentAction(agentRes.tool_calls[0]);
+        }
+        if (agentRes?.updated_context) {
+          handleUpdateSettings({ userContext: agentRes.updated_context });
+        }
+      })
+      .catch((err) => console.warn('Agent command processing error:', err));
   }, [tts, addToHistory, stt, clearSuggestions]);
 
   const handleTestVoice = () => {
@@ -470,7 +566,16 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
+        agentLight={agentLight}
+        onToggleLight={handleToggleLight}
+        calendarEvents={calendarEvents}
+        onAddCalendarEvent={handleAddCalendarEvent}
+        onDeleteCalendarEvent={handleDeleteCalendarEvent}
+        agentActionLog={agentActionLog}
+        lastAgentAction={lastAgentAction}
+        onProcessCommand={handleProcessAgentCommand}
         voiceLabel={
+
           activeSettings.ttsMode === 'browser'
             ? 'Voz del dispositivo'
             : activeSettings.ttsMode === 'pocket'

@@ -1075,3 +1075,55 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
     max-width: calc(100% - 110px);
   }
 }
+
+/* Agent system styles */
+.aac-light-tool {
+  position: relative;
+  transition: all 0.25s ease;
+}
+.aac-light-tool.is-lit {
+  border-color: #22c55e !important;
+  color: #15803d !important;
+  background: #f0fdf4 !important;
+}
+.aac-light-header-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: -2px;
+  box-shadow: 0 0 8px currentColor;
+  animation: aac-pulse 2s infinite;
+}
+
+.aac-agent-action-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.aac-agent-action-banner:hover {
+  background: #d1fae5;
+}
+.aac-agent-action-text {
+  flex: 1;
+}
+.aac-agent-action-link {
+  font-size: 11px;
+  color: #047857;
+  text-decoration: underline;
+}
+
+@keyframes aac-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+

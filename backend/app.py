@@ -32,8 +32,10 @@ from backend.qwen_voice import qwen_voice
 from backend.diarization import diarizer
 from backend.conversation import conversation_suggestions
 from backend import audit
+from backend import agent
 
 logger = logging.getLogger("echo_flow_api")
+
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Assistive Voice AAC API", version="1.0.0")
@@ -127,7 +129,29 @@ class AuditTurnRequest(BaseModel):
     mode: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
+class AgentLightRequest(BaseModel):
+    state: str
+    color: Optional[str] = "green"
+    brightness: Optional[int] = 100
+
+class AgentCalendarRequest(BaseModel):
+    title: str
+    date: Optional[str] = None
+    time: Optional[str] = None
+    description: Optional[str] = ""
+
+class AgentProcessRequest(BaseModel):
+    text: str
+    user_context: Optional[str] = None
+    history: Optional[List[Dict[str, Any]]] = None
+
+class AgentContextRequest(BaseModel):
+    context: str
+    action: Optional[str] = "replace"
+    current_context: Optional[str] = ""
+
 STREAMING_TTS_URL = os.environ.get("STREAMING_TTS_URL", "http://127.0.0.1:8002")
+
 
 CURATED_VOICES = [
     {"id": "qwen-clone", "name": "Mi voz clonada (Qwen3-TTS)", "gender": "Custom", "lang": "es-ES"},
@@ -240,7 +264,76 @@ async def clear_audit_logs(
     deleted = await asyncio.to_thread(audit.clear_client_audit_logs, target_client)
     return {"status": "cleared" if deleted else "not_found", "client_id": target_client}
 
+# ==============================================================================
+# Agent & Tool Calling Endpoints
+# ==============================================================================
+
+@app.get("/api/agent/state")
+async def get_agent_state():
+    """Retrieve current state of devices, calendar events, and agent action log."""
+    state = await asyncio.to_thread(agent.load_agent_state)
+    return state
+
+@app.post("/api/agent/process")
+async def process_agent_message(req: AgentProcessRequest):
+    """Explicitly process a text prompt through the agent to execute any tool calls."""
+    tools, updated_context = await asyncio.to_thread(
+        agent.detect_and_execute_tools,
+        req.text,
+        req.user_context,
+        req.history
+    )
+    current_state = await asyncio.to_thread(agent.load_agent_state)
+    return {
+        "status": "success",
+        "tool_calls": tools,
+        "updated_context": updated_context,
+        "state": current_state
+    }
+
+@app.post("/api/agent/light")
+async def control_agent_light(req: AgentLightRequest):
+    """Directly control smart light state, color and brightness."""
+    res = await asyncio.to_thread(
+        agent.execute_control_light,
+        req.state,
+        req.color,
+        req.brightness
+    )
+    return res
+
+@app.post("/api/agent/calendar")
+async def add_agent_calendar_event(req: AgentCalendarRequest):
+    """Add a calendar event."""
+    res = await asyncio.to_thread(
+        agent.execute_add_calendar_event,
+        req.title,
+        req.date,
+        req.time,
+        req.description,
+        source="user"
+    )
+    return res
+
+@app.delete("/api/agent/calendar/{event_id}")
+async def delete_agent_calendar_event(event_id: str):
+    """Delete a calendar event."""
+    res = await asyncio.to_thread(agent.execute_delete_calendar_event, event_id)
+    return res
+
+@app.post("/api/agent/context")
+async def update_agent_context(req: AgentContextRequest):
+    """Update or append to the LLM's memory context about the user."""
+    res = await asyncio.to_thread(
+        agent.execute_update_user_context,
+        req.context,
+        req.action or "replace",
+        req.current_context or ""
+    )
+    return res
+
 @app.get("/api/voices")
+
 async def list_voices():
     return CURATED_VOICES
 
@@ -312,28 +405,48 @@ async def clone_voice(
 
 @app.post("/api/suggest")
 async def suggest(req: SuggestRequest):
+    # Detect and execute any agent tools (light, calendar, memory context)
+    executed_tools, updated_context = await asyncio.to_thread(
+        agent.detect_and_execute_tools,
+        req.text,
+        req.user_context,
+        req.history
+    )
+    effective_context = updated_context if updated_context else req.user_context
+
     if req.automatic or req.focus_topic or req.mode == "speak":
-        return await asyncio.to_thread(
+        res = await asyncio.to_thread(
             conversation_suggestions, req.text, req.history, req.count or 6,
             req.tone or "natural", req.grammatical_form, req.groq_api_key,
-            req.user_context, req.focus_topic, req.mode or "reply",
+            effective_context, req.focus_topic, req.mode or "reply",
             req.topic_context
         )
-    res = await asyncio.to_thread(get_smart_suggestions,
-        partner_text=req.text,
-        history=req.history,
-        tone=req.tone or "natural",
-        grammatical_form=req.grammatical_form,
-        count=req.count or 6,
-        user_context=req.user_context,
-        gemini_api_key=req.gemini_api_key,
-        groq_api_key=req.groq_api_key,
-        preferred_engine=req.preferred_engine or "groq",
-        mode=req.mode or "reply",
-        focus_topic=req.focus_topic,
-        topic_context=req.topic_context
-    )
+    else:
+        res = await asyncio.to_thread(get_smart_suggestions,
+            partner_text=req.text,
+            history=req.history,
+            tone=req.tone or "natural",
+            grammatical_form=req.grammatical_form,
+            count=req.count or 6,
+            user_context=effective_context,
+            gemini_api_key=req.gemini_api_key,
+            groq_api_key=req.groq_api_key,
+            preferred_engine=req.preferred_engine or "groq",
+            mode=req.mode or "reply",
+            focus_topic=req.focus_topic,
+            topic_context=req.topic_context
+        )
+
+    # Attach tool execution results, updated context, and agent state
+    if isinstance(res, dict):
+        if executed_tools:
+            res["tool_calls"] = executed_tools
+        if updated_context:
+            res["updated_user_context"] = updated_context
+        res["agent_state"] = await asyncio.to_thread(agent.load_agent_state)
+
     return res
+
 
 @app.post("/api/transcribe")
 async def transcribe_audio(file: UploadFile = File(...), language: str = Form("es"),

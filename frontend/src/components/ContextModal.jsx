@@ -135,8 +135,10 @@ export function ContextModal({
         {/* Modal Body */}
         <div className="settings-body flex-1 min-h-0 p-5 sm:p-6 overflow-y-auto space-y-4 text-sm">
           <p className="text-xs text-slate-400 m-0 leading-relaxed">
-            Añade tu nombre, gustos o la situación actual para ayudar a personalizar las respuestas. Revisa las sugerencias antes de hablar.
+            Añade tu nombre, gustos, alergias o situación para ayudar a personalizar las respuestas.
+            El agente IA también puede <strong className="text-slate-200">actualizar su memoria</strong> automáticamente al aprender sobre ti. Puedes modificar o corregir cualquier dato aquí siempre que lo desees.
           </p>
+
 
           <div>
             <div className="flex items-center justify-between mb-1.5">

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { ArrowLeft, ChevronRight, CircleStop, Delete, Eye, EyeOff, Folder, Grid2X2, Heart, History, Keyboard, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Sparkles, Trash2, User, Volume2, X } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CircleStop, Delete, Eye, EyeOff, Folder, Grid2X2, Heart, History, Keyboard, Lightbulb, Calendar, MessageSquare, Mic, MicOff, RotateCcw, Search, Settings, Sparkles, Trash2, User, Volume2, X } from 'lucide-react';
 import { AAC_VOCABULARY, BOARD_CATEGORIES, CORE_STRIP, QUICK_PHRASES, pictogramPath } from './vocabulary';
 import './communication.css';
 import { composeSentence, personalForm, spokenTile, suggestSentence } from '../utils/spanish';
+import { AgentPanel } from './AgentPanel';
 
 function readQuick() {
   try {
@@ -32,7 +33,12 @@ function readShowTranscript() {
   } catch { return true; }
 }
 const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
-const tabs = [['board', Grid2X2, 'Tablero'], ['conversation', MessageSquare, 'Conversación'], ['history', History, 'Historial']];
+const tabs = [
+  ['board', Grid2X2, 'Tablero'],
+  ['conversation', MessageSquare, 'Conversación'],
+  ['agent', Sparkles, 'Agente'],
+  ['history', History, 'Historial']
+];
 function Picto({ id }) {
   return <img src={pictogramPath(id)} alt="" draggable="false" width="80" height="80" />;
 }
@@ -40,7 +46,42 @@ function Credits() {
   return <p className="pictogram-credit">Pictogramas: Sergio Palao · Gobierno de Aragón · <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA</a></p>;
 }
 
-export function CommunicationBoard({ speakerLabels = true, view, onChangeView, settings = {}, tts, stt, suggestions, loading, onSpeak, onSettings, onOpenContext, onRegenerate, history, onClearHistory, voiceLabel, engine, conversationStatus, topics = [], activeTopic = null, onSelectTopic = () => {}, speakMode = false, onToggleSpeakMode = () => {}, activeTopicContext = '', onRepliesMouseEnter, onRepliesMouseLeave }) {
+export function CommunicationBoard({
+  speakerLabels = true,
+  view,
+  onChangeView,
+  settings = {},
+  tts,
+  stt,
+  suggestions,
+  loading,
+  onSpeak,
+  onSettings,
+  onOpenContext,
+  onRegenerate,
+  history,
+  onClearHistory,
+  voiceLabel,
+  engine,
+  conversationStatus,
+  topics = [],
+  activeTopic = null,
+  onSelectTopic = () => {},
+  speakMode = false,
+  onToggleSpeakMode = () => {},
+  activeTopicContext = '',
+  onRepliesMouseEnter,
+  onRepliesMouseLeave,
+  agentLight = { state: 'off', color: 'green', brightness: 100 },
+  onToggleLight = () => {},
+  calendarEvents = [],
+  onAddCalendarEvent = () => {},
+  onDeleteCalendarEvent = () => {},
+  agentActionLog = [],
+  lastAgentAction = null,
+  onProcessCommand = () => {},
+}) {
+
   const [quick, setQuick] = useState(readQuick);
   const [quickText, setQuickText] = useState('');
   const [editingQuick, setEditingQuick] = useState(null);
@@ -248,7 +289,28 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
         <span>Contexto</span>
         {settings.userContext?.trim() && <span className="aac-context-dot" aria-label="Contexto activo" />}
       </button>
+      <button
+        type="button"
+        id="header-light-btn"
+        className={'aac-tool aac-light-tool' + (agentLight?.state === 'on' ? ' is-lit' : '')}
+        onClick={() => changeView('agent')}
+        aria-label="Luz inteligente"
+        title={`Luz: ${agentLight?.state === 'on' ? 'Encendida (' + (agentLight.color || 'verde') + ')' : 'Apagada'}. Toca para abrir el panel del agente.`}
+      >
+        <Lightbulb size={18} className={agentLight?.state === 'on' ? 'text-emerald-400' : ''} aria-hidden="true" />
+        <span>Luz</span>
+        {agentLight?.state === 'on' && (
+          <span
+            className="aac-light-header-dot"
+            style={{
+              backgroundColor: agentLight.color === 'green' ? '#22c55e' : (agentLight.color === 'blue' ? '#3b82f6' : '#22c55e')
+            }}
+            aria-label="Luz encendida"
+          />
+        )}
+      </button>
       <button className="aac-tool" onClick={openSettings} aria-label="Ajustes y clonar mi voz"><Settings /><span>Ajustes y voz</span></button>
+
     </header>
 
     <section id="message-composer" className="aac-composer" aria-label="Mi mensaje" hidden={view === 'conversation' && !isComposing}>
@@ -556,9 +618,35 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
           {!isComposing && tts.error && <p className="aac-error" role="alert">{tts.error}</p>}
           {!loading && !suggestions.length && <p className="aac-empty-replies" role="status">{conversationStatus || (stt.isListening ? 'Escuchando. Las respuestas aparecerán después de una pausa.' : 'Pulsa Escuchar o escribe lo que te han dicho para obtener respuestas.')}</p>}
           {conversationStatus && suggestions.length > 0 && <p className="aac-conversation-note" role="status">{conversationStatus}</p>}
+          {lastAgentAction && (
+            <div
+              className="aac-agent-action-banner"
+              role="status"
+              onClick={() => changeView('agent')}
+              title="Toca para ver detalles en el panel de Agente"
+            >
+              <Sparkles size={14} className="text-emerald-500" aria-hidden="true" />
+              <span className="aac-agent-action-text">{lastAgentAction.result?.message || 'Acción de agente completada'}</span>
+              <span className="aac-agent-action-link">Ver Agente →</span>
+            </div>
+          )}
           <div className={'aac-replies' + (suggestions.length ? ' aac-count-' + suggestions.length : '')} style={{ '--aac-reply-rows': Math.max(1, Math.ceil(suggestions.length / 3)), '--aac-reply-rows-mobile': Math.max(1, Math.ceil(suggestions.length / 2)) }} aria-busy={loading} onMouseEnter={onRepliesMouseEnter} onMouseLeave={onRepliesMouseLeave}>{suggestions.map((text, index) => <article key={index} className="aac-reply"><button className="aac-reply-speak" onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak(text); }} aria-label={'Decir respuesta ' + (index + 1) + ': ' + text}><span className="aac-reply-number">{index + 1}</span><span className="aac-reply-text">{text}</span><Volume2 size={20} aria-hidden="true" /></button><button className="aac-reply-edit" onClick={() => { updateMessage([{ text }]); startComposing(); }} aria-label={'Editar respuesta ' + (index + 1)}><Keyboard size={14} aria-hidden="true" /><span>Editar en mi mensaje</span></button></article>)}</div>
           {suggestions.length > 0 && <p className="aac-conversation-note">El botón de voz habla directamente. «Editar» te permite cambiar la respuesta.{engine === 'heuristic' || engine === 'client-offline' ? ' Se están usando respuestas básicas de respaldo.' : ''}</p>}
         </div>}
+
+        {view === 'agent' && (
+          <AgentPanel
+            agentLight={agentLight}
+            onToggleLight={onToggleLight}
+            calendarEvents={calendarEvents}
+            onAddCalendarEvent={onAddCalendarEvent}
+            onDeleteCalendarEvent={onDeleteCalendarEvent}
+            userContext={settings.userContext}
+            onOpenContextModal={onOpenContext}
+            actionLog={agentActionLog}
+            onProcessCommand={onProcessCommand}
+          />
+        )}
 
         {view === 'history' && <div className="aac-history">
           <div className="aac-section-heading"><div><h1>Historial</h1><p>Recupera un mensaje para volver a decirlo o editarlo.</p></div><button className="aac-tool" disabled={!history.length} onClick={() => { if (window.confirm('¿Borrar el historial de este navegador?')) onClearHistory(); }}><Trash2 size={18} />Borrar historial</button></div>
@@ -569,3 +657,4 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
     </main>
   </div>;
 }
+

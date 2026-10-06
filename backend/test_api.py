@@ -107,5 +107,46 @@ class TestBackendAPI(unittest.TestCase):
         self.assertEqual(del_res.status_code, 200)
         self.assertEqual(del_res.json()["status"], "cleared")
 
+    def test_agent_endpoints(self):
+        # 1. Get state
+        state_res = self.client.get("/api/agent/state")
+        self.assertEqual(state_res.status_code, 200)
+        self.assertIn("light", state_res.json())
+
+        # 2. Control light directly
+        light_res = self.client.post("/api/agent/light", json={"state": "on", "color": "green"})
+        self.assertEqual(light_res.status_code, 200)
+        self.assertEqual(light_res.json()["light"]["state"], "on")
+        self.assertEqual(light_res.json()["light"]["color"], "green")
+
+        # 3. Add calendar event directly
+        cal_res = self.client.post("/api/agent/calendar", json={
+            "title": "Cita médica",
+            "date": "2026-10-10",
+            "time": "15:00",
+            "description": "Revisión anual"
+        })
+        self.assertEqual(cal_res.status_code, 200)
+        evt_id = cal_res.json()["event"]["id"]
+
+        # Delete calendar event
+        del_cal = self.client.delete(f"/api/agent/calendar/{evt_id}")
+        self.assertEqual(del_cal.status_code, 200)
+        self.assertEqual(del_cal.json()["status"], "success")
+
+        # 4. Suggest endpoint with tool calling ("turn the light on" triggers light green)
+        sug_res = self.client.post("/api/suggest", json={
+            "text": "turn the light on",
+            "count": 4,
+            "mode": "reply"
+        })
+        self.assertEqual(sug_res.status_code, 200)
+        sug_json = sug_res.json()
+        self.assertIn("tool_calls", sug_json)
+        self.assertEqual(sug_json["tool_calls"][0]["tool"], "control_light")
+        self.assertEqual(sug_json["tool_calls"][0]["result"]["light"]["state"], "on")
+        self.assertEqual(sug_json["tool_calls"][0]["result"]["light"]["color"], "green")
+
 if __name__ == "__main__":
     unittest.main()
+
