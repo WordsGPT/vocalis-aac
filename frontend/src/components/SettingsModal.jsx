@@ -116,8 +116,8 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="settings-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in">
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="voice-settings-title" tabIndex={-1} className="settings-dialog rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden text-left">
+    <div className="settings-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-fade-in">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="voice-settings-title" tabIndex={-1} className="settings-dialog rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[94dvh] sm:max-h-[92vh] h-[94dvh] sm:h-auto flex flex-col overflow-hidden text-left">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center gap-2">
@@ -597,7 +597,7 @@ export function SettingsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex justify-between">
+        <div className="px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex justify-between items-center" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
 <span />
           <button
             type="button"

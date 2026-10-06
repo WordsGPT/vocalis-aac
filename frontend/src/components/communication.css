@@ -12,7 +12,8 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 .aac-header { display: flex; align-items: center; gap: 18px; min-height: 54px; padding: 4px 22px; background: #fff; border-bottom: 1px solid #d8e0eb; }
 .aac-brand { display: flex; align-items: center; gap: 8px; color: #2853a3; font-size: 23px; font-weight: 750; letter-spacing: -.8px; }
 .aac-brand svg { width: 28px; height: 28px; }
-.aac-voice-label { margin-left: auto; font-size: 13px; color: #52647b; }
+.aac-voice-label { font-size: 13px; color: #52647b; }
+.aac-header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
 .aac-tool, .aac-icon-tool { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #cad5e4; border-radius: 8px; background: #fff; color: #324b6b; font-size: 14px; font-weight: 600; padding: 8px 13px; }
 .aac-tool:hover, .aac-icon-tool:hover { background: #eaf0fb; }
 .aac-icon-tool { min-width: 44px; flex-shrink: 0; padding: 9px; }
@@ -1026,53 +1027,649 @@ body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
 .aac-reply-heading-actions { margin-left: auto; }
 .aac-app .aac-hearing-status { line-height: 1.4; }
 .aac-conversation-error { flex-shrink: 0; }
-@media (max-width: 700px) {
-  .aac-header { flex-wrap: wrap; }
-  .aac-header-topics {
-    order: 4;
-    flex: 1 0 100%;
-    max-width: 100% !important;
-    padding: 4px 0;
-    border-top: 1px solid #e2e8f0;
-  }
-  .aac-header-topics .aac-topic-chip { min-height: 44px; }
-  .aac-conversation-controls .aac-listen, .aac-conversation-controls .aac-tool { min-height: 44px; }
-  .aac-header .aac-tool { min-width: 44px; }
-}
-@media (max-width: 768px) {
-  .aac-conversation .aac-replies {
-    grid-template-rows: repeat(var(--aac-reply-rows-mobile, 3), minmax(min-content, 1fr)) !important;
-  }
-}
-@media (orientation: landscape) and (max-height: 600px) {
-  .aac-conversation .aac-replies {
-    grid-template-rows: repeat(var(--aac-reply-rows, 2), minmax(min-content, 1fr)) !important;
-  }
-}
-@media (max-height: 650px) {
-  .aac-conversation-workspace > .aac-tab-content { overflow-y: auto !important; }
-  .aac-conversation { flex: none; height: auto; max-height: none; overflow: visible !important; }
-  .aac-conversation .aac-replies { flex: none; height: auto; max-height: none; overflow: visible !important; }
-}
+/* ========================================================================== */
+/* VOCALIS AAC - COMPLETE MOBILE REDESIGN (Screens <= 768px & <= 480px)      */
+/* ========================================================================== */
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  /* 1. App Shell Architecture: Strict Flex Column with Docked Bottom Navigation */
+  .aac-app {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  /* 2. Sleek Compact Top Header (Single row, 48px) */
+  .aac-header {
+    order: 1 !important;
+    grid-row: unset !important;
+    flex-shrink: 0 !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 4px 10px !important;
+    gap: 8px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #d8e2ee !important;
+    z-index: 25 !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+  }
+  .aac-header .aac-brand {
+    font-size: 19px !important;
+    gap: 6px !important;
+    font-weight: 800 !important;
+    flex-shrink: 0 !important;
+  }
+  .aac-header .aac-brand svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .aac-header .aac-voice-label {
+    display: none !important;
+  }
+  .aac-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+  }
+  .aac-header .aac-tool {
+    min-width: 38px !important;
+    width: 38px !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 9px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    background: #ffffff !important;
+  }
+  .aac-header .aac-tool > span:not(.aac-context-dot):not(.aac-light-header-dot) {
+    display: none !important;
+  }
+  .aac-header .aac-tool svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+  .aac-header .aac-context-dot {
+    position: absolute !important;
+    top: 5px !important;
+    right: 5px !important;
+    width: 7px !important;
+    height: 7px !important;
+  }
+  .aac-header .aac-light-header-dot {
+    position: absolute !important;
+    top: 5px !important;
+    right: 5px !important;
+    width: 7px !important;
+    height: 7px !important;
+    margin-left: 0 !important;
+  }
   .aac-header-topics {
-    max-width: calc(100% - 150px);
-    gap: 4px;
+    flex: 1 1 auto !important;
+    max-width: calc(100% - 195px) !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+  .aac-header-topics::-webkit-scrollbar {
+    display: none !important;
   }
   .aac-topic-chip {
-    padding: 3px 8px;
-    font-size: 12px;
-    min-height: 32px;
+    padding: 3px 8px !important;
+    min-height: 32px !important;
+    font-size: 11.5px !important;
+    border-radius: 8px !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
   }
   .aac-topic-chip img {
-    width: 18px;
-    height: 18px;
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* 3. Composer (When active on mobile) */
+  .aac-composer {
+    order: 2 !important;
+    grid-row: unset !important;
+    flex-shrink: 0 !important;
+    padding: 6px 10px 4px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    z-index: 20 !important;
+  }
+  .aac-message-line {
+    gap: 6px !important;
+    display: flex !important;
+  }
+  .aac-message-line textarea {
+    font-size: 16px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+  }
+  .aac-message-line textarea::placeholder {
+    font-size: 13.5px !important;
+  }
+  .aac-edit-tools {
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+  .aac-edit-tools .aac-tool {
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+  }
+  .aac-edit-tools .aac-tool span {
+    display: none !important;
+  }
+  .aac-edit-tools .aac-tool svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  .aac-speak {
+    min-width: 68px !important;
+    padding: 4px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    border-radius: 8px !important;
+  }
+  .aac-speak svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .aac-sentence-row {
+    min-height: 38px !important;
+    margin-top: 3px !important;
+    gap: 4px !important;
+  }
+  .aac-sentence-strip {
+    height: 42px !important;
+    padding: 2px !important;
+  }
+  .aac-sentence-symbol {
+    min-height: 34px !important;
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+    gap: 4px !important;
+  }
+
+  /* 4. Center Viewport Scroll Area */
+  .aac-scroll-area {
+    order: 3 !important;
+    grid-row: unset !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1 !important;
+  }
+
+  /* 5. Modern Bottom Navigation Bar */
+  .aac-navigation {
+    order: 4 !important;
+    grid-row: unset !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    border-top: 1px solid #d2dce9 !important;
+    border-bottom: none !important;
+    box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.08) !important;
+    padding: 3px 6px max(6px, env(safe-area-inset-bottom, 6px)) !important;
+    z-index: 30 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+  .aac-navigation .aac-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+  .aac-navigation .aac-tabs button {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    min-width: 0 !important;
+    padding: 3px 2px !important;
+    gap: 2px !important;
+    border: none !important;
+    border-bottom: none !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: #475569 !important;
+    position: relative !important;
+    transition: all 0.15s ease !important;
+  }
+  .aac-navigation .aac-tabs button svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+  }
+  .aac-navigation .aac-tabs button span:not(.aac-mic-dot) {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.01em !important;
+    white-space: nowrap !important;
+  }
+  .aac-navigation .aac-tabs button[aria-pressed=true] {
+    color: #1d4ed8 !important;
+    background: #eff6ff !important;
+    font-weight: 700 !important;
+  }
+  .aac-navigation .aac-mic-dot {
+    position: absolute !important;
+    top: 5px !important;
+    right: calc(50% - 13px) !important;
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  /* Quick bar in Board mode: horizontal smooth strip */
+  .aac-navigation .aac-quick {
+    width: 100% !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    padding: 3px 2px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .aac-navigation .aac-quick::-webkit-scrollbar {
+    display: none !important;
+  }
+  .aac-navigation .aac-quick button {
+    flex: 0 0 auto !important;
+    min-height: 36px !important;
+    padding: 3px 9px !important;
+    font-size: 11.5px !important;
+    gap: 5px !important;
+    border-radius: 6px !important;
+  }
+  /* In Conversation Mode, hide quick bar in navigation to keep bottom tabs clean */
+  .aac-app:has(.aac-conversation-workspace) .aac-navigation .aac-quick {
+    display: none !important;
+  }
+
+  /* 6. Conversation Mode Single-Screen Overhaul */
+  .aac-scroll-area.aac-conversation-workspace {
+    flex: 1 1 0% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .aac-conversation-workspace > .aac-tab-content {
+    flex: 1 1 0% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    padding: 4px 6px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .aac-conversation {
+    flex: 1 1 0% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  /* Top Controls Bar in Conversation */
+  .aac-conversation-controls {
+    flex-shrink: 0 !important;
+    padding: 4px 6px !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    background: #ffffff !important;
+    border-radius: 8px !important;
+    margin-bottom: 4px !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+  .aac-conversation-controls .aac-listen {
+    flex: 1 1 auto !important;
+    min-height: 42px !important;
+    padding: 6px 12px !important;
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+  }
+  .aac-conversation-controls .aac-listen svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .aac-conversation-controls .aac-tool {
+    min-height: 40px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+  }
+  .aac-conversation-controls .aac-hearing-status {
+    flex-basis: 100% !important;
+    order: 4 !important;
+    font-size: 11px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 2px 2px 0 !important;
+    border-top: 1px solid #f1f5f9 !important;
+  }
+  .aac-conversation-controls .aac-hearing-status meter {
+    width: 80px !important;
+    height: 8px !important;
+  }
+
+  /* Hearing & Transcript Card */
+  .aac-hearing {
+    flex-shrink: 0 !important;
+    padding: 6px 10px !important;
+    max-height: min(96px, 16vh) !important;
+    border-radius: 8px !important;
+    margin-bottom: 4px !important;
+  }
+  .aac-hearing.has-partner-open {
+    max-height: min(190px, 32vh) !important;
+  }
+  .aac-hearing-header {
+    padding-bottom: 2px !important;
+    margin-bottom: 2px !important;
+  }
+  .aac-heard {
+    font-size: 13.5px !important;
+    padding: 2px 0 !important;
+    line-height: 1.3 !important;
+  }
+  .aac-speaker-turns {
+    gap: 4px !important;
+  }
+  .aac-speaker-turns strong {
+    font-size: 10px !important;
+  }
+  .aac-speaker-turns span {
+    font-size: 12.5px !important;
+  }
+  .aac-conversation-note {
+    display: none !important;
+  }
+
+  /* Reply Heading: Responsive Row with Direct Quick Actions */
+  .aac-conversation .aac-reply-heading {
+    flex-shrink: 0 !important;
+    margin: 2px 0 4px !important;
+    gap: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+  }
+  .aac-reply-heading-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .aac-reply-heading-title h2 {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .aac-speak-mode-badge {
+    min-height: 28px !important;
+    padding: 2px 7px !important;
+    font-size: 11px !important;
+  }
+  .aac-reply-quick-actions {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0 !important;
+  }
+  .aac-quick-reply-btn {
+    min-height: 34px !important;
+    padding: 2px 7px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    gap: 3px !important;
+    flex-shrink: 0 !important;
+  }
+  .aac-quick-reply-btn img {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .aac-quick-reply-btn svg {
+    display: none !important;
+  }
+  .aac-reply-heading-actions {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+  }
+  .aac-regenerate-btn {
+    min-height: 34px !important;
+    padding: 2px 6px !important;
+    font-size: 11.5px !important;
+  }
+  .aac-regenerate-text { display: none !important; }
+  .aac-regenerate-short { display: inline !important; }
+
+  /* Replies Grid: 2 columns x 3 rows with smooth touch scroll */
+  .aac-conversation .aac-replies {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .aac-conversation .aac-reply {
+    height: 100% !important;
+    min-height: 54px !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  }
+  .aac-conversation .aac-reply:active {
+    border-color: #3b82f6 !important;
+    background: #f8faff !important;
+  }
+  .aac-conversation .aac-reply-speak {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 5px 7px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    color: #1e293b !important;
+    overflow: hidden !important;
+  }
+  .aac-conversation .aac-reply-number {
+    font-size: 10px !important;
+    padding: 1px 3px !important;
+    border-radius: 3px !important;
+    font-weight: 700 !important;
+    color: #2563eb !important;
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+  }
+  .aac-conversation .aac-reply-text {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    line-clamp: 3 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: break-word !important;
+  }
+  .aac-conversation .aac-reply-speak svg {
+    width: 15px !important;
+    height: 15px !important;
+    color: #2563eb !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+  }
+  .aac-conversation .aac-reply-edit {
+    flex-shrink: 0 !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 2px 6px !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    color: #64748b !important;
+  }
+  .aac-conversation .aac-reply-edit span {
+    display: none !important;
+  }
+  .aac-conversation .aac-reply-edit::after {
+    content: "Editar" !important;
+    font-size: 10px !important;
+  }
+
+  /* 7. Board Mode Mobile Layout */
+  .aac-tab-content {
+    padding: 8px 8px 16px !important;
+  }
+  .aac-core-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+  }
+  .aac-core-strip button {
+    min-height: 48px !important;
+    padding: 4px !important;
+    font-size: 12px !important;
+    gap: 4px !important;
+  }
+  .aac-core-strip img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .aac-folders {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+  .aac-folder {
+    min-height: 98px !important;
+    padding: 8px 4px !important;
+    font-size: 13px !important;
+    gap: 4px !important;
+  }
+  .aac-folder img {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  .aac-folder > svg:last-child {
+    display: none !important;
+  }
+  .aac-tile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  .aac-app .aac-tile {
+    min-height: 96px !important;
+    padding: 6px 4px !important;
+    gap: 4px !important;
+  }
+  .aac-tile img {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  .aac-tile span {
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
   }
 }
+
+/* Extra Compact Phones (<= 480px) */
 @media (max-width: 480px) {
+  .aac-header {
+    padding: 3px 6px !important;
+  }
+  .aac-header .aac-brand span {
+    font-size: 17px !important;
+  }
   .aac-header-topics {
-    max-width: calc(100% - 110px);
+    max-width: calc(100% - 150px) !important;
+  }
+  .aac-navigation .aac-tabs button span:not(.aac-mic-dot) {
+    font-size: 10px !important;
+  }
+  .aac-navigation .aac-tabs button svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .aac-conversation .aac-reply-speak {
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+  }
+  .aac-quick-reply-btn {
+    padding: 2px 5px !important;
+    font-size: 11px !important;
+  }
+  .aac-quick-reply-btn img {
+    width: 14px !important;
+    height: 14px !important;
   }
 }
 

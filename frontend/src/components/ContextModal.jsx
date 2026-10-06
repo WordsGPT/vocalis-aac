@@ -100,7 +100,7 @@ export function ContextModal({
 
   return (
     <div
-      className="settings-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in"
+      className="settings-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -111,7 +111,7 @@ export function ContextModal({
         aria-modal="true"
         aria-labelledby="context-modal-title"
         tabIndex={-1}
-        className="settings-dialog rounded-2xl w-full max-w-lg max-h-[92dvh] flex flex-col overflow-hidden text-left shadow-2xl border border-slate-300"
+        className="settings-dialog rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[94dvh] sm:max-h-[92dvh] h-[94dvh] sm:h-auto flex flex-col overflow-hidden text-left shadow-2xl border border-slate-300"
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
@@ -214,7 +214,7 @@ export function ContextModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-800 bg-slate-900/60">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-900/90" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
           <span className="text-[11px] text-slate-500">Ctrl+Enter para guardar</span>
           <div className="flex items-center gap-2">
             <button

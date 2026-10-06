@@ -276,40 +276,42 @@ export function CommunicationBoard({
           ))}
         </div>
       )}
-      <span className="aac-voice-label">{voiceLabel}</span>
-      <button
-        type="button"
-        id="header-context-btn"
-        className={'aac-tool aac-context-tool' + (settings.userContext?.trim() ? ' has-context' : '')}
-        onClick={onOpenContext}
-        aria-label="Contexto personal para la IA"
-        title={settings.userContext?.trim() ? `Contexto activo: ${settings.userContext.trim().slice(0, 60)}…` : 'Añadir contexto sobre ti para la IA'}
-      >
-        <User size={18} aria-hidden="true" />
-        <span>Contexto</span>
-        {settings.userContext?.trim() && <span className="aac-context-dot" aria-label="Contexto activo" />}
-      </button>
-      <button
-        type="button"
-        id="header-light-btn"
-        className={'aac-tool aac-light-tool' + (agentLight?.state === 'on' ? ' is-lit' : '')}
-        onClick={() => changeView('agent')}
-        aria-label="Luz inteligente"
-        title={`Luz: ${agentLight?.state === 'on' ? 'Encendida (' + (agentLight.color || 'verde') + ')' : 'Apagada'}. Toca para abrir el panel del agente.`}
-      >
-        <Lightbulb size={18} className={agentLight?.state === 'on' ? 'text-emerald-400' : ''} aria-hidden="true" />
-        <span>Luz</span>
-        {agentLight?.state === 'on' && (
-          <span
-            className="aac-light-header-dot"
-            style={{
-              backgroundColor: agentLight.color === 'green' ? '#22c55e' : (agentLight.color === 'blue' ? '#3b82f6' : '#22c55e')
-            }}
-            aria-label="Luz encendida"
-          />
-        )}
-      </button>
-      <button className="aac-tool" onClick={openSettings} aria-label="Ajustes y clonar mi voz"><Settings /><span>Ajustes y voz</span></button>
+      <div className="aac-header-actions">
+        <span className="aac-voice-label">{voiceLabel}</span>
+        <button
+          type="button"
+          id="header-context-btn"
+          className={'aac-tool aac-context-tool' + (settings.userContext?.trim() ? ' has-context' : '')}
+          onClick={onOpenContext}
+          aria-label="Contexto personal para la IA"
+          title={settings.userContext?.trim() ? `Contexto activo: ${settings.userContext.trim().slice(0, 60)}…` : 'Añadir contexto sobre ti para la IA'}
+        >
+          <User size={18} aria-hidden="true" />
+          <span>Contexto</span>
+          {settings.userContext?.trim() && <span className="aac-context-dot" aria-label="Contexto activo" />}
+        </button>
+        <button
+          type="button"
+          id="header-light-btn"
+          className={'aac-tool aac-light-tool' + (agentLight?.state === 'on' ? ' is-lit' : '')}
+          onClick={() => changeView('agent')}
+          aria-label="Luz inteligente"
+          title={`Luz: ${agentLight?.state === 'on' ? 'Encendida (' + (agentLight.color || 'verde') + ')' : 'Apagada'}. Toca para abrir el panel del agente.`}
+        >
+          <Lightbulb size={18} className={agentLight?.state === 'on' ? 'text-emerald-400' : ''} aria-hidden="true" />
+          <span>Luz</span>
+          {agentLight?.state === 'on' && (
+            <span
+              className="aac-light-header-dot"
+              style={{
+                backgroundColor: agentLight.color === 'green' ? '#22c55e' : (agentLight.color === 'blue' ? '#3b82f6' : '#22c55e')
+              }}
+              aria-label="Luz encendida"
+            />
+          )}
+        </button>
+        <button className="aac-tool" onClick={openSettings} aria-label="Ajustes y clonar mi voz"><Settings /><span>Ajustes y voz</span></button>
+      </div>
 
     </header>
 

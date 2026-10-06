@@ -101,7 +101,7 @@ export function AgentPanel({
   };
 
   return (
-    <div className="aac-agent-panel p-4 sm:p-6 max-w-5xl mx-auto space-y-6 animate-fade-in text-slate-100 pb-16">
+    <div className="aac-agent-panel p-3 sm:p-6 max-w-5xl mx-auto space-y-5 sm:space-y-6 animate-fade-in text-slate-100 pb-28">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
         <div>
@@ -120,20 +120,20 @@ export function AgentPanel({
         </div>
 
         {/* Quick test runner */}
-        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1.5 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1.5 w-full sm:w-auto">
           <input
             type="text"
-            placeholder="Probar comando: «turn the light on»"
+            placeholder="Probar: «turn the light on»"
             value={commandInput}
             onChange={(e) => setCommandInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleTestCommand()}
-            className="bg-transparent text-xs text-white px-2.5 py-1.5 focus:outline-none w-full sm:w-56"
+            className="bg-transparent text-xs text-white px-2 py-1.5 focus:outline-none flex-1 sm:w-56 min-w-0"
           />
           <button
             type="button"
             onClick={() => handleTestCommand()}
             disabled={!commandInput.trim() || isProcessing}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer flex-shrink-0"
           >
             <Play className="w-3 h-3" />
             <span>Ejecutar</span>
