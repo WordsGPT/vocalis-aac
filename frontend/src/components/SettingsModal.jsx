@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe } from 'lucide-react';
+import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe, FileText, Download, Trash2 } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
 import { PocketCloner } from './PocketCloner';
 import { AccessPanel } from './AccessPanel';
 import { pictogramPath } from './vocabulary';
+import { exportAuditTranscript, clearAuditLogs } from '../services/api';
 
 export function SettingsModal({
   speakerLabels = true,
@@ -30,6 +31,51 @@ export function SettingsModal({
   const [preparing, setPreparing] = useState(false);
   const [preparingScope, setPreparingScope] = useState(null);
   const [preparationStatus, setPreparationStatus] = useState('');
+  const [auditMessage, setAuditMessage] = useState('');
+  const [isAuditActionLoading, setIsAuditActionLoading] = useState(false);
+
+  const handleDownloadAudit = async () => {
+    setIsAuditActionLoading(true);
+    setAuditMessage('Obteniendo registro de auditoría…');
+    try {
+      const text = await exportAuditTranscript();
+      if (!text || !text.trim()) {
+        setAuditMessage('No hay registros de auditoría guardados todavía.');
+        return;
+      }
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `auditoria_conversacion_${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setAuditMessage('Transcripción de auditoría descargada con éxito.');
+    } catch {
+      setAuditMessage('Error al descargar la auditoría del servidor.');
+    } finally {
+      setIsAuditActionLoading(false);
+    }
+  };
+
+  const handleClearAudit = async () => {
+    if (!window.confirm('¿Deseas borrar definitivamente los registros de auditoría guardados en el servidor para este dispositivo?')) {
+      return;
+    }
+    setIsAuditActionLoading(true);
+    setAuditMessage('Borrando registros del servidor…');
+    try {
+      await clearAuditLogs();
+      setAuditMessage('Registros de auditoría eliminados correctamente del servidor.');
+    } catch {
+      setAuditMessage('Error al borrar los registros del servidor.');
+    } finally {
+      setIsAuditActionLoading(false);
+    }
+  };
+
   const pictogramSize = Math.min(160, Math.max(70, Number(settings.pictogramSize) || 100));
   const preparePhrases = async (scope) => {
     setPreparing(true);
@@ -442,6 +488,80 @@ export function SettingsModal({
               />
             </div>
           </div>
+
+          {/* 3. Conversation Audit & Privacy Section */}
+          <div className="border border-slate-800 rounded-2xl p-4 bg-slate-900/50 space-y-3" id="audit-settings-section">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 m-0">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                Auditoría y registro en servidor
+              </h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                settings.auditLogging
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+              }`}>
+                {settings.auditLogging ? 'Registro activo' : 'Desactivado (por defecto)'}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed m-0">
+              Permite guardar las intervenciones de la conversación en el servidor para su posterior auditoría clínica o personal.
+              Por motivos de privacidad, esta opción es <strong className="text-white">estrictamente voluntaria (opt-in)</strong> y permanece desactivada a menos que la actives expresamente.
+            </p>
+
+            <label
+              htmlFor="audit-logging-toggle"
+              className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 hover:bg-slate-800 transition-colors cursor-pointer select-none"
+            >
+              <input
+                id="audit-logging-toggle"
+                type="checkbox"
+                checked={Boolean(settings.auditLogging)}
+                onChange={(e) => onUpdateSettings({ auditLogging: e.target.checked })}
+                className="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-500"
+              />
+              <div className="flex-1">
+                <div className="font-semibold text-xs text-white">
+                  Guardar registro de conversación en el servidor para auditoría
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  Al activarse, cada turno (hablado por ti o transcrito de tu interlocutor) se registrará de forma segura en el servidor.
+                </div>
+              </div>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                id="audit-download-btn"
+                onClick={handleDownloadAudit}
+                disabled={isAuditActionLoading}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 cursor-pointer font-medium transition-colors disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Descargar transcripción de auditoría
+              </button>
+
+              <button
+                type="button"
+                id="audit-clear-btn"
+                onClick={handleClearAudit}
+                disabled={isAuditActionLoading}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-300 border border-red-500/30 cursor-pointer font-medium transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Borrar registros del servidor
+              </button>
+            </div>
+
+            {auditMessage && (
+              <div className="text-xs text-slate-300 bg-slate-950/60 rounded-lg px-3 py-1.5 border border-slate-800 animate-fade-in font-mono">
+                {auditMessage}
+              </div>
+            )}
+          </div>
+
           <details className="settings-advanced"><summary>Ajustes avanzados</summary><div className="space-y-4 pt-4"><h3>Motor de respuestas</h3>            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {[
                 { id: 'groq', label: 'Groq', desc: 'Respuestas en la nube' },

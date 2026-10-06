@@ -514,6 +514,18 @@ export function CommunicationBoard({ speakerLabels = true, view, onChangeView, s
                 <span>No</span>
                 <Volume2 size={13} aria-hidden="true" />
               </button>
+              <button
+                type="button"
+                id="conversation-quick-repeat"
+                className="aac-quick-reply-btn aac-quick-repeat"
+                onClick={() => { input.current?.blur(); setIsComposing(false); onSpeak('¿Puedes repetir lo que dijiste, por favor?', { prepared: true }); }}
+                aria-label="Decir: ¿Puedes repetir lo que dijiste?"
+                title="Pedir que repitan lo que dijeron inmediatamente"
+              >
+                <Picto id={11752} />
+                <span>¿Puedes repetir?</span>
+                <Volume2 size={13} aria-hidden="true" />
+              </button>
             </div>
             <div className="aac-reply-heading-actions">
               {settings.userContext?.trim() && (

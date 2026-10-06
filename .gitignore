@@ -28,3 +28,4 @@ Thumbs.db
 .nfs*
 server.pid
 .tailscale/
+data/

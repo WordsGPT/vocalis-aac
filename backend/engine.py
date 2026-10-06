@@ -326,7 +326,7 @@ Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas:
 - Habla directamente en primera persona ("yo", "me", "nosotros").
-- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL (de 3 a 10 palabras).
+- Cada respuesta DEBE ser una frase completa y natural en ESPAÑOL.
 - Prohibido repetir opciones redundantes.
 - NUNCA uses corchetes ni marcadores como [tema].
 - Listas para ser reproducidas por un sintetizador de voz (TTS) de inmediato."""
@@ -492,7 +492,7 @@ Reglas estrictas:
 - Genera exactamente {count} respuestas en primera persona, en ESPAÑOL natural y fluido.
 - Cada opción debe tener una postura conversacional distinta (afinidad, matiz, curiosidad, alternativa o empatía), adaptada con sentido común al tema.
 - Si la pregunta se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL de arriba de forma exacta.
-- Frases completas, naturales y listas para voz artificial (3 a 10 palabras).
+- Frases completas, naturales y listas para voz artificial.
 - Prohibido repetir la misma idea con palabras similares o generar múltiples preguntas redundantes.
 - No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1".
 Devuelve JSON con la clave "suggestions"."""

@@ -168,7 +168,7 @@ Acaba de escucharse: "{text}".
 REGLAS GENERALES:
 - Genera exactamente {count} opciones.
 - Cada opción debe representar una intención conversacional diferente (afinidad, matiz, curiosidad, alternativa o empatía), pero SIEMPRE adaptada con sentido común a la situación real.
-- Primera persona, frases breves (3 a 10 palabras), en español natural y fluido, listas para ser habladas por sintetizador de voz.
+- Primera persona, frases en español natural y fluido, listas para ser habladas por sintetizador de voz.
 - Prohibido repetir la misma idea con palabras similares o hacer múltiples preguntas redundantes.
 - Tono: {tone}.
 - No repitas lo que 'Yo' ya dijo recientemente.

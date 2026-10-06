@@ -171,3 +171,56 @@ export async function fetchStreamingTTSAudio(text, signal) {
   if (!res.body) throw new Error('Este navegador no admite audio transmitido.');
   return res;
 }
+
+export async function logConversationTurn({ sender, text, speaker_label, time, mode, metadata }) {
+  try {
+    const res = await fetch(`${API_BASE}/audit/log`, {
+      method: 'POST',
+      headers: deviceHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        sender,
+        text,
+        speaker_label: speaker_label || null,
+        time: time || null,
+        mode: mode || null,
+        metadata: metadata || null,
+      }),
+    });
+    if (!res.ok) throw new Error(`Audit logging failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Failed to log conversation turn:', err);
+    return { status: 'failed', error: err.message };
+  }
+}
+
+export async function fetchAuditLogs(limit = 100) {
+  try {
+    const res = await fetch(`${API_BASE}/audit/logs?limit=${encodeURIComponent(limit)}`, {
+      headers: deviceHeaders(),
+    });
+    if (!res.ok) throw new Error(`Fetch audit logs failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Failed to fetch audit logs:', err);
+    return { client_id: getClientId(), count: 0, entries: [] };
+  }
+}
+
+export async function exportAuditTranscript() {
+  const res = await fetch(`${API_BASE}/audit/export`, {
+    headers: deviceHeaders(),
+  });
+  if (!res.ok) throw new Error(`Export audit transcript failed: ${res.status}`);
+  return await res.text();
+}
+
+export async function clearAuditLogs() {
+  const res = await fetch(`${API_BASE}/audit/logs`, {
+    method: 'DELETE',
+    headers: deviceHeaders(),
+  });
+  if (!res.ok) throw new Error(`Clear audit logs failed: ${res.status}`);
+  return await res.json();
+}
+

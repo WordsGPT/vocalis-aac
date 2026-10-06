@@ -31,6 +31,7 @@ from backend.engine import get_smart_suggestions, OLLAMA_URL
 from backend.qwen_voice import qwen_voice
 from backend.diarization import diarizer
 from backend.conversation import conversation_suggestions
+from backend import audit
 
 logger = logging.getLogger("echo_flow_api")
 logging.basicConfig(level=logging.INFO)
@@ -118,6 +119,14 @@ class TTSRequest(BaseModel):
     pitch: Optional[str] = "+0Hz"
     language: Optional[str] = "Spanish"
 
+class AuditTurnRequest(BaseModel):
+    sender: str  # "user" or "partner"
+    text: str
+    speaker_label: Optional[str] = None
+    time: Optional[str] = None
+    mode: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
 STREAMING_TTS_URL = os.environ.get("STREAMING_TTS_URL", "http://127.0.0.1:8002")
 
 CURATED_VOICES = [
@@ -170,6 +179,66 @@ async def login():
 @app.post("/api/logout")
 async def logout():
     return {"authenticated": True, "auth_required": False}
+
+@app.post("/api/audit/log")
+async def record_audit_turn(
+    req: AuditTurnRequest,
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    """Opt-in server-side conversation turn audit logging."""
+    client_id = x_vocalis_client or "anonymous_client"
+    res = await asyncio.to_thread(
+        audit.log_conversation_turn,
+        client_id=client_id,
+        sender=req.sender,
+        text=req.text,
+        speaker_label=req.speaker_label,
+        time_str=req.time,
+        mode=req.mode,
+        metadata=req.metadata,
+    )
+    return res
+
+@app.get("/api/audit/logs")
+async def get_audit_turns(
+    client_id: Optional[str] = None,
+    limit: int = 100,
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    """Retrieve audit log entries for auditing."""
+    target_client = client_id or x_vocalis_client
+    entries = await asyncio.to_thread(audit.get_audit_logs, target_client, limit)
+    return {"client_id": target_client, "count": len(entries), "entries": entries}
+
+@app.get("/api/audit/sessions")
+async def list_audit_sessions():
+    """List sessions with recorded audit logs."""
+    sessions = await asyncio.to_thread(audit.list_audit_sessions)
+    return {"sessions": sessions}
+
+@app.get("/api/audit/export")
+async def export_audit_transcript(
+    client_id: Optional[str] = None,
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    """Export the plain-text audit transcript for clinical or personal auditing."""
+    target_client = client_id or x_vocalis_client or "anonymous_client"
+    transcript = await asyncio.to_thread(audit.export_audit_transcript, target_client)
+    return StreamingResponse(
+        io.BytesIO(transcript.encode("utf-8")),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={target_client}_audit.txt"}
+    )
+
+@app.delete("/api/audit/logs")
+async def clear_audit_logs(
+    client_id: Optional[str] = None,
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    """Clear recorded audit logs for the client."""
+    target_client = client_id or x_vocalis_client or "anonymous_client"
+    deleted = await asyncio.to_thread(audit.clear_client_audit_logs, target_client)
+    return {"status": "cleared" if deleted else "not_found", "client_id": target_client}
 
 @app.get("/api/voices")
 async def list_voices():

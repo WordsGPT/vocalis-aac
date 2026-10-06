@@ -7,7 +7,7 @@ import { personalForm } from './utils/spanish';
 
 import { useTTS } from './hooks/useTTS';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { getSmartSuggestions, fetchCuratedVoices } from './services/api';
+import { getSmartSuggestions, fetchCuratedVoices, logConversationTurn } from './services/api';
 
 const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
@@ -25,7 +25,8 @@ const DEFAULT_SETTINGS = {
   sttLang: 'es-ES',
   suggestionCount: 6,
   autoTriggerDelay: 1000,
-  userContext: ''
+  userContext: '',
+  auditLogging: false,
 };
 
 const speakerLabels = import.meta.env.VITE_SPEAKER_LABELS !== 'false';
@@ -71,7 +72,8 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
         ...DEFAULT_SETTINGS,
         ...stored,
         edgeVoiceId: (stored.edgeVoiceId && stored.edgeVoiceId !== 'Puck') ? stored.edgeVoiceId : 'qwen-clone',
-        qwenEngine: 'standard'
+        qwenEngine: 'standard',
+        auditLogging: Boolean(stored.auditLogging),
       };
     } catch (_) {
       return DEFAULT_SETTINGS;
@@ -169,6 +171,16 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
   const historyRef = useRef(history);
   const conversationStart = useRef(history.length);
 
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const speakModeRef = useRef(speakMode);
+  useEffect(() => {
+    speakModeRef.current = speakMode;
+  }, [speakMode]);
+
   // Save settings on update
   const handleUpdateSettings = (newSettings) => {
     setSettings((prev) => {
@@ -195,6 +207,22 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     historyRef.current = updated;
     setHistory(updated);
     try { localStorage.setItem('vocalis_history', JSON.stringify(updated)); } catch { /* Storage may be full. */ }
+
+    // If opt-in audit logging is enabled, save conversation turn to server for auditing
+    if (settingsRef.current?.auditLogging) {
+      entries.forEach(entry => {
+        logConversationTurn({
+          sender: entry.sender,
+          text: entry.text,
+          speaker_label: entry.speaker_label,
+          time: entry.time,
+          mode: speakModeRef.current ? 'speak' : 'reply',
+          metadata: {
+            speaker: entry.speaker || null,
+          },
+        }).catch((err) => console.warn('Audit logging failed for turn:', err));
+      });
+    }
   }, []);
 
   const abortPendingSuggestions = useCallback(() => {

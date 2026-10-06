@@ -78,5 +78,34 @@ class TestBackendAPI(unittest.TestCase):
             self.assertIn("rápido y estándar", valid.json()["message"])
             clone.assert_called_once()
 
+    def test_audit_endpoints(self):
+        headers = {"X-Vocalis-Client": "test-audit-device"}
+        # Log a turn
+        post_res = self.client.post("/api/audit/log", headers=headers, json={
+            "sender": "user",
+            "text": "Hola, esto es una auditoría.",
+            "speaker_label": "Tú",
+            "mode": "speak"
+        })
+        self.assertEqual(post_res.status_code, 200)
+        self.assertEqual(post_res.json()["status"], "recorded")
+
+        # Get logs
+        get_res = self.client.get("/api/audit/logs", headers=headers)
+        self.assertEqual(get_res.status_code, 200)
+        entries = get_res.json()["entries"]
+        self.assertTrue(len(entries) >= 1)
+        self.assertEqual(entries[-1]["text"], "Hola, esto es una auditoría.")
+
+        # Export transcript
+        export_res = self.client.get("/api/audit/export", headers=headers)
+        self.assertEqual(export_res.status_code, 200)
+        self.assertIn("Hola, esto es una auditoría.", export_res.text)
+
+        # Clear logs
+        del_res = self.client.delete("/api/audit/logs", headers=headers)
+        self.assertEqual(del_res.status_code, 200)
+        self.assertEqual(del_res.json()["status"], "cleared")
+
 if __name__ == "__main__":
     unittest.main()
