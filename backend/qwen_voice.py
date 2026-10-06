@@ -65,10 +65,12 @@ class QwenVoiceClone:
 
     def status(self, client_id: str | None = None) -> VoiceStatus:
         profile_path = self.profile_path(client_id) if client_id else PROFILE_PATH
+        if not profile_path.is_file() and PROFILE_PATH.is_file():
+            profile_path = PROFILE_PATH
         key = self._profile_key(client_id) if client_id else "legacy"
         return VoiceStatus(
             available=profile_path.is_file(),
-            loaded=self._model is not None and key in self._prompts,
+            loaded=self._model is not None and (key in self._prompts or "legacy" in self._prompts),
             profile=str(profile_path),
             model=MODEL_ID,
             attention=self._attention,
@@ -154,6 +156,8 @@ class QwenVoiceClone:
         if self._model is not None and key in self._prompts:
             return
         profile_path = self.profile_path(client_id)
+        if not profile_path.is_file():
+            profile_path = PROFILE_PATH
         if not profile_path.is_file():
             raise RuntimeError("No voice has been cloned on this device yet")
 

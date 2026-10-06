@@ -13,8 +13,8 @@ const DEFAULT_SETTINGS = {
   grammaticalForm: 'masculine',
   speakTiles: true,
   pictogramSize: 100,
-  ttsMode: 'browser', // 'edge-tts' | 'pocket' | 'browser'
-  edgeVoiceId: 'Puck',
+  ttsMode: 'edge-tts', // 'edge-tts' (Qwen3-TTS / server) | 'pocket' | 'browser'
+  edgeVoiceId: 'qwen-clone',
   qwenEngine: 'standard', // 'streaming' | 'standard'
   browserVoiceURI: '',
   speechRate: 1.0,
@@ -55,7 +55,7 @@ function preparationPhrases(form) {
   return { frequent, all };
 }
 
-export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
+export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLogin, onLogout }) {
   // Load saved settings or defaults
   const [settings, setSettings] = useState(() => {
     try {
@@ -67,14 +67,18 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
       if (stored.autoTriggerDelay === 1500 || stored.autoTriggerDelay === 1800) {
         stored.autoTriggerDelay = 1000;
       }
-      return { ...DEFAULT_SETTINGS, ...stored,
-        edgeVoiceId: stored.edgeVoiceId?.startsWith('voice_') ? stored.edgeVoiceId : 'Puck', qwenEngine: 'standard' };
+      return {
+        ...DEFAULT_SETTINGS,
+        ...stored,
+        edgeVoiceId: (stored.edgeVoiceId && stored.edgeVoiceId !== 'Puck') ? stored.edgeVoiceId : 'qwen-clone',
+        qwenEngine: 'standard'
+      };
     } catch (_) {
       return DEFAULT_SETTINGS;
     }
   });
   const pocketReady = typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined';
-  const activeSettings = voiceAuthenticated ? {
+  const activeSettings = (!authRequired || voiceAuthenticated) ? {
     ...settings, ttsMode: settings.ttsMode === 'pocket' && !pocketReady ? 'browser' : settings.ttsMode,
   } : {
     ...settings, ttsMode: settings.ttsMode === 'pocket' && pocketReady ? 'pocket' : 'browser',
@@ -438,7 +442,17 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         history={history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
-        voiceLabel={activeSettings.ttsMode === 'browser' ? 'Voz del navegador' : activeSettings.ttsMode === 'pocket' ? 'Mi voz Pocket TTS' : settings.edgeVoiceId?.startsWith('voice_') ? 'Mi voz personal' : 'Voz seleccionada'}
+        voiceLabel={
+          activeSettings.ttsMode === 'browser'
+            ? 'Voz del dispositivo'
+            : activeSettings.ttsMode === 'pocket'
+            ? 'Pocket TTS (Local)'
+            : settings.edgeVoiceId === 'qwen-clone'
+            ? 'Qwen3-TTS (GPU)'
+            : settings.edgeVoiceId?.startsWith('voice_')
+            ? 'Mi voz personal'
+            : (edgeVoices.find(v => v.id === settings.edgeVoiceId)?.name || 'Voz del servidor')
+        }
         topics={conversationTopics}
         activeTopic={activeTopic}
         activeTopicContext={activeTopicContext}
@@ -455,6 +469,7 @@ export function App({ voiceAuthenticated, onVoiceLogin, onLogout }) {
         isOpen={isSettingsOpen}
         onClose={closeSettings}
         voiceAuthenticated={voiceAuthenticated}
+        authRequired={authRequired}
         pocketReady={pocketReady}
         onVoiceLogin={onVoiceLogin}
         onLogout={onLogout}

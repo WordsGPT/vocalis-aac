@@ -159,23 +159,40 @@ async def health(x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis
         "qwen_voice": clone_status.__dict__,
     }
 
+@app.get("/api/session")
+async def get_session():
+    return {"authenticated": True, "auth_required": False}
+
+@app.post("/api/login")
+async def login():
+    return {"authenticated": True, "auth_required": False}
+
+@app.post("/api/logout")
+async def logout():
+    return {"authenticated": True, "auth_required": False}
+
 @app.get("/api/voices")
 async def list_voices():
     return CURATED_VOICES
 
 @app.post("/api/voice/clone")
 async def clone_voice(
-    file: UploadFile = File(...),
-    x_vocalis_client: str = Header(..., alias="X-Vocalis-Client"),
+    file: Optional[UploadFile] = File(None),
+    reference: Optional[UploadFile] = File(None),
+    consent: Optional[UploadFile] = File(None),
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
 ):
     """Build a Qwen speaker profile from a short recording; no transcript required."""
-    content = await file.read()
+    upload = file or reference
+    if not upload:
+        raise HTTPException(status_code=400, detail="Falta el archivo de audio para clonar la voz.")
+    content = await upload.read()
     if not content:
         raise HTTPException(status_code=400, detail="La grabación está vacía")
     if len(content) > 20 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="La grabación no puede superar 20 MB")
 
-    input_suffix = os.path.splitext(file.filename or "voice.webm")[1] or ".webm"
+    input_suffix = os.path.splitext(upload.filename or "voice.webm")[1] or ".webm"
     input_path = None
     wav_path = None
     try:
@@ -204,7 +221,8 @@ async def clone_voice(
         if duration > 30:
             raise ValueError("La muestra no puede durar más de 30 segundos.")
 
-        await asyncio.to_thread(qwen_voice.clone_from_audio, wav_path, x_vocalis_client)
+        client_id = x_vocalis_client or "default-device"
+        await asyncio.to_thread(qwen_voice.clone_from_audio, wav_path, client_id)
         return {
             "status": "ready",
             "message": "Perfil guardado para los modos rápido y estándar.",
@@ -313,19 +331,18 @@ async def generate_tts(req: TTSRequest, x_vocalis_client: Optional[str] = Header
     if not text:
         raise HTTPException(status_code=400, detail="Text cannot be empty")
     
-    voice = req.voice or "en-US-GuyNeural"
+    voice = req.voice or "qwen-clone"
     rate = req.rate or "+0%"
     pitch = req.pitch or "+0Hz"
 
     try:
-        if voice == "qwen-clone":
-            if not x_vocalis_client:
-                raise HTTPException(status_code=400, detail="Falta el identificador de este dispositivo.")
+        if voice == "qwen-clone" or edge_tts is None:
+            client_id = x_vocalis_client or "default-device"
             audio = await asyncio.to_thread(
                 qwen_voice.synthesize,
                 text,
                 req.language or "Spanish",
-                x_vocalis_client,
+                client_id,
             )
             return StreamingResponse(
                 io.BytesIO(audio),
@@ -333,8 +350,6 @@ async def generate_tts(req: TTSRequest, x_vocalis_client: Optional[str] = Header
                 headers={"Content-Disposition": "inline; filename=cloned-speech.wav"},
             )
 
-        if edge_tts is None:
-            raise RuntimeError("Edge-TTS is not installed in this Python environment")
         comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
         
         async def audio_generator():

@@ -11,6 +11,7 @@ export function SettingsModal({
   onClose,
   onLogout,
   voiceAuthenticated,
+  authRequired = false,
   pocketReady,
   onVoiceLogin,
   settings,
@@ -88,7 +89,9 @@ export function SettingsModal({
 
         {/* Modal Body */}
         <div className="settings-body p-5 sm:p-6 overflow-y-auto space-y-6 text-sm">
-          <AccessPanel authenticated={voiceAuthenticated} onLogin={onVoiceLogin} onLogout={onLogout} />
+          {authRequired && (
+            <AccessPanel authenticated={voiceAuthenticated} onLogin={onVoiceLogin} onLogout={onLogout} />
+          )}
           <div>
             <label htmlFor="grammatical-form" className="block text-sm font-semibold mb-2">Cómo hablo de mí</label>
             <select id="grammatical-form" className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700" value={settings.grammaticalForm || 'masculine'} onChange={event => onUpdateSettings({ grammaticalForm: event.target.value })}>
@@ -118,20 +121,25 @@ export function SettingsModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
               <button
                 type="button"
-                onClick={() => onUpdateSettings({ ttsMode: 'edge-tts' })}
-                disabled={!voiceAuthenticated}
+                id="tts-mode-qwen"
+                onClick={() => onUpdateSettings({ ttsMode: 'edge-tts', edgeVoiceId: settings.edgeVoiceId || 'qwen-clone' })}
+                disabled={authRequired && !voiceAuthenticated}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                  settings.ttsMode === 'edge-tts'
+                  settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen'
                     ? 'bg-blue-600/20 border-blue-500 text-white font-medium ring-1 ring-blue-400'
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz personal o del catálogo</div>
-                <div className="text-[11px] text-slate-400">Elige tu voz guardada u otra voz</div>
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <span className="font-semibold text-xs text-blue-300">Qwen3-TTS</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">GPU · Servidor</span>
+                </div>
+                <div className="text-[11px] text-slate-400 leading-snug">Voz clonada de alta calidad en servidor GPU</div>
               </button>
 
               <button
                 type="button"
+                id="tts-mode-pocket"
                 onClick={() => onUpdateSettings({ ttsMode: 'pocket' })}
                 disabled={!pocketReady}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors disabled:opacity-50 ${
@@ -140,12 +148,16 @@ export function SettingsModal({
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Pocket TTS</div>
-                <div className="text-[11px] text-slate-400">Voz clonada en este dispositivo, sin iniciar sesión</div>
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <span className="font-semibold text-xs text-blue-300">Pocket TTS</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">WASM · Local</span>
+                </div>
+                <div className="text-[11px] text-slate-400 leading-snug">Voz clonada en tu navegador sin servidor</div>
               </button>
 
               <button
                 type="button"
+                id="tts-mode-browser"
                 onClick={() => onUpdateSettings({ ttsMode: 'browser' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.ttsMode === 'browser'
@@ -153,28 +165,36 @@ export function SettingsModal({
                     : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-blue-300 mb-0.5">Voz del dispositivo</div>
-                <div className="text-[11px] text-slate-400">Usa las voces disponibles en este dispositivo</div>
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <span className="font-semibold text-xs text-blue-300">Voz del dispositivo</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">Sistema</span>
+                </div>
+                <div className="text-[11px] text-slate-400 leading-snug">Voz estándar del navegador o sistema</div>
               </button>
             </div>
 
             {/* Voice dropdown */}
-            {settings.ttsMode !== 'pocket' && <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1">Voz seleccionada:</label>
-            {settings.ttsMode === 'edge-tts' ? (
+            {(settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen') && (
+              <div className="mb-3">
+                <label className="block text-xs text-slate-400 mb-1">Voz del servidor seleccionada:</label>
                 <select
-                  value={settings.edgeVoiceId || 'Puck'}
+                  value={settings.edgeVoiceId || 'qwen-clone'}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
                   className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
                 >
-                  {settings.edgeVoiceId?.startsWith('voice_') && <option value={settings.edgeVoiceId}>Mi voz personal</option>}
-                  {edgeVoices.map((v) => (
+                  <option value="qwen-clone">⭐ Mi voz clonada con Qwen3-TTS (GPU)</option>
+                  {edgeVoices.filter(v => v.id !== 'qwen-clone').map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name} ({v.lang})
                     </option>
                   ))}
                 </select>
-              ) : (
+              </div>
+            )}
+
+            {settings.ttsMode === 'browser' && (
+              <div className="mb-3">
+                <label className="block text-xs text-slate-400 mb-1">Voz del dispositivo seleccionada:</label>
                 <select
                   value={settings.browserVoiceURI || ''}
                   onChange={(e) => onUpdateSettings({ browserVoiceURI: e.target.value })}
@@ -190,8 +210,8 @@ export function SettingsModal({
                     ))
                   )}
                 </select>
-              )}
-            </div>}
+              </div>
+            )}
 
             {/* Sliders for rate and pitch */}
             {settings.ttsMode !== 'pocket' && <div className="grid grid-cols-2 gap-4">
@@ -269,9 +289,25 @@ export function SettingsModal({
               {preparationStatus && <p className="text-xs text-slate-300 mt-2 mb-0" role="status">{preparationStatus}</p>}
             </div>
 
-            <PocketCloner available={pocketReady} onSelected={onPocketSelected} onRemoved={onPocketRemoved} />
-            {!pocketReady && <p className="text-xs text-slate-400">Este navegador no admite Pocket TTS.</p>}
-            <VoiceCloner onCloned={onVoiceCloned} authenticated={voiceAuthenticated} />
+            {/* Cloner section for selected engine */}
+            {(settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen') && (
+              <VoiceCloner
+                onCloned={(voiceId) => {
+                  onUpdateSettings({ edgeVoiceId: voiceId || 'qwen-clone' });
+                  onVoiceCloned?.(voiceId || 'qwen-clone');
+                }}
+                authenticated={voiceAuthenticated}
+                authRequired={authRequired}
+                isQwen={true}
+              />
+            )}
+
+            {settings.ttsMode === 'pocket' && (
+              <>
+                <PocketCloner available={pocketReady} onSelected={onPocketSelected} onRemoved={onPocketRemoved} />
+                {!pocketReady && <p className="text-xs text-slate-400 mt-2">Este navegador no admite Pocket TTS.</p>}
+              </>
+            )}
           </div>
 
           <hr className="border-slate-800" />
@@ -416,7 +452,7 @@ export function SettingsModal({
                   key={eng.id}
                   type="button"
                   onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
-                  disabled={!voiceAuthenticated && eng.id === 'gemini'}
+                  disabled={authRequired && !voiceAuthenticated && eng.id === 'gemini'}
                   className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
                     settings.preferredEngine === eng.id
                       ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 ring-1 ring-indigo-400'

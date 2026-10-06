@@ -36,7 +36,7 @@ export async function toWav(file) {
   } finally { await context.close(); }
 }
 
-export function VoiceCloner({ onCloned, authenticated }) {
+export function VoiceCloner({ onCloned, authenticated = true, authRequired = false, isQwen = true }) {
   const [files, setFiles] = useState({ reference: null, consent: null });
   const [active, setActive] = useState(null);
   const [status, setStatus] = useState('');
@@ -78,24 +78,62 @@ export function VoiceCloner({ onCloned, authenticated }) {
   };
 
   const create = async () => {
-    if (!files.reference || !files.consent) return;
-    if (files.reference.duration < 10 || files.reference.duration > 30 || files.consent.duration < 2) {
-      setStatus('La muestra debe durar entre 10 y 30 segundos y el consentimiento al menos 2 segundos.');
-      return;
+    if (!files.reference) return;
+    if (isQwen) {
+      if (files.reference.duration < 6 || files.reference.duration > 30) {
+        setStatus('La muestra debe durar entre 6 y 30 segundos (recomendado 8–15s).');
+        return;
+      }
+    } else {
+      if (!files.consent) return;
+      if (files.reference.duration < 10 || files.reference.duration > 30 || files.consent.duration < 2) {
+        setStatus('La muestra debe durar entre 10 y 30 segundos y el consentimiento al menos 2 segundos.');
+        return;
+      }
     }
     setSaving(true);
-    setStatus('Creando la voz…');
+    setStatus('Creando y guardando la voz…');
     try {
-      const result = await cloneVoiceFromAudio(files.reference.wav, files.consent.wav);
-      onCloned?.(result.voice_id);
-      setStatus(`Voz creada. Guarda este ID para usarla en otro dispositivo: ${result.voice_id}`);
+      const result = await cloneVoiceFromAudio(files.reference.wav, files.consent?.wav);
+      onCloned?.(result.voice_id || 'qwen-clone');
+      setStatus(isQwen
+        ? '¡Voz clonada con éxito en el servidor GPU con Qwen3-TTS!'
+        : `Voz creada. Guarda este ID para usarla en otro dispositivo: ${result.voice_id}`);
     } catch (error) { setStatus(error.message); }
     finally { setSaving(false); }
   };
 
-  if (!authenticated) return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-300">
+  if (authRequired && !authenticated) return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-300">
     Inicia sesión arriba para crear y usar una voz personal.
   </div>;
+
+  if (isQwen) {
+    return <div className="voice-cloner mt-4 rounded-xl border border-blue-500/40 bg-blue-950/20 p-4 text-sm text-slate-200">
+      <div className="flex items-center justify-between mb-1">
+        <h4 className="font-bold m-0 text-blue-200">Clonar voz en el servidor con Qwen3-TTS</h4>
+        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/30 text-blue-300 font-mono">GPU Server</span>
+      </div>
+      <p className="text-xs text-slate-400 mb-3">Graba entre 6 y 30 segundos (recomendado 8–15s) de tu voz en español hablando con naturalidad. Qwen3-TTS procesará la muestra directamente en la GPU del servidor.</p>
+      <div className="my-3">
+        <div className="flex gap-2 items-center flex-wrap">
+          <button type="button" disabled={saving || (active && active !== 'reference')} onClick={() => record('reference')}
+            className={`p-2 rounded font-semibold text-white transition-colors ${active === 'reference' ? 'bg-red-600 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'}`}>
+            {active === 'reference' ? 'Detener grabación' : 'Grabar muestra (6-30s)'}
+          </button>
+          <label className="p-2 rounded bg-slate-700 hover:bg-slate-600 cursor-pointer text-slate-200">Subir audio
+            <input type="file" accept="audio/*" className="hidden" disabled={saving || !!active}
+              onChange={event => { choose('reference', event.target.files?.[0]); event.target.value = ''; }} />
+          </label>
+          {files.reference && <span className="text-xs text-emerald-300 font-medium">✓ Muestra lista · {Math.round(files.reference.duration)} s</span>}
+        </div>
+      </div>
+      <button type="button" onClick={create} disabled={saving || !!active || !files.reference}
+        className="w-full p-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold transition-colors">
+        {saving ? 'Guardando en GPU…' : 'Crear y usar voz con Qwen3-TTS'}
+      </button>
+      {status && <p role="status" className="text-xs mt-2 text-slate-300">{status}</p>}
+    </div>;
+  }
 
   return <div className="voice-cloner mt-4 rounded-xl border p-4 text-sm text-slate-200">
     <h4 className="font-bold m-0">Crear mi voz con Gemini</h4>

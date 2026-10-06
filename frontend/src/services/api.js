@@ -43,7 +43,8 @@ export async function fetchCuratedVoices() {
 export async function cloneVoiceFromAudio(reference, consent) {
   const formData = new FormData();
   formData.append('reference', reference, 'reference.wav');
-  formData.append('consent', consent, 'consent.wav');
+  formData.append('file', reference, 'reference.wav');
+  if (consent) formData.append('consent', consent, 'consent.wav');
   const res = await fetch(`${API_BASE}/voice/clone`, {
     method: 'POST',
     headers: deviceHeaders(),

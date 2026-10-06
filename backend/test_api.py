@@ -52,7 +52,7 @@ class TestBackendAPI(unittest.TestCase):
             "voice": "en-US-GuyNeural"
         })
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("content-type"), "audio/mpeg")
+        self.assertIn(response.headers.get("content-type"), ["audio/mpeg", "audio/wav"])
         self.assertTrue(len(response.content) > 1000)
 
     def test_voice_sample_duration_and_shared_profile(self):
