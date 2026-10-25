@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Volume2, Sparkles, Mic, Sliders, Key, ShieldCheck, Globe, FileText, Download, Trash2 } from 'lucide-react';
+import { X, Volume2, Sparkles, Mic, Sliders, Globe, FileText, Download, Trash2 } from 'lucide-react';
 import { VoiceCloner } from './VoiceCloner';
 import { PocketCloner } from './PocketCloner';
 import { AccessPanel } from './AccessPanel';
@@ -10,6 +10,8 @@ export function SettingsModal({
   speakerLabels = true,
   isOpen,
   onClose,
+  onOpenTutorial,
+  guided = false,
   onLogout,
   voiceAuthenticated,
   authRequired = false,
@@ -96,7 +98,7 @@ export function SettingsModal({
     }
   };
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || guided) return;
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -104,7 +106,7 @@ export function SettingsModal({
     const handleKey = (event) => {
       if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
       if (event.key !== 'Tab') return;
-      const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]')].filter(node => node.getClientRects().length);
+      const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex="0"]')].filter(node => node.getClientRects().length);
       const first = nodes[0]; const last = nodes[nodes.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -112,12 +114,12 @@ export function SettingsModal({
     const dialog = dialogRef.current;
     dialog?.addEventListener('keydown', handleKey);
     return () => { dialog?.removeEventListener('keydown', handleKey); document.body.style.overflow = overflow; previous?.focus(); };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, guided]);
   if (!isOpen) return null;
 
   return (
     <div className="settings-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-fade-in">
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="voice-settings-title" tabIndex={-1} className="settings-dialog rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[94dvh] sm:max-h-[92vh] h-[94dvh] sm:h-auto flex flex-col overflow-hidden text-left">
+      <div ref={dialogRef} role="dialog" aria-modal={guided ? false : true} aria-labelledby="voice-settings-title" tabIndex={-1} className="settings-dialog rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[94dvh] sm:max-h-[92vh] h-[94dvh] sm:h-auto flex flex-col overflow-hidden text-left">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center gap-2">
@@ -128,6 +130,7 @@ export function SettingsModal({
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             title="Cerrar"
+            aria-label="Cerrar ajustes"
           >
             <X className="w-5 h-5" />
           </button>
@@ -135,6 +138,11 @@ export function SettingsModal({
 
         {/* Modal Body */}
         <div className="settings-body p-5 sm:p-6 overflow-y-auto space-y-6 text-sm">
+          <div className="rounded-xl border border-slate-700 p-4">
+            <h3 className="font-semibold m-0">Primeros pasos con Vocalis</h3>
+            <p className="text-sm text-slate-400 mt-2">Configura lo esencial y aprende qué hace cada parte de la pantalla.</p>
+            <button type="button" className="px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold" onClick={onOpenTutorial}>Abrir tutorial</button>
+          </div>
           {authRequired && (
             <AccessPanel authenticated={voiceAuthenticated} onLogin={onVoiceLogin} onLogout={onLogout} />
           )}
@@ -155,7 +163,7 @@ export function SettingsModal({
               </h3>
               <button
                 type="button"
-                onClick={onTestVoice}
+                data-tour="voice-test" onClick={onTestVoice}
                 className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 cursor-pointer font-bold transition-colors"
               >
                 <Volume2 className="w-3.5 h-3.5" />
@@ -164,10 +172,11 @@ export function SettingsModal({
             </div>
 
             {/* TTS Engine Mode */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+            <div data-tour="voice-type" className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
               <button
                 type="button"
                 id="tts-mode-qwen"
+                aria-pressed={settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen'}
                 onClick={() => onUpdateSettings({ ttsMode: 'edge-tts', edgeVoiceId: settings.edgeVoiceId || 'qwen-clone' })}
                 disabled={authRequired && !voiceAuthenticated}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
@@ -186,6 +195,7 @@ export function SettingsModal({
               <button
                 type="button"
                 id="tts-mode-pocket"
+                aria-pressed={settings.ttsMode === 'pocket'}
                 onClick={() => onUpdateSettings({ ttsMode: 'pocket' })}
                 disabled={!pocketReady}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors disabled:opacity-50 ${
@@ -204,6 +214,7 @@ export function SettingsModal({
               <button
                 type="button"
                 id="tts-mode-browser"
+                aria-pressed={settings.ttsMode === 'browser'}
                 onClick={() => onUpdateSettings({ ttsMode: 'browser' })}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.ttsMode === 'browser'
@@ -222,8 +233,9 @@ export function SettingsModal({
             {/* Voice dropdown */}
             {(settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen') && (
               <div className="mb-3">
-                <label className="block text-xs text-slate-400 mb-1">Voz del servidor seleccionada:</label>
+                <label htmlFor="server-voice" className="block text-xs text-slate-400 mb-1">Voz del servidor seleccionada:</label>
                 <select
+                  id="server-voice"
                   value={settings.edgeVoiceId || 'qwen-clone'}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
                   className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
@@ -240,8 +252,9 @@ export function SettingsModal({
 
             {settings.ttsMode === 'browser' && (
               <div className="mb-3">
-                <label className="block text-xs text-slate-400 mb-1">Voz del dispositivo seleccionada:</label>
+                <label htmlFor="browser-voice" className="block text-xs text-slate-400 mb-1">Voz del dispositivo seleccionada:</label>
                 <select
+                  id="browser-voice"
                   value={settings.browserVoiceURI || ''}
                   onChange={(e) => onUpdateSettings({ browserVoiceURI: e.target.value })}
                   className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
@@ -260,7 +273,7 @@ export function SettingsModal({
             )}
 
             {/* Sliders for rate and pitch */}
-            {settings.ttsMode !== 'pocket' && <div className="grid grid-cols-2 gap-4">
+            {settings.ttsMode !== 'pocket' && <div data-tour="voice-speed" className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Velocidad de habla:</span>
@@ -269,6 +282,7 @@ export function SettingsModal({
                 <input
                   type="range"
                   min="0.6"
+                  aria-label="Velocidad de habla"
                   max="1.5"
                   step="0.05"
                   value={settings.speechRate || 1.0}
@@ -285,6 +299,7 @@ export function SettingsModal({
                 <input
                   type="range"
                   min="0.7"
+                  aria-label="Tono de voz"
                   max="1.3"
                   step="0.05"
                   value={settings.speechPitch || 1.0}
@@ -294,7 +309,7 @@ export function SettingsModal({
               </div>
             </div>}
 
-            <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
+            <div data-tour="tile-size" className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
               <div className="flex items-center justify-between gap-3 mb-2">
                 <label htmlFor="pictogram-size" className="font-semibold text-sm text-slate-200">Tamaño de casillas</label>
                 <output htmlFor="pictogram-size" className="font-semibold text-blue-300">{pictogramSize}%</output>
@@ -313,7 +328,7 @@ export function SettingsModal({
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-700 p-3 bg-slate-800/60">
-              <label className="flex items-start gap-3 cursor-pointer text-sm text-slate-200">
+              <label data-tour="tile-speech" className="flex items-start gap-3 cursor-pointer text-sm text-slate-200">
                 <input type="checkbox" checked={settings.speakTiles !== false}
                   onChange={(event) => onUpdateSettings({ speakTiles: event.target.checked })}
                   className="mt-1 accent-blue-600" />
@@ -365,10 +380,32 @@ export function SettingsModal({
               Respuestas sugeridas
             </h3>
 
+            {/* Response Generation Mode */}
+            <div className="mb-3">
+              <label htmlFor="response-generation-mode" className="block text-xs text-slate-400 mb-1">
+                Modo de generación de respuestas:
+              </label>
+              <select
+                id="response-generation-mode"
+                value={settings.responseGenerationMode || 'manual'}
+                onChange={(e) => onUpdateSettings({ responseGenerationMode: e.target.value, responseGenerationMode_v2: e.target.value })}
+                className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500 font-medium"
+              >
+                <option value="manual">Manual (esperar a pulsar «Generar respuestas») [Por defecto]</option>
+                <option value="auto">Automática (generar al terminar de hablar)</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                {(settings.responseGenerationMode || 'manual') === 'manual'
+                  ? 'La IA esperará a que pulses el botón «Generar respuestas» para proponer opciones.'
+                  : 'La IA genera respuestas automáticamente cada vez que la otra persona termina de hablar.'}
+              </p>
+            </div>
+
             {/* Tone Selector */}
             <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1">Estilo de las respuestas:</label>
+              <label htmlFor="response-tone" className="block text-xs text-slate-400 mb-1">Estilo de las respuestas:</label>
               <select
+                id="response-tone"
                 value={settings.tone || 'natural'}
                 onChange={(e) => onUpdateSettings({ tone: e.target.value })}
                 className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
@@ -383,8 +420,9 @@ export function SettingsModal({
 
             {/* Suggestions Count */}
             <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1">Cantidad de opciones sugeridas:</label>
+              <label htmlFor="response-count" className="block text-xs text-slate-400 mb-1">Cantidad de opciones sugeridas:</label>
               <select
+                id="response-count"
                 value={settings.suggestionCount || 6}
                 onChange={(e) => onUpdateSettings({ suggestionCount: parseInt(e.target.value, 10) })}
                 className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500 font-medium"
@@ -428,11 +466,12 @@ export function SettingsModal({
 
             {/* Language Selector */}
             <div className="mb-3">
-              <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
+              <label htmlFor="listening-language" className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
                 <Globe className="w-3.5 h-3.5 text-blue-400" />
                 <span>Idioma de escucha:</span>
               </label>
               <select
+                id="listening-language"
                 value={settings.sttLang || 'es-ES'}
                 onChange={(e) => onUpdateSettings({ sttLang: e.target.value })}
                 className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 font-medium"
@@ -444,10 +483,11 @@ export function SettingsModal({
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div data-tour="recognition" className="grid grid-cols-2 gap-2 mb-3">
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ sttMode: 'whisper' })}
+                aria-pressed={settings.sttMode !== 'browser'}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.sttMode !== 'browser'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
@@ -461,6 +501,7 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ sttMode: 'browser' })}
+                aria-pressed={settings.sttMode === 'browser'}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.sttMode === 'browser'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white font-medium ring-1 ring-emerald-400'
@@ -472,7 +513,7 @@ export function SettingsModal({
               </button>
             </div>
 
-            <div>
+            <div data-tour="listening-pause">
               <div className="flex justify-between text-xs text-slate-400 mb-1">
                 <span>Pausa de silencio para sugerir respuestas:</span>
                 <span className="font-mono font-bold text-emerald-300">{((settings.autoTriggerDelay || 1000) / 1000).toFixed(1)}s</span>
@@ -480,6 +521,7 @@ export function SettingsModal({
               <input
                 type="range"
                 min="600"
+                aria-label="Pausa de silencio para sugerir respuestas"
                 max="3000"
                 step="100"
                 value={settings.autoTriggerDelay || 1000}
@@ -572,6 +614,7 @@ export function SettingsModal({
                   key={eng.id}
                   type="button"
                   onClick={() => onUpdateSettings({ preferredEngine: eng.id })}
+                  aria-pressed={settings.preferredEngine === eng.id}
                   disabled={authRequired && !voiceAuthenticated && eng.id === 'gemini'}
                   className={`p-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
                     settings.preferredEngine === eng.id
@@ -589,8 +632,8 @@ export function SettingsModal({
             {settings.edgeVoiceId?.startsWith('voice_') && (
               <div className="text-xs text-slate-400">ID de voz personal: <code>{settings.edgeVoiceId}</code></div>
             )}
-            <label className="block text-xs text-slate-400">Usar un ID de voz personal guardado en otro dispositivo</label>
-            <input type="text" placeholder="voice_..." value={settings.edgeVoiceId?.startsWith('voice_') ? settings.edgeVoiceId : ''}
+            <label htmlFor="personal-voice-id" className="block text-xs text-slate-400">Usar un ID de voz personal guardado en otro dispositivo</label>
+            <input id="personal-voice-id" type="text" placeholder="voice_..." value={settings.edgeVoiceId?.startsWith('voice_') ? settings.edgeVoiceId : ''}
               onChange={(e) => { if (!e.target.value || /^voice_[A-Za-z0-9_-]+$/.test(e.target.value)) onUpdateSettings({ edgeVoiceId: e.target.value || 'Puck' }); }}
               className="w-full bg-slate-950 text-white rounded-lg p-2 text-xs border border-slate-700" />
             </div></details>
@@ -598,13 +641,13 @@ export function SettingsModal({
 
         {/* Modal Footer */}
         <div className="px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex justify-between items-center" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
-<span />
+          <span className="text-xs text-slate-400">Los cambios se guardan automáticamente.</span>
           <button
             type="button"
             onClick={onClose}
             className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-md transition-colors"
           >
-            Guardar y cerrar
+            Listo
           </button>
         </div>
       </div>

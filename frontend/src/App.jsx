@@ -1,6 +1,9 @@
+import { AGENT_ENABLED } from './features';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CommunicationBoard } from './components/CommunicationBoard';
 import { SettingsModal } from './components/SettingsModal';
+import { OnboardingModal } from './components/OnboardingModal';
+import { shouldShowOnboarding } from './utils/onboarding';
 import { ContextModal } from './components/ContextModal';
 import { AAC_VOCABULARY, CORE_STRIP, QUICK_PHRASES, findTopicPictogram } from './components/vocabulary';
 import { personalForm } from './utils/spanish';
@@ -31,6 +34,7 @@ const DEFAULT_SETTINGS = {
   speechPitch: 1.0,
   preferredEngine: 'groq', // 'groq' | 'gemini' | 'heuristic'
   tone: 'natural',
+  responseGenerationMode: 'manual', // 'manual' (default: wait for generate button) | 'auto' (generate automatically)
   sttMode: 'whisper', // 'whisper' (Groq transcription) | 'browser'
   sttLang: 'es-ES',
   suggestionCount: 6,
@@ -83,6 +87,7 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
         ...stored,
         edgeVoiceId: (stored.edgeVoiceId && stored.edgeVoiceId !== 'Puck') ? stored.edgeVoiceId : 'qwen-clone',
         qwenEngine: 'standard',
+        responseGenerationMode: stored.responseGenerationMode_v2 ? (stored.responseGenerationMode_v2 === 'auto' ? 'auto' : 'manual') : 'manual',
         auditLogging: Boolean(stored.auditLogging),
       };
     } catch (_) {
@@ -98,12 +103,22 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
   };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(shouldShowOnboarding);
+  const [tutorialStep, setTutorialStep] = useState(null);
+  const tutorialReturnView = useRef('conversation');
   const [isContextOpen, setIsContextOpen] = useState(false);
   const [view, setView] = useState('conversation');
+  const handleTutorialStep = useCallback((step) => {
+    setTutorialStep(step.id);
+    setView(step.view);
+    setIsSettingsOpen(Boolean(step.settings));
+  }, []);
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
   const closeContext = useCallback(() => setIsContextOpen(false), []);
   const [edgeVoices, setEdgeVoices] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [directYes, setDirectYes] = useState('Sí');
+  const [directNo, setDirectNo] = useState('No');
   const suggestionRequest = useRef(0);
   const suggestionAbort = useRef(null);
   const [conversationStatus, setConversationStatus] = useState('');
@@ -119,6 +134,7 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
   const [lastAgentAction, setLastAgentAction] = useState(null);
 
   useEffect(() => {
+    if (!AGENT_ENABLED) return;
     fetchAgentState().then((state) => {
       if (state) {
         if (state.light) setAgentLightState(state.light);
@@ -149,9 +165,11 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
       cursorStopTimerRef.current = setTimeout(() => {
         isCursorMovingRef.current = false;
         if (pendingUpdateRef.current && !isHoveringRepliesRef.current) {
-          const { newSuggestions, engine, status } = pendingUpdateRef.current;
+          const { newSuggestions, engine, status, nextDirectYes, nextDirectNo } = pendingUpdateRef.current;
           pendingUpdateRef.current = null;
           setSuggestions(newSuggestions);
+          if (nextDirectYes) setDirectYes(nextDirectYes);
+          if (nextDirectNo) setDirectNo(nextDirectNo);
           if (engine) setAiEngine(engine);
           if (status) setConversationStatus(status);
         }
@@ -174,9 +192,11 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
   const handleRepliesMouseLeave = useCallback(() => {
     isHoveringRepliesRef.current = false;
     if (pendingUpdateRef.current && !isCursorMovingRef.current) {
-      const { newSuggestions, engine, status } = pendingUpdateRef.current;
+      const { newSuggestions, engine, status, nextDirectYes, nextDirectNo } = pendingUpdateRef.current;
       pendingUpdateRef.current = null;
       setSuggestions(newSuggestions);
+      if (nextDirectYes) setDirectYes(nextDirectYes);
+      if (nextDirectNo) setDirectNo(nextDirectNo);
       if (engine) setAiEngine(engine);
       if (status) setConversationStatus(status);
     }
@@ -212,6 +232,9 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
       const updated = { ...prev, ...newSettings };
       delete updated.geminiApiKey;
       delete updated.groqApiKey;
+      if (newSettings.responseGenerationMode && !newSettings.responseGenerationMode_v2) {
+        updated.responseGenerationMode_v2 = newSettings.responseGenerationMode;
+      }
       try {
         localStorage.setItem('vocalis_settings', JSON.stringify(updated));
       } catch (_) {}
@@ -260,16 +283,19 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     abortPendingSuggestions();
     pendingUpdateRef.current = null;
     setSuggestions([]);
+    setDirectYes('Sí');
+    setDirectNo('No');
   }, [abortPendingSuggestions]);
 
   const handleToggleLight = useCallback(async (targetState, targetColor = 'green') => {
     const res = await setAgentLight({ state: targetState, color: targetColor, brightness: 100 });
-    if (res?.light) {
+    if (res?.light && res.status !== 'error') {
       setAgentLightState(res.light);
       const action = { tool: 'control_light', result: res, timestamp: new Date().toISOString() };
       setLastAgentAction(action);
       setAgentActionLog(prev => [action, ...prev.slice(0, 49)]);
     }
+    return res;
   }, []);
 
   const handleAddCalendarEvent = useCallback(async (eventData) => {
@@ -280,6 +306,7 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
       setLastAgentAction(action);
       setAgentActionLog(prev => [action, ...prev.slice(0, 49)]);
     }
+    return res;
   }, []);
 
   const handleDeleteCalendarEvent = useCallback(async (eventId) => {
@@ -287,6 +314,7 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     if (res?.status === 'success') {
       setCalendarEvents(prev => prev.filter(e => e.id !== eventId));
     }
+    return res;
   }, []);
 
   const handleProcessAgentCommand = useCallback(async (text) => {
@@ -388,21 +416,32 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
                 ? 'Siguiendo la conversación · esperando un momento para participar.'
                 : 'Hay un momento para participar. Elige una respuesta o escribe la tuya.';
 
+        const nextDirectYes = res.direct_yes || 'Sí';
+        const nextDirectNo = res.direct_no || 'No';
+
         if (newSuggestions.length > 0 || !automatic) {
           // If cursor is moving or hovering replies and we already have suggestions showing,
           // hold the update so suggestions don't disappear in front of user while trying to click!
           if (automatic && suggestionsRef.current.length > 0 && (isCursorMovingRef.current || isHoveringRepliesRef.current)) {
             pendingUpdateRef.current = {
               newSuggestions,
+              nextDirectYes,
+              nextDirectNo,
               engine: nextEngine,
               status: nextStatus,
             };
           } else {
             pendingUpdateRef.current = null;
             setSuggestions(newSuggestions);
+            setDirectYes(nextDirectYes);
+            setDirectNo(nextDirectNo);
             setAiEngine(nextEngine);
             setConversationStatus(nextStatus);
           }
+        } else {
+          // Keep available replies, but explain why this turn produced no new ones.
+          setConversationStatus(nextStatus);
+          setAiEngine(nextEngine);
         }
         if (Array.isArray(res.topics) && res.topics.length > 0) {
           setConversationTopics((prev) => {
@@ -423,15 +462,15 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
             return next.slice(-6);
           });
         }
-        if (res.agent_state) {
+        if (AGENT_ENABLED && res.agent_state) {
           if (res.agent_state.light) setAgentLightState(res.agent_state.light);
           if (Array.isArray(res.agent_state.calendar_events)) setCalendarEvents(res.agent_state.calendar_events);
           if (Array.isArray(res.agent_state.action_log)) setAgentActionLog(res.agent_state.action_log);
         }
-        if (Array.isArray(res.tool_calls) && res.tool_calls.length > 0) {
+        if (AGENT_ENABLED && Array.isArray(res.tool_calls) && res.tool_calls.length > 0) {
           setLastAgentAction(res.tool_calls[0]);
         }
-        if (res.updated_user_context) {
+        if (AGENT_ENABLED && res.updated_user_context) {
           handleUpdateSettings({ userContext: res.updated_user_context });
         }
       }
@@ -448,8 +487,14 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     if (!heardText || !heardText.trim()) return;
     abortPendingSuggestions();
     addToHistory('partner', heardText.trim(), metadata.turns);
-    fetchSuggestions(heardText.trim(), metadata.automatic !== false, activeTopic, settings.userContext, speakMode ? 'speak' : 'reply');
-  }, [addToHistory, abortPendingSuggestions, fetchSuggestions, activeTopic, settings.userContext, speakMode]);
+    const isAutoSpeech = metadata.automatic !== false;
+    if (settings.responseGenerationMode === 'manual' && isAutoSpeech) {
+      clearSuggestions();
+      setConversationStatus('Mensaje recibido. Pulsa «Generar respuestas» para ver opciones.');
+      return;
+    }
+    fetchSuggestions(heardText.trim(), isAutoSpeech, activeTopic, settings.userContext, speakMode ? 'speak' : 'reply');
+  }, [addToHistory, abortPendingSuggestions, fetchSuggestions, activeTopic, settings.userContext, settings.responseGenerationMode, speakMode]);
 
   const handleSpeechActivity = useCallback(() => {
     setConversationStatus('Escuchando a las personas de la conversación…');
@@ -462,8 +507,8 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     autoTriggerDelay: settings.autoTriggerDelay || 1000,
     sttMode: activeSettings.sttMode || 'whisper',
     sttLang: settings.sttLang || 'es-ES',
-    autoListen: view === 'conversation',
-    suspended: tts.isSpeaking || tts.isLoading || isSettingsOpen || isContextOpen
+    autoListen: view === 'conversation' && !isOnboardingOpen,
+    suspended: tts.isSpeaking || tts.isLoading || isSettingsOpen || isContextOpen || isOnboardingOpen
   });
 
   const handleSaveContext = useCallback((newContext) => {
@@ -526,7 +571,7 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     stt.pauseForPlayback();
     tts.speak(text.trim(), options);
     addToHistory('user', text.trim());
-    processAgentMessage(text.trim(), settingsRef.current?.userContext, historyRef.current)
+    if (AGENT_ENABLED) processAgentMessage(text.trim(), settingsRef.current?.userContext, historyRef.current)
       .then((agentRes) => {
         if (agentRes?.state) {
           if (agentRes.state.light) setAgentLightState(agentRes.state.light);
@@ -550,20 +595,29 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
   return (
     <div className="vocalis-redesign">
       <CommunicationBoard
+        inert={isSettingsOpen || isContextOpen}
+        tutorialStep={isOnboardingOpen ? tutorialStep : null}
         speakerLabels={speakerLabels}
         view={view}
         onChangeView={setView}
         settings={activeSettings}
-        tts={tts}
-        stt={stt}
-        suggestions={suggestions}
-        loading={isLoadingSuggestions}
-        onSpeak={handleSelectAndSpeak}
+        onUpdateSettings={handleUpdateSettings}
+        tts={isOnboardingOpen ? { ...tts, speak: () => {} } : tts}
+        stt={isOnboardingOpen ? { ...stt, transcript: '¿Quieres salir a pasear?', turns: [], toggleListening: () => {}, simulateSpeech: () => {} } : stt}
+        suggestions={isOnboardingOpen ? (['replies', 'direct', 'regenerate', 'mode', 'write', 'context'].includes(tutorialStep) ? ['Sí, me apetece dar un paseo.', 'Prefiero quedarme en casa.', '¿Podemos ir después?'] : []) : suggestions}
+        directYes={directYes}
+        directNo={directNo}
+        loading={isOnboardingOpen ? false : isLoadingSuggestions}
+        onSpeak={isOnboardingOpen ? () => {} : handleSelectAndSpeak}
         onSettings={() => setIsSettingsOpen(true)}
         onOpenContext={() => setIsContextOpen(true)}
-        onRegenerate={(text) => fetchSuggestions(text, false, activeTopic, settings.userContext, speakMode ? 'speak' : 'reply')}
+        onRegenerate={(text) => {
+          const lastPartner = [...historyRef.current].reverse().find(m => m.sender === 'partner')?.text;
+          const fallback = lastPartner || (activeTopic ? `Sobre ${activeTopic}` : 'Continuar conversación');
+          fetchSuggestions(text || fallback, false, activeTopic, settings.userContext, speakMode ? 'speak' : 'reply');
+        }}
         conversationStatus={conversationStatus}
-        history={history}
+        history={isOnboardingOpen ? [{ sender: 'user', text: 'Hola, me apetece dar un paseo.', time: 'Ejemplo' }] : history}
         onClearHistory={handleClearHistory}
         engine={aiEngine}
         agentLight={agentLight}
@@ -586,7 +640,7 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
             ? 'Mi voz personal'
             : (edgeVoices.find(v => v.id === settings.edgeVoiceId)?.name || 'Voz del servidor')
         }
-        topics={conversationTopics}
+        topics={isOnboardingOpen ? [{ name: 'Paseo', pictogram: 8649 }] : conversationTopics}
         activeTopic={activeTopic}
         activeTopicContext={activeTopicContext}
         onSelectTopic={handleSelectTopic}
@@ -601,6 +655,8 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
         speakerLabels={speakerLabels}
         isOpen={isSettingsOpen}
         onClose={closeSettings}
+        onOpenTutorial={() => { tutorialReturnView.current = view; tts.stop(); setIsSettingsOpen(false); setIsOnboardingOpen(true); }}
+        guided={isOnboardingOpen}
         voiceAuthenticated={voiceAuthenticated}
         authRequired={authRequired}
         pocketReady={pocketReady}
@@ -631,6 +687,17 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
           handleUpdateSettings({ ttsMode: 'browser', voiceRevision: String(Date.now()) });
         }}
       />
+
+      {isOnboardingOpen && <OnboardingModal
+        onStepChange={handleTutorialStep}
+        tts={tts}
+        onClose={(nextView) => {
+          setView(nextView || tutorialReturnView.current);
+          setIsSettingsOpen(false);
+          setTutorialStep(null);
+          setIsOnboardingOpen(false);
+        }}
+      />}
 
       {/* Context Modal */}
       <ContextModal

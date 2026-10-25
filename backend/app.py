@@ -8,9 +8,9 @@ import wave
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -27,12 +27,20 @@ try:
 except ImportError:  # Browser recognition remains available without local Whisper.
     whisper = None
 
-from backend.engine import get_smart_suggestions, OLLAMA_URL
+from backend.engine import get_smart_suggestions, OLLAMA_URL, generate_plan_continuations, generate_guided_storyboard
 from backend.qwen_voice import qwen_voice
 from backend.diarization import diarizer
 from backend.conversation import conversation_suggestions
 from backend import audit
 from backend import agent
+
+# Shelved for now; preserve the implementation and saved state.
+AGENT_ENABLED = False
+
+def require_agent_enabled():
+    if not AGENT_ENABLED:
+        raise HTTPException(status_code=404, detail="Agent feature is shelved")
+
 
 logger = logging.getLogger("echo_flow_api")
 
@@ -113,6 +121,17 @@ class SuggestRequest(BaseModel):
     focus_topic: Optional[str] = None
     mode: Optional[str] = "reply"
     topic_context: Optional[str] = None
+
+class PlanGenerateRequest(BaseModel):
+    type: str = "continuations"  # "continuations" | "storyboard"
+    recipient: str = "general"
+    pictograms: Optional[List[str]] = None
+    goal: Optional[str] = None
+    tone: Optional[str] = "natural"
+    grammatical_form: str = "masculine"
+    count: Optional[int] = 5
+    user_context: Optional[str] = None
+    groq_api_key: Optional[str] = None
 
 class TTSRequest(BaseModel):
     text: str
@@ -268,13 +287,13 @@ async def clear_audit_logs(
 # Agent & Tool Calling Endpoints
 # ==============================================================================
 
-@app.get("/api/agent/state")
+@app.get("/api/agent/state", dependencies=[Depends(require_agent_enabled)])
 async def get_agent_state():
     """Retrieve current state of devices, calendar events, and agent action log."""
     state = await asyncio.to_thread(agent.load_agent_state)
     return state
 
-@app.post("/api/agent/process")
+@app.post("/api/agent/process", dependencies=[Depends(require_agent_enabled)])
 async def process_agent_message(req: AgentProcessRequest):
     """Explicitly process a text prompt through the agent to execute any tool calls."""
     tools, updated_context = await asyncio.to_thread(
@@ -291,7 +310,7 @@ async def process_agent_message(req: AgentProcessRequest):
         "state": current_state
     }
 
-@app.post("/api/agent/light")
+@app.post("/api/agent/light", dependencies=[Depends(require_agent_enabled)])
 async def control_agent_light(req: AgentLightRequest):
     """Directly control smart light state, color and brightness."""
     res = await asyncio.to_thread(
@@ -302,7 +321,7 @@ async def control_agent_light(req: AgentLightRequest):
     )
     return res
 
-@app.post("/api/agent/calendar")
+@app.post("/api/agent/calendar", dependencies=[Depends(require_agent_enabled)])
 async def add_agent_calendar_event(req: AgentCalendarRequest):
     """Add a calendar event."""
     res = await asyncio.to_thread(
@@ -315,13 +334,13 @@ async def add_agent_calendar_event(req: AgentCalendarRequest):
     )
     return res
 
-@app.delete("/api/agent/calendar/{event_id}")
+@app.delete("/api/agent/calendar/{event_id}", dependencies=[Depends(require_agent_enabled)])
 async def delete_agent_calendar_event(event_id: str):
     """Delete a calendar event."""
     res = await asyncio.to_thread(agent.execute_delete_calendar_event, event_id)
     return res
 
-@app.post("/api/agent/context")
+@app.post("/api/agent/context", dependencies=[Depends(require_agent_enabled)])
 async def update_agent_context(req: AgentContextRequest):
     """Update or append to the LLM's memory context about the user."""
     res = await asyncio.to_thread(
@@ -405,13 +424,14 @@ async def clone_voice(
 
 @app.post("/api/suggest")
 async def suggest(req: SuggestRequest):
-    # Detect and execute any agent tools (light, calendar, memory context)
-    executed_tools, updated_context = await asyncio.to_thread(
-        agent.detect_and_execute_tools,
-        req.text,
-        req.user_context,
-        req.history
-    )
+    executed_tools, updated_context = [], None
+    if AGENT_ENABLED:
+        executed_tools, updated_context = await asyncio.to_thread(
+            agent.detect_and_execute_tools,
+            req.text,
+            req.user_context,
+            req.history
+        )
     effective_context = updated_context if updated_context else req.user_context
 
     if req.automatic or req.focus_topic or req.mode == "speak":
@@ -438,13 +458,41 @@ async def suggest(req: SuggestRequest):
         )
 
     # Attach tool execution results, updated context, and agent state
-    if isinstance(res, dict):
+    if AGENT_ENABLED and isinstance(res, dict):
         if executed_tools:
             res["tool_calls"] = executed_tools
         if updated_context:
             res["updated_user_context"] = updated_context
         res["agent_state"] = await asyncio.to_thread(agent.load_agent_state)
 
+    return res
+
+
+@app.post("/api/plan/generate")
+async def generate_plan(req: PlanGenerateRequest):
+    """Generates planned conversation phrases or structured storyboards for a chosen recipient."""
+    plan_type = (req.type or "continuations").lower()
+    if plan_type == "storyboard":
+        res = await asyncio.to_thread(
+            generate_guided_storyboard,
+            recipient=req.recipient,
+            goal=req.goal,
+            tone=req.tone or "natural",
+            grammatical_form=req.grammatical_form or "masculine",
+            user_context=req.user_context,
+            groq_api_key=req.groq_api_key,
+        )
+    else:
+        res = await asyncio.to_thread(
+            generate_plan_continuations,
+            recipient=req.recipient,
+            pictograms=req.pictograms or [],
+            tone=req.tone or "natural",
+            grammatical_form=req.grammatical_form or "masculine",
+            user_context=req.user_context,
+            count=req.count or 5,
+            groq_api_key=req.groq_api_key,
+        )
     return res
 
 
@@ -606,6 +654,19 @@ async def stream_tts(req: TTSRequest, x_vocalis_client: str = Header(..., alias=
 # If frontend build exists, serve it
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.exists(frontend_dist):
+    @app.get("/")
+    @app.get("/index.html")
+    async def serve_index():
+        index_file = os.path.join(frontend_dist, "index.html")
+        return FileResponse(
+            index_file,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
+
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 if __name__ == "__main__":

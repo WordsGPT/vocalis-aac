@@ -9,6 +9,7 @@ const assert = require('node:assert/strict');
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
       await page.addInitScript(() => {
+        localStorage.setItem('vocalis_onboarding_v1', JSON.stringify({ status: 'completed' }));
         localStorage.setItem('vocalis_settings', JSON.stringify({ ttsMode: 'browser', userContext: 'Contexto anterior.' }));
         localStorage.removeItem('vocalis_history');
         window.speechSynthesis.speak = utterance => { window.testUtterance = utterance; };
@@ -78,6 +79,7 @@ const assert = require('node:assert/strict');
     }
     const denied = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await denied.addInitScript(() => {
+      localStorage.setItem('vocalis_onboarding_v1', JSON.stringify({ status: 'completed' }));
       localStorage.setItem('vocalis_show_transcript', 'false');
       navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Permission denied', 'NotAllowedError'); };
     });

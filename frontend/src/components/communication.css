@@ -1,1726 +1,1972 @@
-/* Communication is a viewport workspace. Only .aac-scroll-area scrolls. */
-.vocalis-redesign { color-scheme: light; color: #25364b; background: #eef1f5; --focus: #244da8; }
-body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; }
-.aac-app { height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr); overflow: hidden; font-family: 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.4; }
-.aac-app > * { min-width: 0; }
-.aac-app * { box-sizing: border-box; }
-.aac-app [hidden] { display: none !important; }
-.aac-app h1, .aac-app h2, .aac-app p { margin: 0; }
-.aac-app button { cursor: pointer; touch-action: manipulation; }
-.aac-app button:disabled { opacity: .45; cursor: default; }
-.aac-app :is(button, a, input, textarea, summary):focus-visible { outline: 3px solid #254faf; outline-offset: 2px; }
-.aac-header { display: flex; align-items: center; gap: 18px; min-height: 54px; padding: 4px 22px; background: #fff; border-bottom: 1px solid #d8e0eb; }
-.aac-brand { display: flex; align-items: center; gap: 8px; color: #2853a3; font-size: 23px; font-weight: 750; letter-spacing: -.8px; }
-.aac-brand svg { width: 28px; height: 28px; }
-.aac-voice-label { font-size: 13px; color: #52647b; }
-.aac-header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
-.aac-tool, .aac-icon-tool { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #cad5e4; border-radius: 8px; background: #fff; color: #324b6b; font-size: 14px; font-weight: 600; padding: 8px 13px; }
-.aac-tool:hover, .aac-icon-tool:hover { background: #eaf0fb; }
-.aac-icon-tool { min-width: 44px; flex-shrink: 0; padding: 9px; }
-.aac-composer { background: #fff; padding: 12px 22px 7px; border-bottom: 1px solid #ced8e5; box-shadow: 0 3px 9px #21344c0a; z-index: 3; }
-.aac-message-line { display: flex; gap: 10px; align-items: stretch; }
-.aac-message-line textarea { flex: 1; min-width: 0; height: 74px; resize: none; padding: 11px 15px; border: 2px solid #afbed4; border-radius: 10px; background: #fbfcfe; font-size: 24px; line-height: 1.35; color: #203750; }
-.aac-message-line textarea::placeholder { color: #63758d; font-size: 20px; }
-.aac-edit-tools { display: flex; gap: 7px; }
-.aac-edit-tools .aac-tool { flex-direction: column; gap: 4px; width: 70px; font-size: 12px; }
-.aac-speak { display: flex; align-items: center; justify-content: center; gap: 12px; background: #2a56ad; color: #fff; border-radius: 10px; min-width: 150px; padding: 10px 22px; font-size: 23px; font-weight: 700; }
-.aac-speak:disabled { background: #b8c7e3; opacity: 1; color: #344f7c; }
-.aac-speak:hover:not(:disabled) { background: #1e448d; }
-.aac-speak.is-speaking { background: #a9383e; }
-.aac-sentence-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; min-height: 50px; }
-.aac-sentence-strip { display: flex; gap: 7px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding: 3px; align-items: center; height: max(57px, calc(var(--aac-sentence-picto) + 12px)); }
-.aac-sentence-strip[hidden] { display: none; }
-.aac-sentence-symbol { display: flex; align-items: center; flex-shrink: 0; gap: 6px; min-height: 44px; max-width: 240px; padding: 4px 8px; border: 1px solid #bacde7; border-radius: 7px; background: #eff5ff; font-size: 13px; }
-.aac-sentence-symbol img { width: var(--aac-sentence-picto); height: var(--aac-sentence-picto); flex-shrink: 0; object-fit: contain; background: white; border-radius: 4px; }
-.aac-sentence-symbol span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.aac-sentence-symbol svg { flex-shrink: 0; }
-.aac-sentence-row > .aac-icon-tool:first-of-type { margin-left: auto; }
-.aac-notice, .aac-error { font-size: 13px; padding: 5px 0; color: #2e684e; }
-.aac-error { color: #a02d36; }
-.aac-navigation { background: #f8fafd; border-bottom: 1px solid #d2dce9; padding: 0 22px; display: flex; align-items: center; gap: 20px; justify-content: space-between; z-index: 2; }
-.aac-tabs { display: flex; flex-shrink: 0; gap: 4px; }
-.aac-tabs button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 59px; padding: 10px 17px; border-bottom: 4px solid transparent; color: #526780; font-size: 15px; font-weight: 650; }
-.aac-tabs button[aria-pressed=true] { color: #204994; border-bottom-color: #2855ac; background: #e8eef9; }
-.aac-mic-dot { width: 8px; height: 8px; border-radius: 50%; background: #bf363a; }
-.aac-quick { display: flex; gap: 6px; padding: 6px 0; }
-.aac-quick button { display: flex; gap: 6px; align-items: center; min-width: 0; min-height: max(45px, calc(var(--aac-quick-picto) + 10px)); padding: 4px 9px; border: 1px solid #cbd7e6; border-radius: 7px; background: white; font-size: 12px; font-weight: 650; color: #324b6b; }
-.aac-quick img { width: var(--aac-quick-picto); height: var(--aac-quick-picto); flex-shrink: 0; object-fit: contain; }
-.aac-quick .aac-help { border-color: #d9999b; color: #8b2329; background: #fff5f5; }
-.aac-quick .aac-quick-yes { border-color: #70c491; color: #116233; background: #edf8f1; font-weight: 700; }
-.aac-quick .aac-quick-no { border-color: #e89591; color: #9c2729; background: #fdf2f2; font-weight: 700; }
-.aac-quick button span { white-space: nowrap; }
-.aac-scroll-area { overflow-y: auto; overscroll-behavior: contain; min-height: 0; scrollbar-color: #b0bfd1 #edf1f6; scroll-padding: 15px; }
-.aac-tab-content { max-width: 1500px; margin: 0 auto; padding: 18px 22px 24px; }
-.aac-board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 8px 0; margin-bottom: 12px; }
-.aac-board-actions { display: flex; align-items: center; gap: 10px; min-width: 0; flex-shrink: 0; }
-.aac-breadcrumb { display: flex; align-items: center; gap: 13px; }
-.aac-breadcrumb h1 { font-size: 22px; font-weight: 700; }
-.aac-search { display: flex; align-items: center; gap: 8px; width: 220px; background: white; border: 1px solid #c5d1e2; border-radius: 8px; padding: 0 10px; }
-.aac-search input { min-width: 0; width: 100%; height: 44px; border: 0; background: none; color: #263f5c; font-size: 14px; }
-.aac-search button { min-width: 40px; min-height: 44px; display: grid; place-items: center; }
-.aac-core-strip { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; margin-bottom: 18px; }
-.aac-core-strip button { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 5px; min-height: 62px; background: var(--tile-bg); border: 2px solid var(--tile-border); border-radius: 8px; font-weight: 650; }
-.aac-core-strip img { width: min(40%, var(--aac-core-picto)); height: auto; aspect-ratio: 1; flex-shrink: 0; object-fit: contain; background: white; border-radius: 4px; }
-.aac-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aac-tile-min-width)), 1fr)); gap: 12px; }
-.aac-tile-wrap { position: relative; min-width: 0; }
-.aac-app .aac-tile { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: var(--aac-tile-height) !important; height: 100%; padding: var(--aac-tile-padding); background: var(--tile-bg, #fff); border: 2px solid var(--tile-border, #b2c6df); border-bottom-width: 5px; border-radius: 10px; color: #1d2c3e; box-shadow: none !important; transform: none !important; filter: none !important; }
-.aac-tile img { width: min(100%, var(--aac-tile-picto)); height: auto; aspect-ratio: 1; flex-shrink: 0; object-fit: contain; background: white; border-radius: 5px; }
-.aac-tile span { font-size: var(--aac-tile-font); font-weight: 650; text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
-.aac-tile:hover, .aac-folder:hover { box-shadow: inset 0 0 0 2px #3a5c85; }
-.aac-tile:active { background: #d5e4fa; }
-.tone-pronoun { --tile-bg: #fff7d8; --tile-border: #d2b33c; }
-.tone-verb { --tile-bg: #e9f5e7; --tile-border: #81ae77; }
-.tone-social { --tile-bg: #f4eafb; --tile-border: #b492c9; }
-.tone-adjective { --tile-bg: #eaf3ff; --tile-border: #83abdc; }
-.tone-question { --tile-bg: #e7f7f5; --tile-border: #69aaa5; }
-.tone-priority { --tile-bg: #fff0ed; --tile-border: #cf887c; }
-.tone-noun { --tile-bg: #fff1df; --tile-border: #c9a36c; }
-.aac-folders { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; margin-top: 23px; border-top: 1px solid #cbd6e3; padding-top: 22px; }
-.aac-folders { margin-top: 0; border-top: 0; padding-top: 0; }
-.aac-folder { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: max(140px, calc(var(--aac-folder-picto) + 66px)); padding: 10px; background: white; border: 2px solid var(--tile-border); border-top: 8px solid var(--tile-border); border-radius: 10px; color: #2b4059; font-weight: 650; font-size: 16px; }
-.aac-folder img { width: min(100%, var(--aac-folder-picto)); height: auto; aspect-ratio: 1; object-fit: contain; }
-.aac-folder>svg:last-child { position: absolute; bottom: 10px; right: 5px; }
-.aac-folder-mark { position: absolute; top: 8px; left: 8px; color: #61748a; }
-.pictogram-credit { color: #556980; font-size: 11px; text-align: center; padding-top: 20px; line-height: 1.8; }
-.pictogram-credit a { text-decoration: underline; }
-.aac-saved-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; font-size: 14px; color: #526880; }
-.aac-remove-saved { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #d0989e; border-radius: 7px; color: #9e343d; background: white; }
-.aac-empty { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; text-align: center; color: #526980; padding: 20px; }
-.aac-empty h2 { font-size: 21px; font-weight: 650; }
-.aac-conversation, .aac-history { max-width: 1100px; margin: auto; }
-.aac-section-heading { display: flex; justify-content: space-between; gap: 15px; align-items: center; margin: 4px 0 20px; }
-.aac-section-heading h1 { font-size: 25px; font-weight: 700; }.aac-section-heading p { margin-top: 5px; color: #526980; font-size: 15px; }
-.aac-hearing { border: 1px solid #c8d4e4; border-radius: 12px; padding: 20px; background: white; }
-.aac-hearing-controls { display: flex; align-items: center; gap: 20px; }
-.aac-listen { display: flex; align-items: center; gap: 10px; justify-content: center; min-height: 54px; min-width: 150px; padding: 10px 20px; background: #2753aa; color: white; border-radius: 8px; font-size: 18px; font-weight: 650; }
-.aac-listen.active { background: #a5363d; }
-.aac-hearing-status { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #566c84; }
-.aac-hearing-status meter { width: 140px; height: 12px; }
-.aac-heard { font-size: 22px; line-height: 1.5; padding: 20px 0; overflow-wrap: anywhere; }
-.aac-partner-input { border-top: 1px solid #dce3ed; padding-top: 8px; color: #445e7e; font-size: 14px; }
-.aac-partner-input summary { cursor: pointer; padding: 10px 0; min-height: 44px; }
-.aac-partner-input form { display: grid; gap: 9px; padding: 10px 0; }
-.aac-partner-input input { background: #f8fafd; color: #233d5a; padding: 12px; min-width: 0; border: 1px solid #b2c2d8; border-radius: 8px; }
-.aac-reply-heading { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 14px; gap: 10px; }
-.aac-reply-heading h2 { font-size: 20px; font-weight: 650; }
-.aac-replies { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
-.aac-reply { background: white; border: 2px solid #bacce5; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
-.aac-reply-speak { display: flex; align-items: center; flex: 1; gap: 10px; min-height: 125px; padding: 18px 15px; text-align: left; font-size: 19px; color: #243b58; }
-.aac-reply-speak:hover { background: #edf3ff; }
-.aac-reply-speak svg { flex-shrink: 0; color: #365fa4; margin-left: auto; }
-.aac-reply-number { font-size: 12px; color: #526c8d; align-self: flex-start; border: 1px solid #c7d3e4; border-radius: 4px; padding: 2px 5px; }
-.aac-reply-edit { display: flex; align-items: center; gap: 9px; padding: 10px 14px; min-height: 44px; border-top: 1px solid #d9e1ec; background: #f4f7fc; color: #3c587c; font-size: 13px; }
-.aac-conversation-note, .aac-empty-replies { font-size: 14px; color: #516780; margin: 17px 0 !important; }
-.aac-loading { padding: 30px; background: #e7efff; border-radius: 10px; color: #2c5297; margin-bottom: 15px !important; }
-.aac-history ol { padding: 0; list-style: none; display: grid; gap: 13px; }
-.aac-history li { display: flex; gap: 10px; align-items: center; background: white; border: 1px solid #cbd8e8; border-radius: 10px; padding: 17px; }
-.aac-history li>div { flex: 1; min-width: 0; }.aac-history li small { color: #566c87; }.aac-history li p { font-size: 19px; margin-top: 6px; overflow-wrap: anywhere; }
-.aac-history li.aac-history-self { background: #edf3ff; margin-left: 25px; }
-/* Existing settings and clone controls remain functional inside the new workspace. */
-.vocalis-redesign .settings-backdrop { background: #1b2c4c66 !important; backdrop-filter: blur(5px) !important; }
-.vocalis-redesign .settings-dialog { background: white !important; color: #30425d; box-shadow: 0 25px 100px #12234340 !important; border: 1px solid #dae2ed; }
-.vocalis-redesign .settings-dialog [class*="bg-slate-"] { background-color: #f3f6fa; }
-.vocalis-redesign .settings-dialog [class*="border-slate-"] { border-color: #dce3ee; }
-.vocalis-redesign .settings-dialog [class*="text-slate-"], .vocalis-redesign .settings-dialog h2 { color: #4b5d77; }
-.vocalis-redesign .settings-dialog :is([class*="text-blue-"], [class*="text-violet-"], [class*="text-emerald-"], [class*="text-purple-"], [class*="text-indigo-"]) { color: #3c539a; }
-.vocalis-redesign .settings-dialog input:not([type=checkbox]):not([type=range]), .vocalis-redesign .settings-dialog select { color: #2f405b; background: #fff; }
-.vocalis-redesign .settings-dialog button { min-height: 44px; }
-.vocalis-redesign .settings-dialog button[class*="text-white"] { color: #2f405b; }
-.vocalis-redesign .settings-dialog button.bg-blue-600, .vocalis-redesign .settings-dialog button.bg-violet-600 { color: white; }
-.vocalis-redesign .voice-cloner { background: #f4f2fc; border-color: #d9d4ee; }
-.vocalis-redesign .settings-dialog [class*="text-red-"] { color: #9d3d3d; }
-.vocalis-redesign .settings-dialog { max-height: calc(100dvh - 24px); }
-.vocalis-redesign .settings-body { min-height: 0; overscroll-behavior: contain; }
-@media (max-width: 1100px) {
-  .aac-navigation { flex-wrap: wrap; gap: 0; }.aac-tabs { width: 100%; }.aac-tabs button { flex: 1; justify-content: center; min-height: 49px; }
-  .aac-quick { width: 100%; }.aac-quick button { flex: 1; justify-content: center; }
-  .aac-tile-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aac-tile-min-width-tablet)), 1fr)); }.aac-folders, .aac-core-strip { grid-template-columns: repeat(3,minmax(0,1fr)); }
-}
-@media (max-width: 900px) {
-  .aac-app { grid-template-rows: auto auto minmax(0, 1fr) auto; }
-  .aac-scroll-area { grid-row: 3; }
-  .aac-navigation { grid-row: 4; border-top: 1px solid #c8d5e7; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); box-shadow: 0 -3px 12px #21344c12; }
-  .aac-quick { order: -1; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; overscroll-behavior-x: contain; }
-  .aac-quick button { flex: 0 0 auto; padding-inline: 12px; }
-  .aac-tabs button { min-height: 52px; }
-}
-@media (max-width: 700px) {
-  .aac-header { padding: 3px 12px; min-height: 48px; gap: 8px; }.aac-header .aac-tool { border: 0; padding: 7px; }.aac-header .aac-tool span { display: none; }.aac-brand { font-size: 21px; }.aac-voice-label { font-size: 11px; }
-  .aac-composer { padding: 8px 10px 4px; }.aac-message-line { gap: 6px; }.aac-message-line textarea { font-size: 18px; height: 72px; padding: 8px; }.aac-message-line textarea::placeholder { font-size: 16px; }
-  .aac-edit-tools { flex-direction: column; gap: 4px; }.aac-edit-tools .aac-tool { width: 44px; min-height: 44px; padding: 5px; }.aac-edit-tools span { display: none; }.aac-edit-tools svg { width: 21px; height: 21px; }
-  .aac-speak { min-width: 76px; padding: 8px; flex-direction: column; gap: 4px; font-size: 15px; }.aac-speak svg { width: 24px; height: 24px; }
-  .aac-sentence-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 40px); column-gap: 3px; row-gap: 0; min-height: 45px; margin-top: 2px; }.aac-sentence-strip { height: max(48px, calc(var(--aac-sentence-picto-mobile) + 12px)); }.aac-sentence-symbol { font-size: 11px; min-height: 40px; }.aac-sentence-symbol img { width: var(--aac-sentence-picto-mobile); height: var(--aac-sentence-picto-mobile); }.aac-icon-tool { min-width: 40px; min-height: 42px; padding: 8px; }
-  .aac-navigation { padding: 0 10px env(safe-area-inset-bottom, 0px); }.aac-tabs button { font-size: 13px; min-height: 46px; padding: 9px 5px; gap: 6px; }.aac-tabs svg { width: 18px; }
-  .aac-quick { gap: 6px; padding: 6px 0; }.aac-quick button { font-size: 12px; min-height: max(46px, calc(var(--aac-quick-picto-mobile) + 10px)); padding: 4px 10px; gap: 5px; }.aac-quick button svg { display: none; }.aac-quick img { width: var(--aac-quick-picto-mobile); height: var(--aac-quick-picto-mobile); }
-  .aac-tab-content { padding: 12px 10px 20px; }.aac-board-toolbar { flex-wrap: wrap; margin-bottom: 12px; gap: 10px; }.aac-breadcrumb h1 { font-size: 19px; }.aac-search { padding: 0 6px; }.aac-search input { font-size: 12px; height: 40px; }
-  .aac-tile-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aac-tile-min-width-mobile)), 1fr)); gap: 8px; }.aac-app .aac-tile { min-height: var(--aac-tile-height-mobile) !important; padding: var(--aac-tile-padding-mobile); gap: 5px; }.aac-tile img { width: min(100%, var(--aac-tile-picto-mobile)); }.aac-tile span { font-size: var(--aac-tile-font-mobile); }
-  .aac-core-strip { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin-bottom: 12px; }.aac-core-strip button { min-height: 48px; gap: 4px; font-size: 12px; }.aac-core-strip img { width: min(40%, var(--aac-core-picto-mobile)); }
-  .aac-folders { gap: 8px; margin-top: 15px; padding-top: 15px; }.aac-folder { min-height: max(125px, calc(var(--aac-folder-picto-mobile) + 64px)); padding: 8px 5px; font-size: 13px; }.aac-folder img { width: min(100%, var(--aac-folder-picto-mobile)); }.aac-folder>svg:last-child { display: none; }.pictogram-credit { font-size: 10px; }
-  .aac-section-heading { flex-wrap: wrap; margin-bottom: 15px; }.aac-section-heading h1 { font-size: 22px; }.aac-section-heading p { font-size: 13px; }
-  .aac-hearing { padding: 14px; }.aac-hearing-controls { gap: 12px; }.aac-listen { font-size: 16px; min-width: 135px; padding: 10px; }.aac-hearing-status { font-size: 11px; }.aac-hearing-status meter { width: 95px; }.aac-heard { font-size: 19px; }
-  .aac-replies { grid-template-columns: 1fr; gap: 10px; }.aac-reply-speak { min-height: 92px; font-size: 19px; }.aac-reply-heading h2 { font-size: 18px; }.aac-conversation-note { font-size: 12px; }
-  .aac-history li { padding: 12px; gap: 6px; }.aac-history li p { font-size: 17px; }.aac-history li.aac-history-self { margin-left: 10px; }
-}
-@media (max-width: 380px) { .aac-voice-label { display: none; }.aac-header .aac-tool { margin-left: auto; }.aac-folders, .aac-core-strip { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media (max-width: 700px) { .aac-large-pictograms .aac-folders, .aac-large-pictograms .aac-core-strip { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media (max-width: 700px) {
-  .aac-sentence-row .aac-board-actions { grid-column: 1; grid-row: 1; width: 100%; min-width: 0; gap: 4px; }
-  .aac-sentence-row .aac-board-actions .aac-tool { min-width: 44px; padding: 8px; }
-  .aac-sentence-row .aac-board-actions .aac-tool span { display: none; }
-  .aac-sentence-row .aac-search { flex: 1; width: auto; min-width: 0; padding: 0 6px; }
-  .aac-sentence-row .aac-search button { min-width: 28px; }
-  .aac-sentence-row .aac-icon-tool:nth-last-child(3) { grid-column: 2; grid-row: 1; }
-  .aac-sentence-row .aac-icon-tool:nth-last-child(2) { grid-column: 3; grid-row: 1; }
-  .aac-sentence-row .aac-icon-tool:last-child { grid-column: 4; grid-row: 1; }
-  .aac-sentence-row .aac-icon-tool:first-of-type { margin-left: 0; }
-  .aac-sentence-row .aac-sentence-strip:not([hidden]) { grid-column: 1 / -1; grid-row: 2; width: 100%; }
-  .aac-board-toolbar { gap: 6px; }
-  .aac-breadcrumb h1 { font-size: 17px; }
-}
-@media (max-height: 520px) {
-  .aac-header { min-height: 36px; }.aac-composer { padding-top: 4px; }.aac-message-line textarea { height: 49px; }.aac-edit-tools { flex-direction: row; }.aac-edit-tools .aac-tool { min-height: 42px; }.aac-edit-tools span { display: none; }.aac-sentence-row { min-height: 35px; }.aac-sentence-strip { height: max(36px, calc(var(--aac-sentence-picto-short) + 12px)); }.aac-sentence-symbol { min-height: 30px; }.aac-sentence-symbol img { width: var(--aac-sentence-picto-short); height: var(--aac-sentence-picto-short); }.aac-sentence-row .aac-icon-tool { min-height: 32px; }.aac-navigation { flex-wrap: nowrap; gap: 8px; }.aac-tabs { width: auto; }.aac-tabs button { min-height: 43px; }.aac-quick { width: auto; }.aac-quick button { min-height: 37px; }.aac-quick button span { display: none; }
-}
-@media (max-width: 900px) and (max-height: 650px) {
-  .aac-composer { padding-block: 4px; }
-  .aac-message-line textarea { height: 52px; }
-  .aac-sentence-row { margin-top: 0; }
-  .aac-sentence-strip { height: max(40px, calc(var(--aac-sentence-picto-mobile) + 12px)); }
-  .aac-navigation .aac-quick { padding-block: 3px; }
-  .aac-navigation .aac-tabs button { min-height: 44px; }
-}
-@media (max-height: 520px) { .aac-sentence-strip { height: max(36px, calc(var(--aac-sentence-picto-short) + 12px)); } }
-@media (max-width: 900px) and (orientation: landscape) {
-  .aac-navigation { flex-wrap: nowrap; padding-inline: 8px; }
-  .aac-tabs { width: auto; flex: 1; }
-  .aac-quick { order: 0; width: auto; flex: 0 1 auto; }
-  .aac-quick button { min-width: 46px; }
-  .aac-quick button span { display: none; }
-}
-@media (max-width: 700px) {
-  .vocalis-redesign .settings-backdrop { padding: 0; align-items: stretch; }
-  .vocalis-redesign .settings-dialog { max-height: 100dvh; height: 100dvh; border-radius: 0; }
-  .vocalis-redesign .settings-body { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
-  .vocalis-redesign .settings-dialog > div:first-child { padding: 12px 16px; }
-  .vocalis-redesign .settings-dialog > div:first-child button { min-width: 44px; min-height: 44px; }
-  .vocalis-redesign .settings-dialog :is(input, select, textarea) { font-size: 16px; }
-}
-@media (max-width: 430px) {
-  .vocalis-redesign .settings-dialog .grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
-  .vocalis-redesign .settings-dialog .sm\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (prefers-reduced-motion: reduce) { .aac-app * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+/* Vocalis: one content scroller, persistent navigation, comfortable touch targets. */
+.vocalis-redesign { color-scheme: light; --canvas: #f6f7fb; --surface: #fff; --ink: #242b40; --muted: #606b80; --line: #e1e5ee; --accent: #5146bd; --accent-soft: #eeecfa; --focus: #5146bd; color: var(--ink); background: var(--canvas); }
+body:has(.aac-app) { min-height: 0; height: 100dvh; overflow: hidden; background: #f6f7fb; }
+.aac-app { display: grid; grid-template-columns: 216px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); height: 100dvh; overflow: hidden; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.5; }
+.aac-app *, .settings-dialog * { box-sizing: border-box; }
+.aac-app > *, .aac-app section { min-width: 0; }
+.aac-app [hidden], .aac-hearing[hidden] { display: none !important; }
+.aac-app :is(h1, h2, p) { margin: 0; }
+.aac-app button { cursor: pointer; touch-action: manipulation; transition: background .15s, border-color .15s, box-shadow .15s; }
+.aac-app button:disabled { opacity: .48; cursor: not-allowed; }
+.aac-app :is(button, a, input, textarea, summary):focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.aac-app svg { flex-shrink: 0; }
+.aac-skip-link { position: fixed; top: -100px; left: 24px; padding: 12px 20px; background: var(--accent); color: white; border-radius: 8px; z-index: 100; }
+.aac-skip-link:focus { top: 8px; }
+.aac-header { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; gap: 24px; min-height: 76px; padding: 12px 28px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.aac-brand { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 25px; font-weight: 750; letter-spacing: -1px; color: #30285d; }
+.aac-brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: white; }
+.aac-brand-mark svg { width: 23px; height: 23px; }
+.aac-brand-caption { padding-left: 24px; border-left: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.aac-header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.aac-voice-label { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; margin-right: 12px; }
+.aac-tool, .aac-icon-tool { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 9px 13px; border: 1px solid #d6dce7; border-radius: 10px; background: var(--surface); color: #454e64; font-size: 13px; font-weight: 600; line-height: 1.4; }
+.aac-tool:hover:not(:disabled), .aac-icon-tool:hover:not(:disabled) { background: #f1f0fa; border-color: #b6aedb; }
+.aac-icon-tool { min-width: 44px; padding: 10px; flex-shrink: 0; }
+.aac-header .aac-tool { border-color: transparent; }
+.aac-header .aac-tool:last-child { background: #f6f7fb; border-color: var(--line); }
+.aac-context-tool { position: relative; }
+.aac-context-tool.has-context { color: var(--accent); }
+.aac-context-dot, .aac-light-header-dot, .aac-speak-mode-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.aac-light-tool.is-lit { color: #19724e; background: #edf8f1; }
 
-/* Spanish composition and personal communication shortcuts. */
-.aac-sentence-suggestion { display: flex; align-items: center; gap: 12px; padding: 6px 0; font-size: 14px; }
+/* Mode rail and quick speech. */
+.aac-navigation { grid-column: 1; grid-row: 2 / -1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 28px 16px 20px; background: white; border-right: 1px solid var(--line); overflow-y: auto; }
+.aac-nav-label { display: block; padding: 0 12px; font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--muted); }
+.aac-tabs { display: flex; flex-direction: column; gap: 6px; }
+.aac-tabs button { display: flex; align-items: center; gap: 12px; text-align: left; min-height: 50px; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.aac-tabs button:hover { background: #f6f7fb; }
+.aac-tabs button[aria-pressed=true] { color: var(--accent); background: var(--accent-soft); }
+.aac-mic-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #21855c; margin-left: auto; }
+.aac-quick { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 28px; }
+.aac-quick .aac-nav-label { margin-bottom: 4px; }
+.aac-quick button { display: flex; align-items: center; gap: 8px; min-height: max(48px, calc(var(--aac-quick-picto) + 16px)); padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: white; font-size: 12px; font-weight: 600; text-align: left; }
+.aac-quick button:hover { background: #f6f7fb; }
+.aac-quick button > span { flex: 1; overflow-wrap: anywhere; }
+.aac-quick img { width: var(--aac-quick-picto); height: var(--aac-quick-picto); object-fit: contain; flex-shrink: 0; }
+.aac-quick .aac-help { color: #993842; background: #fff7f7; border-color: #eed5d8; }
+.aac-quick-yes { color: #226544; background: #f0f8f2; border-color: #bbdcc5; }
+.aac-quick-no { color: #9c3944; background: #fff3f3; border-color: #edc7cc; }
+.aac-quick-repeat { color: #4e4895; background: #f3f1fc; border-color: #d9d3ef; }
+
+/* Composer appears only when relevant; its draft survives mode changes. */
+.aac-composer { grid-column: 2; grid-row: 2; padding: 20px 28px 12px; background: white; border-bottom: 1px solid var(--line); max-height: 48dvh; overflow-y: auto; }
+.aac-composer-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.aac-composer-label span:first-child { color: var(--ink); font-weight: 650; }
+.aac-message-line { display: flex; align-items: stretch; gap: 8px; }
+.aac-message-line textarea { flex: 1; min-width: 0; height: 80px; resize: none; background: #fafbfe; border: 1px solid #c8cfdf; border-radius: 12px; padding: 14px; font-size: 22px; line-height: 1.4; color: var(--ink); }
+.aac-message-line textarea::placeholder { color: #788297; font-size: 18px; }
+.aac-edit-tools { display: flex; gap: 6px; }
+.aac-edit-tools .aac-tool { flex-direction: column; width: 66px; font-size: 11px; }
+.aac-speak { display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 138px; border-radius: 12px; padding: 12px 20px; color: white; background: var(--accent); font-size: 19px; font-weight: 650; }
+.aac-speak:hover:not(:disabled) { background: #40359e; }
+.aac-speak.is-speaking { background: #9c3944; }
+.aac-sentence-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.aac-sentence-row > .aac-icon-tool:first-of-type { margin-left: auto; }
+.aac-sentence-strip { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; padding: 4px; }
+.aac-sentence-symbol { display: flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 44px; padding: 4px 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid #d8d1f0; border-radius: 8px; font-size: 12px; }
+.aac-sentence-symbol img { width: var(--aac-sentence-picto); height: var(--aac-sentence-picto); object-fit: contain; background: white; border-radius: 4px; }
+.aac-sentence-symbol span { max-width: 180px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.aac-sentence-suggestion { display: flex; align-items: center; gap: 12px; padding-top: 8px; font-size: 13px; }
 .aac-sentence-suggestion > span { min-width: 0; overflow-wrap: anywhere; }
 .aac-sentence-suggestion button { flex-shrink: 0; }
-.aac-connectors-link { margin-bottom: 12px; }
+.aac-close-composer { margin-left: auto; }
+.aac-view-conversation .aac-composer-label { display: flex; }
+.aac-notice, .aac-error { padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+.aac-notice { color: #226544; background: #edf8f1; }
+.aac-error { color: #94343e; background: #fff0f1; border: 1px solid #efcdd1; overflow-wrap: anywhere; }
+
+/* Conversation controls sit above a single continuous reading area. */
+.aac-scroll-area { grid-column: 2; grid-row: 3; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding: 20px; scrollbar-gutter: stable; }
+.aac-tab-content { width: 100%; max-width: 1240px; margin: auto; padding: 24px 28px 32px; }
+.aac-scroll-area.aac-conversation-workspace { display: flex; flex-direction: column; overflow: hidden; }
+.aac-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 28px 16px; flex-shrink: 0; }
+.aac-page-heading h1, .aac-section-heading h1, .aac-breadcrumb h1 { font-size: 27px; font-weight: 700; line-height: 1.25; letter-spacing: -.6px; }
+.aac-page-heading p, .aac-section-heading p, .aac-breadcrumb p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.aac-session-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.aac-session-label > span { width: 6px; height: 6px; border-radius: 50%; background: #8980c5; }
+.aac-conversation-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin: 0 28px; padding: 12px; background: white; border: 1px solid var(--line); border-radius: 14px; }
+.aac-listen { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 10px 16px; border-radius: 10px; background: var(--accent); color: white; font-size: 13px; font-weight: 650; flex-shrink: 0; }
+.aac-listen.active { background: #edf7f1; color: #256246; border: 1px solid #c7dfd0; }
+.aac-listen svg { width: 18px; height: 18px; }
+.aac-hearing-status { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; padding-inline: 4px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.aac-hearing-status meter { width: 100px; max-width: 100%; height: 6px; }
+.aac-speak-mode-btn.is-active { background: var(--accent-soft); color: var(--accent); border-color: #b4a7df; }
+.aac-conversation-workspace > .aac-tab-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-top: 20px; scrollbar-gutter: stable; }
+.aac-conversation { display: flex; flex-direction: column; gap: 16px; min-height: 100%; width: 100%; }
+.aac-header-topics { display: flex; align-items: center; gap: 8px; overflow-x: auto; flex-shrink: 0; padding: 4px; }
+.aac-topics-label { white-space: nowrap; font-size: 12px; color: var(--muted); margin-right: 4px; }
+.aac-topic-chip { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 24px; background: white; color: #52536e; font-size: 13px; }
+.aac-topic-chip img { width: 24px; height: 24px; object-fit: contain; }
+.aac-topic-chip.active { color: var(--accent); border-color: #b8acde; background: var(--accent-soft); }
+.aac-hearing { border: 1px solid var(--line); border-radius: 14px; background: white; padding: 12px 20px; }
+.aac-hearing-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.aac-hearing-title { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; color: #4e5270; }
+.aac-transcript-label { color: var(--muted); font-size: 11px; }
+.aac-heard { font-size: 17px; line-height: 1.6; overflow-wrap: anywhere; }
+.aac-speaker-turns { display: grid; gap: 10px; max-height: 180px; overflow-y: auto; padding: 0 4px 0 0; list-style: none; margin: 0; }
+.aac-speaker-turns li { display: grid; gap: 3px; }
+.aac-speaker-turns strong { color: var(--muted); font-size: 11px; font-weight: 650; }
+.aac-speaker-turns span { font-size: 17px; overflow-wrap: anywhere; }
+.aac-partner-input { margin-top: 12px; border-top: 1px solid var(--line); color: var(--accent); font-size: 12px; }
+.aac-partner-input summary { cursor: pointer; min-height: 44px; padding-block: 12px; font-weight: 600; }
+.aac-conversation .aac-partner-input form { display: flex; gap: 8px; padding: 4px 0 8px; }
+.aac-partner-input input { min-width: 0; flex: 1; min-height: 46px; padding: 10px 12px; border: 1px solid #bec7d8; border-radius: 9px; background: #fafbfe; color: var(--ink); font-size: 16px; }
+.aac-partner-input button { background: var(--accent); border-color: var(--accent); color: white; }
+.aac-hearing.has-partner-open { border-color: #c3b8e8; }
+.aac-hearing-collapsed { display: flex; flex-wrap: wrap; gap: 8px; }
+.aac-show-hearing-btn { font-size: 12px; }
+.aac-hearing-badge { border-radius: 12px; background: var(--accent-soft); padding: 2px 6px; }
+.aac-reply-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 4px; }
+.aac-reply-heading-title { flex: 1; min-width: 140px; }
+.aac-reply-heading h2 { font-size: 18px; line-height: 1.4; font-weight: 650; letter-spacing: -.25px; overflow-wrap: anywhere; }
+.aac-reply-heading-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.aac-reply-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.aac-quick-reply-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 9px 12px; border-width: 1px; border-style: solid; border-radius: 10px; font-size: 13px; font-weight: 650; }
+.aac-quick-reply-btn img { width: 24px; height: 24px; object-fit: contain; }
+.aac-quick-reply-btn:hover { filter: brightness(.97); }
+.aac-context-chip, .aac-speak-mode-badge, .aac-active-topic-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 10px; background: var(--accent-soft); color: var(--accent); border-radius: 8px; font-size: 12px; }
+.aac-context-chip-text { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aac-active-topic-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.aac-topic-context-hint { font-size: 12px; color: var(--muted); }
+.aac-regenerate-short { display: none; }
+.aac-replies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; overflow: visible; }
+.aac-reply { display: flex; flex-direction: column; min-width: 0; border: 1px solid #d6dbe8; border-radius: 14px; background: white; box-shadow: 0 2px 4px #242b4004; }
+.aac-reply:hover { border-color: #b8addc; box-shadow: 0 4px 14px #5146bd0a; }
+.aac-reply-speak { position: relative; display: flex; align-items: flex-start; gap: 10px; flex: 1; min-height: 108px; padding: 16px; border-radius: 14px 14px 0 0; color: var(--ink); text-align: left; font-size: 18px; line-height: 1.55; }
+.aac-reply-speak:hover { background: #f8f7fd; }
+.aac-reply-number { display: grid; place-items: center; flex-shrink: 0; width: 22px; height: 24px; margin-top: 2px; border: 1px solid var(--line); border-radius: 6px; color: #77748d; font-size: 11px; }
+.aac-reply-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.aac-reply-speak > svg { width: 19px; height: 19px; color: var(--accent); margin-top: 5px; }
+.aac-reply-edit { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 10px; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; font-size: 12px; color: var(--muted); background: #fcfcfe; }
+.aac-reply-edit:hover { color: var(--accent); background: var(--accent-soft); }
+.aac-conversation-note { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.aac-empty-replies { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; flex: 1; min-height: 260px; padding: 32px 20px; border: 1px dashed #d6d9e6; border-radius: 16px; background: #ffffff80; text-align: center; }
+.aac-empty-mark { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 20px; background: var(--accent-soft); color: #776baa; margin-bottom: 4px; }
+.aac-empty-replies h2 { font-size: 19px; font-weight: 600; letter-spacing: -.3px; }
+.aac-empty-replies p { max-width: 400px; font-size: 14px; color: var(--muted); }
+.aac-empty-hint { max-width: 400px; font-size: 12px; color: var(--muted); }
+.aac-manual-generate-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 24px; background: linear-gradient(135deg, #5146bd 0%, #6858dd 100%); color: white; border: 1px solid #4539ac; border-radius: 12px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 14px rgba(81, 70, 189, 0.3); cursor: pointer; margin: 6px 0; transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.15s ease; }
+.aac-manual-generate-action:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(81, 70, 189, 0.4); }
+.aac-manual-generate-action:active:not(:disabled) { transform: translateY(0); }
+.aac-manual-generate-action:disabled { opacity: 0.55; cursor: not-allowed; background: #a3abc0; border-color: #9299af; box-shadow: none; }
+
+/* Response Generation Controls: Prominent Button & Auto Toggle */
+.aac-generate-control-group { display: inline-flex; align-items: center; gap: 6px; padding: 3px; background: rgba(81, 70, 189, 0.05); border: 1px solid rgba(81, 70, 189, 0.15); border-radius: 12px; }
+.aac-auto-toggle-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 4px 9px; background: white; border: 1px solid #d6dce7; border-radius: 9px; color: #4b5563; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; user-select: none; }
+.aac-auto-toggle-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.aac-auto-toggle-btn.is-active { background: #eeecfa; border-color: #b8ace5; color: #5146bd; }
+.aac-auto-toggle-switch { display: inline-block; width: 26px; height: 15px; background: #cbd5e1; border-radius: 999px; position: relative; transition: background 0.2s ease; flex-shrink: 0; }
+.aac-auto-toggle-btn.is-active .aac-auto-toggle-switch { background: #5146bd; }
+.aac-auto-toggle-knob { display: block; width: 11px; height: 11px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.aac-auto-toggle-btn.is-active .aac-auto-toggle-knob { transform: translateX(11px); }
+.aac-auto-toggle-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1px; }
+
+.aac-generate-prominent { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 16px; background: linear-gradient(135deg, #5146bd 0%, #6858dd 100%); color: #ffffff !important; border: 1px solid #4539ac; border-radius: 9px; font-size: 13px; font-weight: 700; letter-spacing: 0.1px; box-shadow: 0 2px 8px rgba(81, 70, 189, 0.3); cursor: pointer; transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease; flex-shrink: 0; }
+.aac-generate-prominent:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(81, 70, 189, 0.4); }
+.aac-generate-prominent:active:not(:disabled) { transform: translateY(0); box-shadow: 0 2px 5px rgba(81, 70, 189, 0.25); }
+.aac-generate-prominent:disabled { background: #a3abc0 !important; border-color: #9299af !important; color: #f1f3f9 !important; opacity: 0.6; box-shadow: none; cursor: not-allowed; transform: none; }
+.aac-generate-prominent.is-ready:not(:disabled) { animation: aac-gentle-pulse 2.2s infinite; }
+
+@keyframes aac-gentle-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(81, 70, 189, 0.45); }
+  70% { box-shadow: 0 0 0 6px rgba(81, 70, 189, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(81, 70, 189, 0); }
+}
+
+.aac-spin { animation: aac-spin 1s linear infinite; }
+@keyframes aac-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.aac-empty-generate-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 6px 0; }
+.aac-auto-toggle-large { min-height: 48px; padding: 8px 14px; border-radius: 12px; font-size: 13px; background: white; border: 1px solid #d0d7e5; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+.aac-auto-toggle-large .aac-auto-toggle-switch { width: 30px; height: 17px; }
+.aac-auto-toggle-large .aac-auto-toggle-knob { width: 13px; height: 13px; }
+.aac-auto-toggle-large.is-active .aac-auto-toggle-knob { transform: translateX(13px); }
+.aac-auto-toggle-large .aac-auto-toggle-label { font-size: 13px; }
+.aac-loading { display: flex; align-items: center; gap: 10px; padding: 14px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; font-size: 13px; }
+.aac-loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: aac-pulse 1s ease-in-out infinite; }
+.aac-agent-action-banner { display: flex; align-items: center; gap: 10px; padding: 12px; min-height: 44px; text-align: left; border: 1px solid #c4dfce; border-radius: 10px; background: #edf8f1; color: #226544; font-size: 13px; }
+.aac-agent-action-text { flex: 1; }
+.aac-agent-action-link { font-size: 12px; text-decoration: underline; }
+
+/* Category colors and scalable ARASAAC pictograms. */
+.aac-board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.aac-breadcrumb { display: flex; align-items: center; gap: 12px; }
+.aac-board-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.aac-search { display: flex; align-items: center; gap: 8px; width: 220px; padding-left: 12px; border: 1px solid #d6dce7; border-radius: 10px; color: var(--muted); background: white; }
+.aac-search input { min-width: 0; width: 100%; height: 44px; font-size: 16px; background: transparent; color: var(--ink); }
+.aac-search button { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+.aac-connectors-link { margin-bottom: 16px; }
+.aac-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aac-tile-min-width)), 1fr)); gap: 12px; }
+.aac-tile-wrap { position: relative; min-width: 0; }
+.aac-app .aac-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 100%; min-height: var(--aac-tile-height); padding: var(--aac-tile-padding); border: 1px solid var(--tile-border, #d6dce7); border-bottom-width: 4px; border-radius: 14px; background: var(--tile-bg, white); color: var(--ink); box-shadow: none; transform: none; filter: none; }
+.aac-tile:hover, .aac-folder:hover { outline: 2px solid var(--tile-border); outline-offset: 1px; }
+.aac-tile img { width: min(100%, var(--aac-tile-picto)); height: auto; aspect-ratio: 1; object-fit: contain; background: white; border-radius: 8px; }
+.aac-tile span { font-size: var(--aac-tile-font); font-weight: 650; text-align: center; line-height: 1.35; overflow-wrap: anywhere; }
 .aac-tile .aac-word-symbol { display: grid; place-items: center; min-height: var(--aac-tile-picto); font-size: var(--aac-word-symbol-size); }
-@media (max-width: 700px) { .aac-tile .aac-word-symbol { min-height: var(--aac-tile-picto-mobile); } }
-.aac-quick { min-width: 0; overflow-x: auto; }
-.aac-quick button { flex-shrink: 0; }
-.aac-quick-editor { margin-top: 24px; padding: 16px; background: white; border: 1px solid #c5d1e2; border-radius: 10px; }
-.aac-quick-editor summary, .settings-advanced summary { cursor: pointer; min-height: 44px; padding: 10px 0; font-weight: 650; }
+.tone-pronoun { --tile-bg: #fffbed; --tile-border: #d9c583; }
+.tone-verb { --tile-bg: #f0f8ee; --tile-border: #a2c29b; }
+.tone-social { --tile-bg: #f7f0fc; --tile-border: #c6afd9; }
+.tone-adjective { --tile-bg: #f0f5fc; --tile-border: #a7bfdf; }
+.tone-question { --tile-bg: #edf9f6; --tile-border: #97c7be; }
+.tone-priority { --tile-bg: #fff2ef; --tile-border: #dda99f; }
+.tone-noun { --tile-bg: #fff6e9; --tile-border: #d9ba8d; }
+.aac-core-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+.aac-core-strip button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 60px; padding: 6px; background: var(--tile-bg); border: 1px solid var(--tile-border); border-radius: 10px; font-size: 13px; font-weight: 600; }
+.aac-core-strip img { width: min(45%, var(--aac-core-picto)); height: auto; aspect-ratio: 1; object-fit: contain; }
+.aac-folders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.aac-folder { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 150px; padding: 16px; border: 1px solid var(--tile-border); border-top-width: 4px; border-radius: 14px; background: white; font-size: 15px; font-weight: 600; }
+.aac-folder img { width: min(100%, var(--aac-folder-picto)); height: auto; aspect-ratio: 1; object-fit: contain; }
+.aac-folder-mark { position: absolute; top: 10px; left: 10px; color: var(--muted); }
+.aac-folder > svg:last-child { position: absolute; right: 10px; bottom: 14px; }
+.pictogram-credit { color: var(--muted); text-align: center; font-size: 11px; line-height: 1.8; padding-top: 24px; }
+.pictogram-credit a { text-decoration: underline; text-underline-offset: 3px; }
+.aac-saved-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; color: var(--muted); font-size: 13px; }
+.aac-remove-saved { position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid #edc7cc; border-radius: 10px; background: white; color: #9c3944; }
+.aac-quick-editor { margin-top: 24px; padding: 20px; background: white; border: 1px solid var(--line); border-radius: 14px; font-size: 14px; }
+.aac-quick-editor summary, .settings-advanced summary { min-height: 44px; padding-block: 10px; cursor: pointer; font-weight: 650; }
 .aac-quick-editor form { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
 .aac-quick-editor label { width: 100%; }
-.aac-quick-editor input { flex: 1; min-width: 120px; border: 1px solid #afbed4; border-radius: 6px; padding: 10px; }
-.aac-quick-editor ol { padding: 0; list-style: none; }
-.aac-quick-editor li { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; border-bottom: 1px solid #dce3ed; }
-.aac-quick-editor li > span { flex: 1 1 180px; align-self: center; overflow-wrap: anywhere; }
-.aac-phrase-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-@media (max-width: 700px) { .aac-sentence-suggestion { font-size: 12px; gap: 6px; }.aac-sentence-suggestion button { padding-inline: 8px; font-size: 12px; } }
+.aac-quick-editor input { flex: 1; min-width: 120px; padding: 10px; border: 1px solid #bec7d8; border-radius: 8px; }
+.aac-quick-editor ol { list-style: none; padding: 0; }
+.aac-quick-editor li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.aac-quick-editor li > span { flex: 1 1 160px; overflow-wrap: anywhere; }
+.aac-phrase-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.aac-history { max-width: 960px; margin: auto; }
+.aac-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+.aac-history ol { list-style: none; padding: 0; display: grid; gap: 12px; }
+.aac-history li { display: flex; align-items: center; gap: 10px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.aac-history li > div { flex: 1; min-width: 0; }
+.aac-history small { font-size: 12px; color: var(--muted); }
+.aac-history li p { margin-top: 8px; font-size: 18px; overflow-wrap: anywhere; }
+.aac-history li.aac-history-self { background: #f0eefb; border-color: #dcd6ef; margin-left: 32px; }
+.aac-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; min-height: 280px; padding: 28px; text-align: center; color: var(--muted); }
+.aac-empty h2 { color: var(--ink); font-size: 21px; font-weight: 600; }
 
-/* Keep mode buttons and listening controls outside the response scroll region. */
-.aac-header { grid-row: 1; }
-.aac-composer { grid-row: 2; }
-.aac-navigation { grid-row: 3; }
-.aac-scroll-area { grid-row: 4; }
-.aac-tabs { gap: 8px; }
-.aac-navigation .aac-tabs button { min-height: 56px; min-width: 100px; }
-.aac-tabs button > * { pointer-events: none; }
-/* Conversation Mode: Zero-scroll dynamic viewport workspace */
-.aac-scroll-area.aac-conversation-workspace {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden !important;
-  height: 100%;
-  min-height: 0;
-  max-height: 100%;
-}
+/* Tools share the same cards, controls, and form rhythm as communication. */
+.aac-agent-panel { display: grid; gap: 20px; max-width: 1100px; margin: auto; }
+.aac-agent-panel > * { min-width: 0; }
+.aac-agent-panel .aac-section-heading { margin-bottom: 0; }
+.aac-demo-label { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 9px; border-radius: 7px; color: var(--muted); background: #eceef5; font-size: 11px; }
+.aac-command, .aac-agent-card { padding: 24px; background: white; border: 1px solid var(--line); border-radius: 16px; }
+.aac-command { background: #f0eefb; border-color: #dcd6ef; }
+.aac-command > label { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 16px; font-weight: 650; }
+.aac-command > div { display: flex; gap: 8px; }
+.aac-command input { flex: 1; min-width: 0; }
+.aac-command p { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.aac-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; padding: 10px 16px; background: var(--accent); color: white; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.aac-agent-panel input { min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid #c8cfdf; border-radius: 9px; background: white; color: var(--ink); font-size: 16px; }
+.aac-agent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.aac-agent-card { min-width: 0; }
+.aac-card-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.aac-card-heading h2 { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 650; }
+.aac-card-heading h2 svg { color: var(--accent); }
+.aac-light-preview { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 12px; background: #f8f9fc; border-radius: 12px; }
+.aac-light-preview button { display: grid; place-items: center; width: 88px; height: 88px; border-radius: 50%; background: var(--light-color); color: #374158; border: 1px solid #0000000d; margin-bottom: 4px; }
+.aac-light-preview strong { font-size: 14px; }
+.aac-light-preview p { color: var(--muted); font-size: 12px; text-align: center; }
+.aac-light-colors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-block: 16px; }
+.aac-light-colors .aac-tool { font-size: 12px; padding: 8px 6px; }
+.aac-light-colors button[aria-pressed=true] { background: var(--accent-soft); border-color: var(--accent); }
+.aac-light-colors span { width: 12px; height: 12px; border: 1px solid #00000020; border-radius: 50%; flex-shrink: 0; }
+.aac-full-width { width: 100%; }
+.aac-event-form { display: grid; gap: 8px; padding: 16px; background: #f7f8fc; border-radius: 12px; margin-bottom: 16px; }
+.aac-event-form label { display: block; font-size: 12px; font-weight: 600; }
+.aac-event-form label span { color: var(--muted); font-weight: 400; }
+.aac-event-date { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.aac-event-date input { width: 100%; margin-top: 8px; }
+.aac-calendar-empty { min-height: 270px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; color: var(--muted); }
+.aac-calendar-empty svg { color: #9c93bf; }
+.aac-calendar-empty h3 { font-size: 16px; font-weight: 600; color: var(--ink); }
+.aac-calendar-empty p, .aac-card-note { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.aac-events, .aac-activity { list-style: none; padding: 0; margin: 0; }
+.aac-events li { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.aac-events li > div { flex: 1; min-width: 0; }
+.aac-events strong { font-size: 15px; overflow-wrap: anywhere; }
+.aac-events span { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.aac-events p { font-size: 13px; overflow-wrap: anywhere; }
+.aac-events + .aac-card-note { margin-top: 16px; }
+.aac-memory { margin-top: 16px; padding: 18px; background: #f7f8fc; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.7; }
+.aac-activity li { display: flex; gap: 12px; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.aac-activity time { color: var(--muted); flex-shrink: 0; }
 
-.aac-conversation-workspace > .aac-tab-content {
-  flex: 1 1 0%;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden !important;
-  display: flex;
-  flex-direction: column;
-  padding: clamp(4px, 1vh, 8px) clamp(8px, 1.5vw, 18px);
-  width: 100%;
-  box-sizing: border-box;
-}
+/* Settings and existing voice controls use the same light palette. */
+.vocalis-redesign .settings-backdrop { background: #22243e66; backdrop-filter: blur(6px); }
+.vocalis-redesign .settings-dialog { background: white; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 24px 100px #15132833; max-height: calc(100dvh - 40px); }
+.settings-body { min-height: 0; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.vocalis-redesign .settings-dialog [class*="bg-slate-"] { background-color: #f7f8fc; }
+.vocalis-redesign .settings-dialog [class*="border-slate-"] { border-color: var(--line); }
+.vocalis-redesign .settings-dialog [class*="text-slate-"] { color: var(--muted); }
+.vocalis-redesign .settings-dialog :is(h2, h3, .text-white) { color: var(--ink); }
+.vocalis-redesign .settings-dialog :is([class*="text-blue-"], [class*="text-violet-"], [class*="text-purple-"], [class*="text-indigo-"]) { color: var(--accent); }
+.vocalis-redesign .settings-dialog [class*="text-emerald-"] { color: #246348; }
+.vocalis-redesign .settings-dialog [class*="text-red-"] { color: #94343e; }
+.vocalis-redesign .settings-dialog :is(input:not([type=checkbox]):not([type=range]), select, textarea) { color: var(--ink); background: white; min-height: 44px; font-size: 16px; }
+.vocalis-redesign .settings-dialog button { min-height: 44px; }
+.vocalis-redesign .settings-dialog button[aria-pressed=true] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.vocalis-redesign .settings-dialog input[type=range] { min-height: 44px; accent-color: var(--accent); }
+.vocalis-redesign .settings-dialog :is(button.bg-blue-600, button.bg-violet-600, button.bg-emerald-600) { color: white; background: var(--accent); }
+.vocalis-redesign .settings-dialog > div:first-child { background: white; }
+.vocalis-redesign .settings-dialog > div:first-child button { min-width: 44px; }
+.vocalis-redesign .settings-dialog > div:last-child { flex-wrap: wrap; gap: 8px; }
+.vocalis-redesign .settings-dialog > div:last-child > button { margin-left: auto; }
+.vocalis-redesign .voice-cloner { background: #f7f5fc; border-color: #dad2ed; }
 
-.aac-conversation {
-  flex: 1 1 0%;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden !important;
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+@media (max-width: 1180px) {
+  .aac-app { grid-template-columns: 184px minmax(0, 1fr); }
+  .aac-navigation { padding-inline: 12px; }
+  .aac-header { padding-inline: 20px; }
+  .aac-brand-caption, .aac-session-label, .aac-voice-label { display: none; }
+  .aac-page-heading { padding: 24px 20px 18px; }
+  .aac-tab-content { padding-inline: 20px; }
+  .aac-conversation-controls { margin-inline: 20px; flex-wrap: wrap; }
+  .aac-hearing-status { flex-basis: 170px; }
+  .aac-replies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aac-reply-heading-title { flex-basis: 45%; }
+  .aac-reply-heading-actions { order: 2; }
+  .aac-reply-quick-actions { order: 3; flex-basis: 100%; }
+  .aac-reply-quick-actions button { flex: 1; }
+  .aac-composer { padding-inline: 20px; }
+  .aac-core-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .aac-folders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .aac-tile-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aac-tile-min-width-tablet)), 1fr)); }
 }
-
-/* Controls bar */
-.aac-conversation-controls {
-  display: flex;
-  align-items: center;
-  gap: clamp(6px, 1vw, 12px);
-  padding: clamp(4px, 0.8vh, 8px) clamp(10px, 1.5vw, 22px);
-  background: #fff;
-  border-bottom: 1px solid #c8d4e4;
-  flex-shrink: 0;
-}
-.aac-conversation-controls .aac-listen {
-  min-height: clamp(38px, 4.5vh, 46px);
-  min-width: clamp(100px, 14vw, 140px);
-  padding: 6px 12px;
-  font-size: clamp(13px, 1.6vh, 16px);
-}
-.aac-conversation-controls .aac-tool {
-  min-height: clamp(38px, 4.5vh, 46px);
-  padding: 6px 10px;
-  font-size: clamp(11px, 1.4vh, 13px);
-}
-.aac-conversation-controls .aac-hearing-status {
-  flex: 1;
-  min-width: 0;
-  font-size: clamp(10px, 1.3vh, 12px);
-  gap: 3px;
-}
-.aac-conversation-controls .aac-hearing-status meter {
-  height: clamp(8px, 1.2vh, 10px);
-  max-width: 120px;
-}
-
-/* Hearing & transcript section */
-.aac-conversation .aac-hearing-collapsed {
-  flex-shrink: 0;
-  margin-bottom: clamp(2px, 0.5vh, 4px);
-}
-.aac-conversation .aac-show-hearing-btn {
-  min-height: clamp(28px, 3.2vh, 34px);
-  padding: 3px 10px;
-  font-size: clamp(11px, 1.3vh, 13px);
-}
-.aac-conversation .aac-hearing {
-  flex-shrink: 0;
-  max-height: min(105px, 16vh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: clamp(4px, 0.8vh, 8px) clamp(8px, 1vw, 14px);
-  margin-bottom: clamp(2px, 0.5vh, 6px);
-  border: 1px solid #c8d4e4;
-  border-radius: 8px;
-  background: #fff;
-  transition: max-height 0.2s ease;
-}
-.aac-conversation .aac-hearing.has-partner-open,
-.aac-conversation .aac-hearing:has(.aac-partner-input[open]) {
-  max-height: min(220px, 35vh);
-}
-.aac-conversation .aac-hearing-header {
-  padding-bottom: 3px;
-  margin-bottom: 4px;
-}
-.aac-conversation .aac-hearing-title {
-  font-size: 11px;
-}
-.aac-conversation .aac-hearing-close {
-  min-height: 24px;
-  padding: 2px 8px;
-  font-size: 11px;
-}
-.aac-conversation .aac-heard {
-  font-size: clamp(13px, 1.6vh, 16px);
-  padding: 2px 0;
-  line-height: 1.3;
-}
-.aac-conversation .aac-speaker-turns {
-  gap: 4px;
-}
-.aac-conversation .aac-speaker-turns strong {
-  font-size: 11px;
-}
-.aac-conversation .aac-speaker-turns span {
-  font-size: clamp(12px, 1.5vh, 15px);
-  line-height: 1.3;
-}
-.aac-conversation .aac-partner-input {
-  border-top: 1px solid #dce3ed;
-  padding-top: 4px;
-  margin-top: 4px;
-}
-.aac-conversation .aac-partner-input summary {
-  cursor: pointer;
-  min-height: 24px;
-  padding: 3px 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #274b7a;
-}
-.aac-conversation .aac-partner-input summary:hover {
-  color: #173860;
-}
-.aac-conversation .aac-partner-input form {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0 2px;
-}
-.aac-conversation .aac-partner-input input {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: clamp(34px, 4vh, 38px);
-  padding: 6px 10px;
-  font-size: clamp(12px, 1.4vh, 14px);
-  border: 1.5px solid #a8bed9;
-  border-radius: 6px;
-  background: #fbfcfe;
-  color: #1d334e;
-}
-.aac-conversation .aac-partner-input input:focus {
-  outline: 2px solid #244da8;
-  border-color: #244da8;
-  background: #fff;
-}
-.aac-conversation .aac-partner-input button {
-  flex-shrink: 0;
-  min-height: clamp(34px, 4vh, 38px);
-  padding: 4px 12px;
-  font-size: clamp(11px, 1.3vh, 13px);
-  white-space: nowrap;
-  background: #2753aa;
-  color: white;
-  border: 0;
-  border-radius: 6px;
-  font-weight: 600;
-}
-.aac-conversation .aac-partner-input button:hover:not(:disabled) {
-  background: #1b418c;
-}
-.aac-conversation .aac-partner-input button:disabled {
-  background: #b2c4dc;
-  color: #496383;
-  opacity: 0.6;
-  cursor: default;
-}
-@media (max-width: 520px) {
-  .aac-conversation .aac-partner-input form {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-  }
-}
-
-/* Reply heading */
-.aac-conversation .aac-reply-heading {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: clamp(2px, 0.6vh, 5px) 0;
-}
-.aac-conversation .aac-reply-heading-title h2 {
-  font-size: clamp(13px, 1.8vh, 17px);
-  font-weight: 700;
-  margin: 0;
-}
-.aac-conversation .aac-reply-heading .aac-tool {
-  min-height: clamp(28px, 3.2vh, 34px);
-  padding: 3px 8px;
-  font-size: clamp(11px, 1.3vh, 13px);
-  gap: 4px;
-}
-
-/* Quick direct Yes/No actions in conversation reply header */
-.aac-reply-quick-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: clamp(6px, 1vw, 10px);
-}
-
-.aac-quick-reply-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(4px, 0.7vw, 7px);
-  min-height: clamp(28px, 3.4vh, 35px);
-  padding: 2px clamp(8px, 1.2vw, 13px);
-  border-radius: 8px;
-  font-size: clamp(12px, 1.5vh, 15px);
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-  touch-action: manipulation;
-  line-height: 1;
-}
-
-.aac-quick-reply-btn img {
-  width: clamp(18px, 2.2vh, 22px);
-  height: clamp(18px, 2.2vh, 22px);
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.aac-quick-reply-btn svg {
-  flex-shrink: 0;
-  opacity: 0.75;
-}
-
-/* Affirmative (Sí) pill */
-.aac-quick-yes {
-  background: #edf8f1 !important;
-  border: 1.5px solid #58b87d !important;
-  color: #116233 !important;
-  box-shadow: 0 1px 2px rgba(17, 98, 51, 0.08);
-}
-
-.aac-quick-yes:hover {
-  background: #ddf4e4 !important;
-  border-color: #3fa567 !important;
-  color: #0b4e26 !important;
-}
-
-.aac-quick-yes:active {
-  background: #c7edd3 !important;
-  transform: translateY(1px);
-}
-
-/* Negation (No) pill */
-.aac-quick-no {
-  background: #fdf2f2 !important;
-  border: 1.5px solid #e89591 !important;
-  color: #9c2729 !important;
-  box-shadow: 0 1px 2px rgba(156, 39, 41, 0.08);
-}
-
-.aac-quick-no:hover {
-  background: #fce4e4 !important;
-  border-color: #d6615b !important;
-  color: #7d1a1b !important;
-}
-
-.aac-quick-no:active {
-  background: #f8c8c8 !important;
-  transform: translateY(1px);
-}
-
-/* Repeat (¿Puedes repetir?) pill */
-.aac-quick-repeat {
-  background: #eff6ff !important;
-  border: 1.5px solid #93c5fd !important;
-  color: #1e40af !important;
-  box-shadow: 0 1px 2px rgba(30, 64, 175, 0.08);
-}
-
-.aac-quick-repeat:hover {
-  background: #dbeafe !important;
-  border-color: #60a5fa !important;
-  color: #1e3a8a !important;
-}
-
-.aac-quick-repeat:active {
-  background: #bfdbfe !important;
-  transform: translateY(1px);
-}
-
-.aac-quick-yes:focus-visible {
-  outline: 3px solid #27ae60 !important;
-  outline-offset: 2px;
-}
-
-.aac-quick-no:focus-visible {
-  outline: 3px solid #e74c3c !important;
-  outline-offset: 2px;
-}
-
-.aac-quick-repeat:focus-visible {
-  outline: 3px solid #3b82f6 !important;
-  outline-offset: 2px;
-}
-
-.aac-regenerate-short {
-  display: none;
-}
-
-/* Replies Grid: dynamically fills available viewport height without scrolling */
-.aac-conversation .aac-replies {
-  flex: 1 1 0%;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  display: grid;
-  gap: clamp(4px, 0.9vh, 8px);
-  overflow: hidden !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-}
-
-/* Tablets portrait & Mobile: 2 columns x 3 rows */
 @media (max-width: 768px) {
-  .aac-conversation .aac-replies {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
-  }
+  .aac-agent-grid { grid-template-columns: minmax(0, 1fr); }
+  .aac-command, .aac-agent-card { padding: 18px; }
+  .aac-agent-panel { gap: 16px; }
+  .aac-app { display: flex; flex-direction: column; }
+  .aac-header { order: 1; min-height: 64px; padding: 8px 16px; gap: 8px; flex-shrink: 0; }
+  .aac-brand { font-size: 23px; }
+  .aac-brand-mark { width: 32px; height: 32px; border-radius: 10px; }
+  .aac-brand-mark svg { width: 21px; height: 21px; }
+  .aac-header-actions { gap: 4px; }
+  .aac-header .aac-tool { width: 44px; min-width: 44px; padding: 10px; position: relative; }
+  .aac-header .aac-tool > span:not(.aac-context-dot):not(.aac-light-header-dot) { display: none; }
+  .aac-header .aac-context-dot, .aac-light-header-dot { position: absolute; top: 7px; right: 7px; }
+  .aac-header .aac-voice-label { display: none; }
+  .aac-composer { order: 2; flex-shrink: 0; padding: 12px 16px 8px; }
+  .aac-scroll-area { order: 3; flex: 1; width: 100%; }
+  .aac-navigation { order: 4; flex-shrink: 0; flex-direction: column; gap: 0; padding: 0 12px env(safe-area-inset-bottom, 0px); border-right: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .aac-navigation > .aac-nav-label, .aac-quick .aac-nav-label { display: none; }
+  .aac-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px 0; }
+  .aac-tabs button { flex-direction: column; justify-content: center; gap: 4px; min-height: 56px; padding: 6px 2px; font-size: 11px; position: relative; }
+  .aac-tabs .aac-mic-dot { position: absolute; top: 6px; right: calc(50% - 18px); }
+  .aac-quick { order: -1; flex-direction: row; overflow-x: auto; gap: 8px; margin: 0; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .aac-quick button { flex: 1 0 auto; min-height: 44px; padding: 6px 10px; font-size: 12px; }
+  .aac-quick button img { width: var(--aac-quick-picto-mobile); height: var(--aac-quick-picto-mobile); }
+  .aac-quick button > span { white-space: nowrap; }
+  .aac-quick button > svg { display: none; }
+  .aac-view-conversation .aac-navigation .aac-quick .aac-binary-quick { display: none; }
+  .aac-page-heading { padding: 12px 16px; }
+  .aac-page-heading h1, .aac-section-heading h1, .aac-breadcrumb h1 { font-size: 23px; }
+  .aac-page-heading p { display: none; }
+  .aac-conversation-controls { margin: 0 16px; padding: 10px; gap: 8px; }
+  .aac-conversation-controls .aac-listen { flex: 1; }
+  .aac-conversation-controls .aac-hearing-status { order: 5; flex: 1 0 100%; font-size: 11px; flex-direction: row; align-items: center; justify-content: space-between; }
+  .aac-conversation-controls .aac-hearing-status meter { width: 72px; }
+  .aac-conversation-controls .aac-tool { padding-inline: 10px; }
+  .aac-conversation-controls #conversation-toggle-transcript { margin-left: auto; }
+  .aac-transcript-btn-extra { display: none; }
+  .aac-tab-content { padding: 16px 16px 24px; }
+  .aac-conversation-workspace > .aac-tab-content { padding-top: 16px; }
+  .aac-conversation { gap: 14px; }
+  .aac-header-topics { margin: -2px; }
+  .aac-topics-label { display: none; }
+  .aac-hearing { padding: 12px 14px; }
+  .aac-hearing-header { margin-bottom: 6px; }
+  .aac-speaker-turns li { gap: 0; }
+  .aac-speaker-turns span { line-height: 1.4; }
+  .aac-transcript-label { display: none; }
+  .aac-heard, .aac-speaker-turns span { font-size: 16px; }
+  .aac-context-chip { display: none; }
+  .aac-reply-heading { gap: 10px; }
+  .aac-reply-heading h2 { font-size: 17px; }
+  .aac-reply-heading-title { flex-basis: auto; min-width: 0; }
+  .aac-quick-reply-btn { gap: 6px; padding-inline: 9px; font-size: 13px; }
+  .aac-quick-reply-btn > svg { display: none; }
+  .aac-replies { gap: 12px; }
+  .aac-reply-speak { min-height: 116px; padding: 16px; font-size: 17px; }
+  .aac-empty-replies { min-height: 240px; padding: 24px 16px; }
+  .aac-empty-replies h2 { font-size: 18px; }
+  .aac-empty-hint { display: none; }
+  .aac-message-line textarea { height: 80px; font-size: 18px; padding: 10px; }
+  .aac-message-line textarea::placeholder { font-size: 16px; }
+  .aac-edit-tools { flex-direction: column; gap: 4px; }
+  .aac-edit-tools .aac-tool { width: 44px; min-height: 44px; padding: 8px; }
+  .aac-edit-tools span { display: none; }
+  .aac-speak { min-width: 72px; padding: 10px; flex-direction: column; gap: 5px; font-size: 14px; }
+  .aac-sentence-row { gap: 4px; }
+  .aac-board-actions { flex: 1; gap: 6px; }
+  .aac-board-actions .aac-tool { width: 44px; padding: 8px; }
+  .aac-board-actions .aac-tool span { display: none; }
+  .aac-search { flex: 1; width: auto; min-width: 0; padding-left: 8px; gap: 5px; }
+  .aac-sentence-strip { order: 2; flex-basis: 100%; }
+  .aac-sentence-symbol img { width: var(--aac-sentence-picto-mobile); height: var(--aac-sentence-picto-mobile); }
+  .aac-sentence-suggestion { flex-wrap: wrap; }
+  .aac-composer-label span:last-child { display: none; }
+  .aac-breadcrumb p { display: none; }
+  .aac-board-toolbar { margin-bottom: 12px; }
+  .aac-tile-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aac-tile-min-width-mobile)), 1fr)); gap: 10px; }
+  .aac-app .aac-tile { min-height: var(--aac-tile-height-mobile); padding: var(--aac-tile-padding-mobile); gap: 8px; }
+  .aac-tile img { width: min(100%, var(--aac-tile-picto-mobile)); }
+  .aac-tile span { font-size: var(--aac-tile-font-mobile); }
+  .aac-tile .aac-word-symbol { min-height: var(--aac-tile-picto-mobile); }
+  .aac-core-strip { gap: 6px; }
+  .aac-core-strip button { font-size: 12px; }
+  .aac-core-strip img { width: min(45%, var(--aac-core-picto-mobile)); }
+  .aac-folders { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .aac-folder { min-height: 140px; font-size: 14px; }
+  .aac-folder img { width: min(100%, var(--aac-folder-picto-mobile)); }
+  .aac-section-heading { flex-wrap: wrap; margin-bottom: 20px; }
+  .aac-history li { padding: 14px; gap: 6px; }
+  .aac-history li.aac-history-self { margin-left: 12px; }
+  .aac-history li p { font-size: 16px; }
+  .aac-saved-controls { flex-wrap: wrap; }
+  .vocalis-redesign .settings-backdrop { padding: 12px; align-items: center; }
+  .vocalis-redesign .settings-dialog { height: auto; max-height: calc(100dvh - 24px); border-radius: 18px; }
+  .vocalis-redesign .settings-dialog > div:first-child { padding: 14px 16px; }
+  .vocalis-redesign .settings-dialog > div:first-child h2 { font-size: 16px; }
+  .vocalis-redesign .settings-body { padding: 20px 16px; }
 }
-
-/* Landscape mobile / short viewports: 3 columns x 2 rows */
-@media (orientation: landscape) and (max-height: 600px) {
-  .aac-conversation .aac-replies {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-/* Reply Card */
-.aac-conversation .aac-reply {
-  height: 100%;
-  min-height: 0;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: white;
-  border: 1.5px solid #bacce5;
-  border-radius: clamp(6px, 1vh, 10px);
-  box-shadow: 0 1px 3px rgba(22, 38, 59, 0.04);
-}
-
-.aac-conversation .aac-reply-speak {
-  flex: 1 1 0%;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: clamp(4px, 0.8vw, 8px);
-  padding: clamp(4px, 0.8vh, 10px) clamp(6px, 1vw, 12px);
-  border: 0;
-  background: transparent;
-  color: #1e334f;
-  text-align: left;
-  font-size: clamp(12px, 1.8vh, 17px);
-  font-weight: 600;
-  line-height: 1.25;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.aac-conversation .aac-reply-speak:hover {
-  background: #f0f5ff;
-}
-
-.aac-conversation .aac-reply-speak:active {
-  background: #e2edff;
-}
-
-.aac-conversation .aac-reply-number {
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 1px;
-  font-size: clamp(10px, 1.2vh, 12px);
-  font-weight: 700;
-  color: #4b668d;
-  background: #f1f5fa;
-  border: 1px solid #cad7e7;
-  border-radius: 4px;
-  padding: 1px 4px;
-  line-height: 1;
-}
-
-.aac-conversation .aac-reply-text {
-  flex: 1 1 0%;
-  min-width: 0;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  word-break: break-word;
-}
-
-.aac-conversation .aac-reply-speak svg {
-  flex-shrink: 0;
-  width: clamp(16px, 2vh, 20px);
-  height: clamp(16px, 2vh, 20px);
-  color: #365fa4;
-  margin-left: auto;
-}
-
-.aac-conversation .aac-reply-edit {
-  flex-shrink: 0;
-  height: clamp(24px, 3.2vh, 30px);
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 2px 8px;
-  border-top: 1px solid #e2eaf4;
-  background: #f6f8fb;
-  color: #435e82;
-  font-size: clamp(10px, 1.2vh, 12px);
-  font-weight: 600;
-  cursor: pointer;
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 0;
-  transition: background 0.15s ease;
-}
-
-.aac-conversation .aac-reply-edit:hover {
-  background: #edf2f9;
-  color: #1e3d6b;
-}
-
-.aac-conversation .aac-reply-edit svg {
-  width: clamp(12px, 1.5vh, 14px);
-  height: clamp(12px, 1.5vh, 14px);
-}
-
-.aac-conversation .aac-conversation-note {
-  flex-shrink: 0;
-  margin: 2px 0 0 0 !important;
-  font-size: 11px;
-  color: #64748b;
-  text-align: center;
-}
-
-.aac-conversation .aac-loading,
-.aac-conversation .aac-empty-replies {
-  flex: 1 1 0%;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  margin: 0 !important;
-  padding: 16px;
-}
-
-.aac-close-composer { margin-bottom: 4px; }
-
-@media (max-width: 900px) {
-  .aac-scroll-area { grid-row: 3; }
-  .aac-navigation { grid-row: 4; }
-  .aac-app:has(.aac-conversation-workspace) .aac-navigation {
-    padding-block: 2px;
-  }
-  .aac-app:has(.aac-conversation-workspace) .aac-tabs button {
-    min-height: 42px;
-    padding: 4px 8px;
-    font-size: 13px;
-  }
-  .aac-app:has(.aac-conversation-workspace) .aac-quick {
-    padding: 2px 0;
-  }
-  .aac-app:has(.aac-conversation-workspace) .aac-quick button {
-    min-height: 34px;
-    padding: 2px 8px;
-    font-size: 11px;
-  }
-}
-
-@media (max-width: 700px) {
-  .aac-conversation-controls {
-    padding: 4px 8px;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .aac-conversation-controls .aac-hearing-status {
-    flex-basis: 100%;
-    order: 2;
-    padding: 1px 0;
-    font-size: 11px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .aac-conversation-controls .aac-hearing-status meter {
-    width: 75px;
-    height: 8px;
-  }
-  .aac-conversation-controls .aac-listen {
-    flex: 1;
-    min-height: 38px;
-    min-width: 90px;
-    padding: 6px 10px;
-    font-size: 14px;
-  }
-  .aac-conversation-controls .aac-tool {
-    min-height: 38px;
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-  .aac-conversation .aac-reply-edit span {
-    display: none;
-  }
-  .aac-conversation .aac-reply-edit::after {
-    content: "Editar";
-    font-size: 10px;
-  }
-}
-
-@media (max-height: 720px), (max-width: 700px) {
-  .aac-conversation .aac-conversation-note {
-    display: none !important;
-  }
-}
-
-@media (max-width: 650px) {
+@media (max-width: 480px) {
+  .aac-header { padding-inline: 12px; }
+  .aac-page-heading { padding-top: 14px; }
+  .aac-conversation-controls { display: flex; flex-wrap: wrap; gap: 6px; }
+  .aac-conversation-controls .aac-listen { order: 0; padding-inline: 10px; }
+  .aac-conversation-controls #conversation-write { order: 1; }
+  .aac-conversation-controls #conversation-speak-mode { order: 2; }
+  .aac-conversation-controls #conversation-toggle-transcript { order: 3; margin-left: 0; }
+  .aac-conversation-controls :is(#conversation-speak-mode, #conversation-toggle-transcript) { width: 44px; min-width: 44px; padding: 10px; position: relative; }
+  .aac-conversation-controls :is(#conversation-speak-mode, #conversation-toggle-transcript) > span { display: none; }
+  .aac-conversation-controls #conversation-speak-mode .aac-speak-mode-dot { display: block; position: absolute; top: 6px; right: 6px; }
+  .aac-conversation-controls .aac-tool { font-size: 12px; }
+  .aac-replies { grid-template-columns: minmax(0, 1fr); }
+  .aac-reply-speak { min-height: 100px; font-size: 18px; }
+  .aac-reply-number { display: none; }
+  .aac-reply-speak > svg { align-self: center; margin-top: 0; }
+  .aac-reply-heading-actions { gap: 4px; }
   .aac-regenerate-text { display: none; }
   .aac-regenerate-short { display: inline; }
-  .aac-quick-reply-btn svg { display: none; }
-  .aac-quick-reply-btn { padding: 2px 7px; gap: 4px; font-size: 12px; }
-  .aac-quick-reply-btn img { width: 17px; height: 17px; }
+  .aac-quick-reply-btn img { width: 20px; height: 20px; }
+  .aac-reply-quick-actions { gap: 6px; }
+  .aac-reply-quick-actions button { flex: 1 0 auto; }
+  .aac-quick-reply-btn { padding-inline: 8px; }
+  .aac-conversation .aac-partner-input form { flex-direction: column; }
+  .aac-quick button { font-size: 11px; padding-inline: 8px; }
+  .aac-quick button img { width: 22px; height: 22px; }
+  .aac-sentence-row > .aac-icon-tool { min-width: 44px; }
+  .aac-sentence-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 44px); }
+  .aac-sentence-row > .aac-icon-tool:first-of-type { margin-left: 0; }
+  .aac-sentence-row:not(:has(.aac-board-actions)) { display: flex; }
+  .aac-sentence-strip { grid-column: 1 / -1; width: 100%; }
+  .aac-composer-label { display: none; }
+  .aac-view-conversation .aac-composer-label { display: flex; }
+  .aac-history li { flex-wrap: wrap; }
+  .aac-history li > div { flex-basis: 100%; }
+  .aac-history li > button:first-of-type { margin-left: auto; }
+  .vocalis-redesign .settings-dialog .grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
 }
-
-@media (max-width: 440px) {
-  .aac-conversation .aac-reply-heading { gap: 4px; }
-  .aac-reply-heading-title h2 { font-size: 13px; }
-  .aac-reply-quick-actions { gap: 4px; }
-  .aac-quick-reply-btn { padding: 2px 5px; font-size: 11px; }
-  .aac-quick-reply-btn img { width: 15px; height: 15px; }
+@media (max-width: 360px) {
+  .aac-write-label { display: none; }
+  .aac-conversation-controls #conversation-write { width: 44px; min-width: 44px; }
 }
-
-@media (max-width: 600px) {
+@media (max-height: 650px) {
+  .aac-header { min-height: 56px; padding-block: 6px; }
+  .aac-page-heading { padding-block: 12px; }
+  .aac-page-heading p, .aac-session-label { display: none; }
+  .aac-conversation-controls { padding-block: 8px; }
+  .aac-conversation-workspace > .aac-tab-content { padding-top: 12px; }
+  .aac-navigation { padding-top: 12px; }
+  .aac-quick { padding-top: 12px; }
+}
+@media (max-width: 768px) and (max-height: 650px) {
+  .aac-page-heading { display: none; }
+  .aac-conversation-controls { margin: 8px 12px 0; }
+  .aac-conversation-controls .aac-hearing-status { display: none; }
+  .aac-navigation { padding-top: 0; }
+  .aac-tabs { padding-block: 4px; }
+  .aac-tabs button { min-height: 48px; }
+  .aac-quick { padding-block: 4px; }
+  .aac-composer { max-height: 42dvh; }
+  .aac-view-conversation:has(.aac-composer:not([hidden])) .aac-conversation-controls { display: none; }
+  .aac-view-conversation:has(.aac-composer:not([hidden])) .aac-quick { display: none; }
+  .aac-view-conversation .aac-composer { max-height: 60dvh; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .aac-app { display: grid; grid-template-columns: 144px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  .aac-navigation { grid-column: 1; grid-row: 2 / -1; display: flex; overflow-y: auto; padding: 8px; border-right: 1px solid var(--line); }
+  .aac-navigation > .aac-nav-label, .aac-quick .aac-nav-label { display: none; }
+  .aac-tabs { display: flex; flex-direction: column; gap: 2px; padding: 0; }
+  .aac-tabs button { flex-direction: row; justify-content: flex-start; min-height: 44px; gap: 8px; font-size: 12px; }
+  .aac-tabs .aac-mic-dot { position: static; }
+  .aac-quick { order: 0; flex-direction: column; padding-top: 8px; flex-shrink: 0; overflow: visible; }
+  .aac-quick button { flex: initial; }
+  .aac-header { min-height: 52px; }
+  .aac-page-heading { display: none; }
+  .aac-conversation-controls { display: flex; flex-wrap: wrap; margin: 8px 12px 0; padding: 6px; }
+  .aac-conversation-controls .aac-hearing-status { display: none; }
+  .aac-conversation-controls .aac-listen { flex: initial; }
   .aac-transcript-btn-extra { display: none; }
+  .aac-tab-content { padding: 12px; }
+  .aac-replies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aac-composer { grid-column: 2; grid-row: 2; max-height: 45dvh; padding: 8px 12px; }
+  .aac-composer-label { display: none; }
 }
-.aac-hearing[hidden] { display: none !important; }
-.aac-hearing-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; margin-bottom: 6px; }
-.aac-hearing-title { font-size: 13px; font-weight: 600; color: #566c84; text-transform: uppercase; letter-spacing: 0.04em; }
-.aac-hearing-close { min-height: 32px; padding: 4px 10px; font-size: 13px; color: #566c84; background: transparent; border: 1px solid #c8d4e4; border-radius: 6px; cursor: pointer; }
-.aac-hearing-close:hover { background: #f1f5f9; color: #1e293b; }
-.aac-hearing-collapsed { margin-bottom: 12px; }
-.aac-show-hearing-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; min-height: 40px; font-size: 14px; color: #3b597d; background: #f4f7fb; border: 1px solid #cad7e7; border-radius: 8px; cursor: pointer; }
-.aac-show-hearing-btn:hover { background: #e9eff8; border-color: #b0c4de; }
-.aac-hearing-badge { font-size: 11px; font-weight: 700; background: #2753aa; color: #fff; padding: 2px 7px; border-radius: 10px; margin-left: 4px; }
-.aac-transcript-toggle.is-collapsed { background: #f0f4fa; border-color: #9cb5d6; color: #1d3e78; }
-.aac-speaker-turns { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.aac-speaker-turns li { display: grid; gap: 4px; }
-.aac-speaker-turns strong { font-size: 0.85rem; color: #475569; }
-.aac-speaker-turns span { font-size: 1.1rem; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) {
+  .aac-app *, .settings-dialog * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+/* Conversation history: a compact rail on wide screens and an optional tray on phones. */
+.aac-chat-panel { display: none; min-width: 0; min-height: 0; flex-direction: column; background: #fcfcfe; border-left: 1px solid var(--line); padding: 20px 16px 16px; }
+.aac-chat-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.aac-chat-heading > div { display: flex; align-items: center; gap: 8px; }
+.aac-chat-heading svg { color: var(--accent); }
+.aac-chat-heading h2 { font-size: 15px; font-weight: 650; letter-spacing: -.2px; }
+.aac-chat-caption { color: var(--muted); font-size: 11px; padding-top: 6px; padding-bottom: 18px; }
+.aac-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 4px; }
+.aac-chat-messages { display: flex; flex-direction: column; gap: 18px; padding: 0; margin: 0; list-style: none; }
+.aac-chat-message { align-self: flex-start; max-width: 94%; min-width: 70px; --bubble-bg: #edf4fb; --bubble-line: #d8e6f3; }
+.aac-chat-message.speaker-tone-1 { --bubble-bg: #edf6f2; --bubble-line: #d5e8df; }
+.aac-chat-message.speaker-tone-2 { --bubble-bg: #faf3e9; --bubble-line: #eadfcd; }
+.aac-chat-message.is-self { align-self: flex-end; --bubble-bg: #eeecfa; --bubble-line: #dcd6ef; }
+.aac-chat-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 2px 5px; color: var(--muted); font-size: 10px; font-weight: 600; }
+.aac-chat-time { font-size: 10px; font-weight: 400; margin-left: auto; }
+.aac-chat-message.is-self .aac-chat-meta { justify-content: flex-end; }
+.aac-chat-bubble { width: fit-content; max-width: 100%; padding: 10px 12px; border: 1px solid var(--bubble-line); border-radius: 4px 14px 14px 14px; background: var(--bubble-bg); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+.aac-chat-message.is-self .aac-chat-bubble { margin-left: auto; border-radius: 14px 4px 14px 14px; }
+.aac-chat-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 12px; text-align: center; color: var(--muted); font-size: 13px; }
+.aac-chat-empty svg { color: #8d84b8; }
+.aac-chat-latest { margin-top: 12px; font-size: 12px; flex-shrink: 0; }
+.aac-chat-toggle { flex-shrink: 0; }
+.aac-chat-panel[data-open=true] { display: flex; grid-column: 2; grid-row: 3; justify-self: end; align-self: stretch; width: min(320px, 80%); z-index: 10; box-shadow: -12px 0 30px #242b4014; }
+@media (min-width: 1280px) {
+  .aac-app.aac-view-conversation { grid-template-columns: 216px minmax(0, 1fr) 300px; }
+  .aac-view-conversation .aac-navigation { grid-column: 1; }
+  .aac-chat-panel, .aac-chat-panel[data-open=true] { display: flex; grid-column: 3; grid-row: 2 / -1; width: auto; box-shadow: none; justify-self: stretch; }
+  .aac-chat-toggle, .aac-chat-close { display: none; }
+  .aac-view-conversation .aac-conversation-controls { flex-wrap: wrap; }
+  .aac-view-conversation .aac-hearing-status { flex-basis: 130px; }
+  .aac-view-conversation .aac-replies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aac-view-conversation .aac-reply-heading-title { flex-basis: 40%; }
+  .aac-view-conversation .aac-reply-heading-actions { order: 2; }
+  .aac-view-conversation .aac-reply-quick-actions { order: 3; flex-basis: 100%; }
+  .aac-view-conversation .aac-reply-quick-actions button { flex: 1; }
+}
+@media (max-width: 768px) and (min-height: 481px) {
+  .aac-chat-panel[data-open=true] { order: 3; flex-shrink: 0; height: 30dvh; width: 100%; padding: 8px 16px 12px; border-left: 0; border-top: 1px solid var(--line); box-shadow: 0 -4px 20px #242b4008; }
+  .aac-chat-caption { display: none; }
+  .aac-chat-messages { gap: 12px; }
+  .aac-chat-bubble { font-size: 14px; }
+}
+@media (max-width: 480px) {
+  .aac-conversation-controls .aac-chat-toggle { order: 4; }
+}
+.aac-partner-input summary svg { display: none; }
+.aac-reply-edit-mode { display: none; }
 
-/* Context button in header */
-.aac-context-tool { position: relative; gap: 6px; }
-.aac-context-tool.has-context { background: #f0f5ff; border-color: #9cbbe8; color: #1e4688; }
-.aac-context-tool.has-context:hover { background: #e3efff; border-color: #7aa5df; }
-.aac-context-dot { width: 7px; height: 7px; background: #2563eb; border-radius: 50%; flex-shrink: 0; }
-@media (max-width: 700px) {
-  .aac-header .aac-context-tool { position: relative; min-width: 44px; }
-  .aac-header .aac-context-tool .aac-context-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; }
+/* A six-choice workspace gives the remaining height to replies, not explanatory chrome. */
+.aac-compact-replies .aac-page-heading { padding: 12px 20px; }
+.aac-compact-replies .aac-page-heading h1 { font-size: 22px; }
+.aac-compact-replies .aac-page-heading p, .aac-compact-replies .aac-session-label { display: none; }
+.aac-compact-replies .aac-conversation-controls { margin-inline: 20px; padding: 8px; flex-wrap: nowrap; }
+.aac-compact-replies .aac-hearing-status { flex-basis: auto; }
+.aac-compact-replies #conversation-toggle-transcript { width: 44px; padding: 10px; }
+.aac-compact-replies #conversation-toggle-transcript > span { display: none; }
+.aac-compact-replies .aac-conversation-workspace > .aac-tab-content { padding: 12px 20px 16px; }
+.aac-compact-replies .aac-conversation { min-height: 0; height: 100%; gap: 10px; }
+.aac-compact-replies .aac-header-topics { padding: 0; }
+.aac-compact-replies .aac-hearing { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; column-gap: 8px; padding: 8px 12px; flex-shrink: 0; }
+.aac-compact-replies .aac-hearing-header, .aac-compact-replies .aac-hearing > .aac-conversation-note { display: none; }
+.aac-compact-replies .aac-speaker-turns { max-height: 64px; gap: 0; }
+.aac-compact-replies .aac-speaker-turns li:not(:last-child) { display: none; }
+.aac-compact-replies .aac-speaker-turns span, .aac-compact-replies .aac-heard { font-size: 15px; line-height: 1.4; }
+.aac-compact-replies .aac-heard { max-height: 64px; overflow-y: auto; }
+.aac-compact-replies .aac-partner-input { grid-column: 2; grid-row: 1; border: 0; margin: 0; }
+.aac-compact-replies .aac-partner-input summary { display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 8px; }
+.aac-compact-replies .aac-partner-input summary::marker { content: ''; }
+.aac-compact-replies .aac-partner-input summary span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.aac-compact-replies .aac-partner-input summary svg { display: block; }
+.aac-compact-replies .aac-reply-heading { flex-wrap: nowrap; gap: 8px; padding: 0; flex-shrink: 0; }
+.aac-compact-replies .aac-reply-heading-title { flex: 1; min-width: 0; }
+.aac-compact-replies .aac-reply-heading h2 { font-size: 16px; }
+.aac-compact-replies .aac-reply-quick-actions { order: 0; flex-basis: auto; gap: 6px; }
+.aac-compact-replies .aac-reply-heading-actions { order: 0; }
+.aac-compact-replies .aac-context-chip { display: none; }
+.aac-compact-replies .aac-quick-reply-btn { min-height: 44px; padding: 6px 10px; font-size: 12px; }
+.aac-compact-replies .aac-quick-reply-btn > svg { display: none; }
+.aac-compact-replies .aac-regenerate-text { display: none; }
+.aac-compact-replies .aac-regenerate-short { display: inline; }
+.aac-compact-replies .aac-replies { flex: 1; min-height: min-content; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(var(--aac-reply-rows), minmax(min-content, 1fr)); gap: 10px; }
+.aac-compact-replies .aac-reply-speak { min-height: 64px; padding: 12px; font-size: 17px; line-height: 1.4; }
+.aac-compact-replies .aac-reply-number { width: 18px; height: 20px; }
+.aac-compact-replies .aac-reply-speak > svg { width: 16px; height: 16px; }
+.aac-compact-replies .aac-reply-instructions { display: none; }
+.aac-compact-replies .aac-conversation > .aac-conversation-note { font-size: 11px; line-height: 1.3; }
+@media (max-width: 1180px) {
+  .aac-compact-replies .aac-conversation-controls { flex-wrap: wrap; }
+  .aac-compact-replies .aac-replies { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(var(--aac-reply-rows-mobile), minmax(min-content, 1fr)); }
+}
+@media (min-width: 960px) and (max-width: 1180px) {
+  .aac-compact-replies .aac-replies { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(var(--aac-reply-rows), minmax(min-content, 1fr)); }
+}
+@media (max-width: 768px) {
+  .aac-compact-replies .aac-page-heading { display: none; }
+  .aac-compact-replies .aac-conversation-controls { margin: 8px 12px 0; padding: 6px; }
+  .aac-compact-replies .aac-conversation-workspace > .aac-tab-content { padding: 10px 12px 12px; }
+  .aac-compact-replies .aac-conversation { gap: 8px; }
+  .aac-compact-replies .aac-reply-heading h2 { font-size: 14px; }
+  .aac-compact-replies .aac-quick-reply-btn { min-width: 44px; padding: 5px 8px; }
+  .aac-compact-replies .aac-quick-reply-btn img { display: none; }
+  .aac-compact-replies .aac-quick-repeat span { display: none; }
+  .aac-compact-replies .aac-quick-repeat img { display: block; width: 22px; height: 22px; }
+  .aac-compact-replies .aac-reply { display: grid; grid-template-columns: minmax(0, 1fr) 44px; }
+  .aac-compact-replies .aac-reply-speak { border-radius: 12px 0 0 12px; padding: 10px; font-size: 15px; min-height: 64px; }
+  .aac-compact-replies .aac-reply-speak > svg, .aac-compact-replies .aac-reply-number { display: none; }
+  .aac-compact-replies .aac-reply-edit { border-top: 0; border-left: 1px solid var(--line); border-radius: 0 12px 12px 0; padding: 8px; }
+  .aac-compact-replies .aac-reply-edit span { display: none; }
+  .aac-compact-replies .aac-reply-edit svg { width: 18px; height: 18px; }
+}
+@media (max-width: 768px) and (max-height: 650px) {
+  .aac-compact-replies .aac-header-topics { display: none; }
+  .aac-compact-replies .aac-quick { display: none; }
+  .aac-compact-replies .aac-reply-speak { font-size: 14px; line-height: 1.35; padding: 8px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .aac-compact-replies .aac-replies { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(var(--aac-reply-rows), minmax(min-content, 1fr)); }
+  .aac-compact-replies .aac-header-topics { display: none; }
+  .aac-compact-replies .aac-conversation-controls { margin: 6px 12px 0; padding: 4px; }
+  .aac-compact-replies .aac-conversation-workspace > .aac-tab-content { padding: 6px 12px; }
+  .aac-compact-replies .aac-conversation { gap: 6px; }
+  .aac-compact-replies .aac-reply { display: grid; grid-template-columns: minmax(0, 1fr) 44px; }
+  .aac-compact-replies .aac-reply-speak { min-height: 44px; padding: 8px; font-size: 14px; line-height: 1.35; border-radius: 12px 0 0 12px; }
+  .aac-compact-replies .aac-reply-speak > svg, .aac-compact-replies .aac-reply-number, .aac-compact-replies .aac-reply-edit span { display: none; }
+  .aac-compact-replies .aac-reply-edit { min-height: 44px; padding: 8px; border-top: 0; border-left: 1px solid var(--line); border-radius: 0 12px 12px 0; }
+}
+@media (max-width: 480px) {
+  .aac-compact-replies .aac-listen { flex: 0 0 auto; padding-inline: 6px; font-size: 12px; }
+  .aac-compact-replies .aac-write-label { display: none; }
+  .aac-compact-replies #conversation-write { width: 44px; min-width: 44px; padding: 10px; }
+}
+@media (max-width: 360px) {
+  .aac-compact-replies .aac-listen { width: 44px; min-width: 44px; padding: 10px; }
+  .aac-compact-replies .aac-listen > span { display: none; }
+  .aac-compact-replies .aac-hearing { padding: 4px 8px; }
+  .aac-compact-replies .aac-speaker-turns { max-height: 44px; }
+  .aac-compact-replies .aac-speaker-turns strong { display: none; }
+  .aac-compact-replies .aac-conversation { gap: 6px; }
+  .aac-compact-replies .aac-replies { gap: 6px; }
+  .aac-compact-replies .aac-reply-heading-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .aac-compact-replies .aac-regenerate-short { display: none; }
+  .aac-compact-replies .aac-regenerate-btn { width: auto; min-width: 40px; padding: 8px 10px; }
+  .aac-compact-replies .aac-generate-control-group { gap: 4px; padding: 2px; }
+  .aac-compact-replies .aac-reply-heading-actions { margin-left: auto; }
+  .aac-compact-replies .aac-reply { display: block; position: relative; }
+  .aac-compact-replies .aac-reply-speak { display: block; width: 100%; height: 100%; padding: 8px; border-radius: 12px; }
+  .aac-compact-replies .aac-reply-text { display: block; }
+  .aac-compact-replies .aac-reply-edit { display: none; }
+  .aac-compact-replies .aac-reply-edit-mode { display: inline-flex; }
+  .aac-compact-replies .aac-reply-edit-mode[aria-pressed=true] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+}
+@keyframes aac-pulse { 50% { opacity: .4; } }
+
+/* Category selection fills the available workspace instead of stacking tall cards. */
+.aac-show-categories .aac-scroll-area { overflow: hidden; scrollbar-gutter: auto; }
+.aac-show-categories .aac-tab-content { height: 100%; min-height: 0; display: flex; flex-direction: column; padding: 12px 20px; gap: 8px; }
+.aac-show-categories .aac-board-toolbar { flex-shrink: 0; margin-bottom: 0; }
+.aac-show-categories .aac-breadcrumb p { display: none; }
+.aac-show-categories .aac-folders { flex: 1; min-height: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 8px; container: category-grid / size; }
+.aac-show-categories .aac-folder { min-height: 44px; min-width: 0; padding: 4px 6px; gap: 4px; font-size: 14px; line-height: 1.15; }
+.aac-show-categories .aac-folder img { width: min(var(--aac-folder-picto), 18cqw, max(0px, calc(25cqh - 46px))); height: min(var(--aac-folder-picto), 18cqw, max(0px, calc(25cqh - 46px))); flex-shrink: 0; }
+.aac-show-categories .aac-folder > span { max-width: 100%; overflow-wrap: anywhere; }
+.aac-show-categories .aac-folder-mark, .aac-show-categories .aac-folder > svg:last-child { display: none; }
+.aac-show-categories .pictogram-credit { flex-shrink: 0; margin: 0; padding-top: 0; font-size: 10px; line-height: 1.3; }
+@container category-grid (max-height: 300px) {
+  .aac-show-categories .aac-folder { font-size: 12px; gap: 2px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .aac-show-categories .aac-folder img { width: min(var(--aac-folder-picto), 12cqw, max(0px, calc(33cqh - 40px))); height: min(var(--aac-folder-picto), 12cqw, max(0px, calc(33cqh - 40px))); }
+}
+@media (max-width: 768px) {
+  .aac-show-categories .aac-tab-content { padding: 8px 12px; gap: 6px; }
+  .aac-show-categories .aac-folders { gap: 6px; }
+  .aac-show-categories .aac-folder { font-size: 12px; padding-inline: 3px; }
+}
+@media (max-height: 650px) {
+  .aac-show-categories .aac-composer { padding: 8px 12px; }
+  .aac-show-categories .aac-composer-label { display: none; }
+  .aac-show-categories .aac-message-line textarea { height: 44px; padding: 8px; font-size: 18px; }
+  .aac-show-categories .aac-message-line textarea::placeholder { font-size: 14px; }
+  .aac-show-categories .aac-edit-tools { flex-direction: row; }
+  .aac-show-categories .aac-edit-tools .aac-tool { width: 44px; padding: 8px; }
+  .aac-show-categories .aac-edit-tools .aac-tool span { display: none; }
+  .aac-show-categories .aac-speak { min-width: 64px; padding: 6px 10px; flex-direction: row; }
+  .aac-show-categories .aac-speak svg { width: 20px; }
+  .aac-show-categories .aac-speak span { display: none; }
+  .aac-show-categories .aac-sentence-row { margin-top: 6px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .aac-show-categories .aac-folders { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); }
+  .aac-show-categories .aac-folder { font-size: 11px; }
+  .aac-show-categories .aac-tab-content { padding-block: 6px; gap: 4px; }
+}
+@media (max-width: 360px) and (max-height: 650px) {
+  .aac-show-categories .aac-tab-content { padding: 4px 12px; gap: 4px; }
+  .aac-show-categories .aac-folders { gap: 4px; }
+  .aac-show-categories .aac-folder { font-size: 11px; gap: 0; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .aac-show-categories .aac-folders { gap: 4px; }
 }
 
-/* Context chip in conversation view */
-.aac-reply-heading-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.aac-context-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 6px 11px; border-radius: 20px; background: #edf4fe; border: 1px solid #c0d4ec; color: #214478; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease; }
-.aac-context-chip:hover { background: #e0edfd; border-color: #96bbe7; color: #153463; }
-.aac-context-chip svg { flex-shrink: 0; color: #2855ac; }
-.aac-context-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 650px) {
-  .aac-context-chip { max-width: 140px; }
-}
-@media (max-width: 440px) {
-  .aac-context-chip { display: none; }
+@container category-grid (max-height: 200px) {
+  .aac-show-categories .aac-folder img { display: none; }
 }
 
-/* Topic chips in header */
-.aac-header-topics {
+/* ==============================================================================
+   PLANNING MODE STYLES (Visual Planner & Guided Storyboard)
+   ============================================================================== */
+
+.aac-planner, .aac-visual-planner, .aac-guided-planner {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  max-width: calc(100% - 300px);
-  padding: 2px 4px;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1320px;
+  margin: 0 auto;
+  width: 100%;
 }
-.aac-header-topics::-webkit-scrollbar {
-  display: none;
+
+.aac-planner-hero {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f7f6fd 0%, #edf2fc 100%);
+  border: 1px solid #d9d6f3;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(81, 70, 189, 0.05);
 }
-.aac-topic-chip {
+
+.aac-guided-hero {
+  background: linear-gradient(135deg, #f3f8fd 0%, #edf7f3 100%);
+  border-color: #c9e4db;
+}
+
+.aac-planner-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  min-height: 36px;
-  background: #f1f5fa;
-  border: 1.5px solid #cdd8e6;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #274263;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-.aac-topic-chip img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-}
-.aac-topic-chip:hover {
-  background: #e3ecf8;
-  border-color: #9cb8dd;
-}
-.aac-topic-chip.active {
-  background: #e7effb;
-  border-color: #2558b3;
-  color: #173b7d;
-  box-shadow: 0 0 0 1px #2558b3;
-}
-.aac-topic-clear {
-  margin-left: 2px;
-  opacity: 0.7;
-}
-.aac-topic-clear:hover {
-  opacity: 1;
+  background: white;
+  border: 1px solid #c9c1eb;
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
-/* Active topic title badge in conversation */
-.aac-reply-heading-title {
+.aac-guided-badge {
+  border-color: #a8dad1;
+  color: #17735a;
+}
+
+.aac-planner-hero h1 {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.aac-planner-hero p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 800px;
+}
+
+.aac-planner-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.aac-section-title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   flex-wrap: wrap;
-}
-.aac-active-topic-wrap {
-  display: inline-flex;
-  align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-}
-.aac-active-topic-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 14px;
-  background: #e7effb;
-  border: 1px solid #9cb8dd;
-  color: #173b7d;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.aac-active-topic-badge:hover {
-  background: #d8e5f7;
 }
 
-/* Topic context hint for callback feature */
-.aac-topic-context-hint {
-  display: inline-block;
-  font-size: 11px;
-  color: #3b5a82;
-  background: #eef4fc;
-  border: 1px solid #c9daf0;
+.aac-section-title-row h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.aac-section-hint, .aac-section-subtitle {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Recipient Selector Grid */
+.aac-recipient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.aac-recipient-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #fafbfe;
+  border: 2px solid #e2e6f0;
   border-radius: 12px;
-  padding: 2px 8px;
-  max-width: 280px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.aac-recipient-card:hover {
+  background: #f4f5fb;
+  border-color: #c9d2e5;
+  transform: translateY(-1px);
+}
+
+.aac-recipient-card.is-selected {
+  background: #f7f6fe;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(81, 70, 189, 0.12);
+}
+
+.aac-recipient-picto-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #dce2ed;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.aac-recipient-picto {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.aac-recipient-emoji {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 12px;
+  background: white;
+  border-radius: 50%;
+  padding: 1px;
+}
+
+.aac-recipient-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aac-recipient-text strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 500;
 }
 
-/* Speak mode button & badge */
-.aac-speak-mode-btn {
-  position: relative;
-  transition: all 0.15s ease;
+.aac-recipient-text span {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.aac-speak-mode-btn.is-active {
-  background: #ede9fe;
-  color: #5b21b6;
-  border-color: #8b5cf6;
+
+.aac-recipient-check {
+  margin-left: auto;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* 2-Column Planner Layout */
+.aac-planner-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.aac-planner-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* Selected Ideas Tray */
+.aac-selected-tray {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f7f6fd;
+  border: 1px dashed #c8c0e8;
+  border-radius: 12px;
+  min-height: 48px;
+}
+
+.aac-tray-label {
+  font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 0 0 1px #8b5cf6;
+  color: var(--accent);
 }
-.aac-speak-mode-btn:hover {
-  background: #f5f3ff;
-  border-color: #a78bfa;
+
+.aac-tray-empty {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-style: italic;
 }
-.aac-speak-mode-btn.is-active:hover {
-  background: #ddd6fe;
+
+.aac-tray-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.aac-speak-mode-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #7c3aed;
-  margin-left: 2px;
-}
-.aac-speak-mode-badge {
+
+.aac-tray-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 14px;
-  background: #ede9fe;
-  border: 1px solid #8b5cf6;
-  color: #5b21b6;
+  gap: 6px;
+  padding: 4px 8px;
+  background: white;
+  border: 1px solid #c2b7e6;
+  border-radius: 8px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(81, 70, 189, 0.1);
+}
+
+.aac-tray-chip img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.aac-tray-chip button {
+  display: grid;
+  place-items: center;
+  color: #7d869a;
+  padding: 1px;
+  border-radius: 4px;
+}
+
+.aac-tray-chip button:hover {
+  color: #c92a2a;
+  background: #ffe3e3;
+}
+
+/* Category Tabs for Pictograms */
+.aac-picto-category-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.aac-picto-cat-btn {
+  padding: 7px 12px;
+  background: #f0f2f7;
+  border: 1px solid #d8dee9;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #4a5468;
+  white-space: nowrap;
   cursor: pointer;
-  min-height: 36px;
-  transition: all 0.15s ease;
-}
-.aac-speak-mode-badge:hover {
-  background: #ddd6fe;
-  border-color: #7c3aed;
+  transition: all 0.12s ease;
 }
 
-/* Keep complete reply text readable when space is limited or the keyboard opens. */
-.aac-conversation .aac-replies {
-  overflow-y: auto !important;
-  overscroll-behavior: contain;
-  grid-template-rows: repeat(var(--aac-reply-rows, 2), minmax(min-content, 1fr));
-  scrollbar-width: thin;
-}
-.aac-conversation .aac-reply {
-  min-height: 132px;
-  height: auto;
-  max-height: none;
-}
-.aac-conversation .aac-reply-speak {
-  height: auto;
-  min-height: 88px;
-  font-size: clamp(15px, 1.8vh, 18px);
-  line-height: 1.4;
-}
-.aac-conversation .aac-reply-text {
-  display: block;
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  overflow: visible;
-}
-.aac-conversation .aac-reply-edit {
-  min-height: 44px;
-  height: 44px;
-  font-size: 12px;
-}
-.aac-conversation .aac-reply-edit::after { font-size: 12px; }
-.aac-quick-reply-btn, .aac-active-topic-badge { min-height: 44px; }
-.aac-reply-heading-title { min-width: 0; }
-.aac-conversation .aac-reply-heading { flex-wrap: wrap; }
-.aac-reply-heading-title { flex: 1 1 120px; }
-.aac-reply-heading-title h2 { overflow-wrap: anywhere; max-width: 100%; }
-.aac-reply-heading-actions { margin-left: auto; }
-.aac-app .aac-hearing-status { line-height: 1.4; }
-.aac-conversation-error { flex-shrink: 0; }
-/* ========================================================================== */
-/* VOCALIS AAC - COMPLETE MOBILE REDESIGN (Screens <= 768px & <= 480px)      */
-/* ========================================================================== */
-
-@media (max-width: 768px) {
-  /* 1. App Shell Architecture: Strict Flex Column with Docked Bottom Navigation */
-  .aac-app {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    overflow: hidden !important;
-    position: relative !important;
-  }
-
-  /* 2. Sleek Compact Top Header (Single row, 48px) */
-  .aac-header {
-    order: 1 !important;
-    grid-row: unset !important;
-    flex-shrink: 0 !important;
-    min-height: 48px !important;
-    height: 48px !important;
-    padding: 4px 10px !important;
-    gap: 8px !important;
-    background: #ffffff !important;
-    border-bottom: 1px solid #d8e2ee !important;
-    z-index: 25 !important;
-    display: flex !important;
-    align-items: center !important;
-    flex-wrap: nowrap !important;
-  }
-  .aac-header .aac-brand {
-    font-size: 19px !important;
-    gap: 6px !important;
-    font-weight: 800 !important;
-    flex-shrink: 0 !important;
-  }
-  .aac-header .aac-brand svg {
-    width: 22px !important;
-    height: 22px !important;
-  }
-  .aac-header .aac-voice-label {
-    display: none !important;
-  }
-  .aac-header-actions {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    margin-left: auto !important;
-    flex-shrink: 0 !important;
-  }
-  .aac-header .aac-tool {
-    min-width: 38px !important;
-    width: 38px !important;
-    min-height: 38px !important;
-    height: 38px !important;
-    padding: 0 !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 9px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    background: #ffffff !important;
-  }
-  .aac-header .aac-tool > span:not(.aac-context-dot):not(.aac-light-header-dot) {
-    display: none !important;
-  }
-  .aac-header .aac-tool svg {
-    width: 19px !important;
-    height: 19px !important;
-  }
-  .aac-header .aac-context-dot {
-    position: absolute !important;
-    top: 5px !important;
-    right: 5px !important;
-    width: 7px !important;
-    height: 7px !important;
-  }
-  .aac-header .aac-light-header-dot {
-    position: absolute !important;
-    top: 5px !important;
-    right: 5px !important;
-    width: 7px !important;
-    height: 7px !important;
-    margin-left: 0 !important;
-  }
-  .aac-header-topics {
-    flex: 1 1 auto !important;
-    max-width: calc(100% - 195px) !important;
-    overflow-x: auto !important;
-    flex-wrap: nowrap !important;
-    scrollbar-width: none !important;
-    -webkit-overflow-scrolling: touch;
-    padding: 2px 0 !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 5px !important;
-  }
-  .aac-header-topics::-webkit-scrollbar {
-    display: none !important;
-  }
-  .aac-topic-chip {
-    padding: 3px 8px !important;
-    min-height: 32px !important;
-    font-size: 11.5px !important;
-    border-radius: 8px !important;
-    gap: 4px !important;
-    flex-shrink: 0 !important;
-  }
-  .aac-topic-chip img {
-    width: 18px !important;
-    height: 18px !important;
-  }
-
-  /* 3. Composer (When active on mobile) */
-  .aac-composer {
-    order: 2 !important;
-    grid-row: unset !important;
-    flex-shrink: 0 !important;
-    padding: 6px 10px 4px !important;
-    background: #ffffff !important;
-    border-bottom: 1px solid #cbd5e1 !important;
-    z-index: 20 !important;
-  }
-  .aac-message-line {
-    gap: 6px !important;
-    display: flex !important;
-  }
-  .aac-message-line textarea {
-    font-size: 16px !important;
-    height: 52px !important;
-    min-height: 52px !important;
-    padding: 8px 10px !important;
-    border-radius: 8px !important;
-  }
-  .aac-message-line textarea::placeholder {
-    font-size: 13.5px !important;
-  }
-  .aac-edit-tools {
-    flex-direction: column !important;
-    gap: 3px !important;
-  }
-  .aac-edit-tools .aac-tool {
-    width: 38px !important;
-    min-width: 38px !important;
-    height: 24px !important;
-    min-height: 24px !important;
-    padding: 0 !important;
-  }
-  .aac-edit-tools .aac-tool span {
-    display: none !important;
-  }
-  .aac-edit-tools .aac-tool svg {
-    width: 15px !important;
-    height: 15px !important;
-  }
-  .aac-speak {
-    min-width: 68px !important;
-    padding: 4px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    flex-direction: column !important;
-    gap: 2px !important;
-    border-radius: 8px !important;
-  }
-  .aac-speak svg {
-    width: 20px !important;
-    height: 20px !important;
-  }
-  .aac-sentence-row {
-    min-height: 38px !important;
-    margin-top: 3px !important;
-    gap: 4px !important;
-  }
-  .aac-sentence-strip {
-    height: 42px !important;
-    padding: 2px !important;
-  }
-  .aac-sentence-symbol {
-    min-height: 34px !important;
-    font-size: 11px !important;
-    padding: 2px 6px !important;
-    gap: 4px !important;
-  }
-
-  /* 4. Center Viewport Scroll Area */
-  .aac-scroll-area {
-    order: 3 !important;
-    grid-row: unset !important;
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    height: auto !important;
-    max-height: 100% !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    z-index: 1 !important;
-  }
-
-  /* 5. Modern Bottom Navigation Bar */
-  .aac-navigation {
-    order: 4 !important;
-    grid-row: unset !important;
-    flex-shrink: 0 !important;
-    width: 100% !important;
-    background: #ffffff !important;
-    border-top: 1px solid #d2dce9 !important;
-    border-bottom: none !important;
-    box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.08) !important;
-    padding: 3px 6px max(6px, env(safe-area-inset-bottom, 6px)) !important;
-    z-index: 30 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0 !important;
-  }
-  .aac-navigation .aac-tabs {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    width: 100% !important;
-    gap: 4px !important;
-  }
-  .aac-navigation .aac-tabs button {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 48px !important;
-    height: 48px !important;
-    min-width: 0 !important;
-    padding: 3px 2px !important;
-    gap: 2px !important;
-    border: none !important;
-    border-bottom: none !important;
-    border-radius: 8px !important;
-    background: transparent !important;
-    color: #475569 !important;
-    position: relative !important;
-    transition: all 0.15s ease !important;
-  }
-  .aac-navigation .aac-tabs button svg {
-    width: 20px !important;
-    height: 20px !important;
-    flex-shrink: 0 !important;
-  }
-  .aac-navigation .aac-tabs button span:not(.aac-mic-dot) {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    line-height: 1.1 !important;
-    letter-spacing: -0.01em !important;
-    white-space: nowrap !important;
-  }
-  .aac-navigation .aac-tabs button[aria-pressed=true] {
-    color: #1d4ed8 !important;
-    background: #eff6ff !important;
-    font-weight: 700 !important;
-  }
-  .aac-navigation .aac-mic-dot {
-    position: absolute !important;
-    top: 5px !important;
-    right: calc(50% - 13px) !important;
-    width: 7px !important;
-    height: 7px !important;
-  }
-
-  /* Quick bar in Board mode: horizontal smooth strip */
-  .aac-navigation .aac-quick {
-    width: 100% !important;
-    overflow-x: auto !important;
-    flex-wrap: nowrap !important;
-    padding: 3px 2px !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    scrollbar-width: none !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  .aac-navigation .aac-quick::-webkit-scrollbar {
-    display: none !important;
-  }
-  .aac-navigation .aac-quick button {
-    flex: 0 0 auto !important;
-    min-height: 36px !important;
-    padding: 3px 9px !important;
-    font-size: 11.5px !important;
-    gap: 5px !important;
-    border-radius: 6px !important;
-  }
-  /* In Conversation Mode, hide quick bar in navigation to keep bottom tabs clean */
-  .aac-app:has(.aac-conversation-workspace) .aac-navigation .aac-quick {
-    display: none !important;
-  }
-
-  /* 6. Conversation Mode Single-Screen Overhaul */
-  .aac-scroll-area.aac-conversation-workspace {
-    flex: 1 1 0% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  .aac-conversation-workspace > .aac-tab-content {
-    flex: 1 1 0% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
-    padding: 4px 6px !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  .aac-conversation {
-    flex: 1 1 0% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-  }
-
-  /* Top Controls Bar in Conversation */
-  .aac-conversation-controls {
-    flex-shrink: 0 !important;
-    padding: 4px 6px !important;
-    gap: 6px !important;
-    flex-wrap: wrap !important;
-    background: #ffffff !important;
-    border-radius: 8px !important;
-    margin-bottom: 4px !important;
-    border: 1px solid #e2e8f0 !important;
-  }
-  .aac-conversation-controls .aac-listen {
-    flex: 1 1 auto !important;
-    min-height: 42px !important;
-    padding: 6px 12px !important;
-    font-size: 14.5px !important;
-    font-weight: 700 !important;
-    border-radius: 8px !important;
-  }
-  .aac-conversation-controls .aac-listen svg {
-    width: 20px !important;
-    height: 20px !important;
-  }
-  .aac-conversation-controls .aac-tool {
-    min-height: 40px !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    border-radius: 8px !important;
-  }
-  .aac-conversation-controls .aac-hearing-status {
-    flex-basis: 100% !important;
-    order: 4 !important;
-    font-size: 11px !important;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    padding: 2px 2px 0 !important;
-    border-top: 1px solid #f1f5f9 !important;
-  }
-  .aac-conversation-controls .aac-hearing-status meter {
-    width: 80px !important;
-    height: 8px !important;
-  }
-
-  /* Hearing & Transcript Card */
-  .aac-hearing {
-    flex-shrink: 0 !important;
-    padding: 6px 10px !important;
-    max-height: min(96px, 16vh) !important;
-    border-radius: 8px !important;
-    margin-bottom: 4px !important;
-  }
-  .aac-hearing.has-partner-open {
-    max-height: min(190px, 32vh) !important;
-  }
-  .aac-hearing-header {
-    padding-bottom: 2px !important;
-    margin-bottom: 2px !important;
-  }
-  .aac-heard {
-    font-size: 13.5px !important;
-    padding: 2px 0 !important;
-    line-height: 1.3 !important;
-  }
-  .aac-speaker-turns {
-    gap: 4px !important;
-  }
-  .aac-speaker-turns strong {
-    font-size: 10px !important;
-  }
-  .aac-speaker-turns span {
-    font-size: 12.5px !important;
-  }
-  .aac-conversation-note {
-    display: none !important;
-  }
-
-  /* Reply Heading: Responsive Row with Direct Quick Actions */
-  .aac-conversation .aac-reply-heading {
-    flex-shrink: 0 !important;
-    margin: 2px 0 4px !important;
-    gap: 4px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    flex-wrap: wrap !important;
-  }
-  .aac-reply-heading-title {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    min-width: 0 !important;
-    flex: 1 1 auto !important;
-  }
-  .aac-reply-heading-title h2 {
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-  .aac-speak-mode-badge {
-    min-height: 28px !important;
-    padding: 2px 7px !important;
-    font-size: 11px !important;
-  }
-  .aac-reply-quick-actions {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-    -webkit-overflow-scrolling: touch;
-    flex-shrink: 0 !important;
-  }
-  .aac-quick-reply-btn {
-    min-height: 34px !important;
-    padding: 2px 7px !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    border-radius: 6px !important;
-    gap: 3px !important;
-    flex-shrink: 0 !important;
-  }
-  .aac-quick-reply-btn img {
-    width: 16px !important;
-    height: 16px !important;
-  }
-  .aac-quick-reply-btn svg {
-    display: none !important;
-  }
-  .aac-reply-heading-actions {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    flex-shrink: 0 !important;
-  }
-  .aac-regenerate-btn {
-    min-height: 34px !important;
-    padding: 2px 6px !important;
-    font-size: 11.5px !important;
-  }
-  .aac-regenerate-text { display: none !important; }
-  .aac-regenerate-short { display: inline !important; }
-
-  /* Replies Grid: 2 columns x 3 rows with smooth touch scroll */
-  .aac-conversation .aac-replies {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
-    gap: 5px !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  .aac-conversation .aac-reply {
-    height: 100% !important;
-    min-height: 54px !important;
-    max-height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    background: #ffffff !important;
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
-  }
-  .aac-conversation .aac-reply:active {
-    border-color: #3b82f6 !important;
-    background: #f8faff !important;
-  }
-  .aac-conversation .aac-reply-speak {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 5px !important;
-    padding: 5px 7px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    line-height: 1.25 !important;
-    color: #1e293b !important;
-    overflow: hidden !important;
-  }
-  .aac-conversation .aac-reply-number {
-    font-size: 10px !important;
-    padding: 1px 3px !important;
-    border-radius: 3px !important;
-    font-weight: 700 !important;
-    color: #2563eb !important;
-    background: #eff6ff !important;
-    border-color: #bfdbfe !important;
-  }
-  .aac-conversation .aac-reply-text {
-    flex: 1 1 0% !important;
-    min-width: 0 !important;
-    display: -webkit-box !important;
-    -webkit-box-orient: vertical !important;
-    -webkit-line-clamp: 3 !important;
-    line-clamp: 3 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    word-break: break-word !important;
-  }
-  .aac-conversation .aac-reply-speak svg {
-    width: 15px !important;
-    height: 15px !important;
-    color: #2563eb !important;
-    flex-shrink: 0 !important;
-    margin-left: auto !important;
-  }
-  .aac-conversation .aac-reply-edit {
-    flex-shrink: 0 !important;
-    height: 26px !important;
-    min-height: 26px !important;
-    padding: 2px 6px !important;
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-    background: #f8fafc !important;
-    border-top: 1px solid #e2e8f0 !important;
-    color: #64748b !important;
-  }
-  .aac-conversation .aac-reply-edit span {
-    display: none !important;
-  }
-  .aac-conversation .aac-reply-edit::after {
-    content: "Editar" !important;
-    font-size: 10px !important;
-  }
-
-  /* 7. Board Mode Mobile Layout */
-  .aac-tab-content {
-    padding: 8px 8px 16px !important;
-  }
-  .aac-core-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 6px !important;
-    margin-bottom: 10px !important;
-  }
-  .aac-core-strip button {
-    min-height: 48px !important;
-    padding: 4px !important;
-    font-size: 12px !important;
-    gap: 4px !important;
-  }
-  .aac-core-strip img {
-    width: 24px !important;
-    height: 24px !important;
-  }
-  .aac-folders {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    margin-top: 8px !important;
-  }
-  .aac-folder {
-    min-height: 98px !important;
-    padding: 8px 4px !important;
-    font-size: 13px !important;
-    gap: 4px !important;
-  }
-  .aac-folder img {
-    width: 48px !important;
-    height: 48px !important;
-  }
-  .aac-folder > svg:last-child {
-    display: none !important;
-  }
-  .aac-tile-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 6px !important;
-  }
-  .aac-app .aac-tile {
-    min-height: 96px !important;
-    padding: 6px 4px !important;
-    gap: 4px !important;
-  }
-  .aac-tile img {
-    width: 50px !important;
-    height: 50px !important;
-  }
-  .aac-tile span {
-    font-size: 12.5px !important;
-    font-weight: 700 !important;
-    line-height: 1.15 !important;
-  }
+.aac-picto-cat-btn:hover {
+  background: #e6eaf3;
 }
 
-/* Extra Compact Phones (<= 480px) */
-@media (max-width: 480px) {
-  .aac-header {
-    padding: 3px 6px !important;
-  }
-  .aac-header .aac-brand span {
-    font-size: 17px !important;
-  }
-  .aac-header-topics {
-    max-width: calc(100% - 150px) !important;
-  }
-  .aac-navigation .aac-tabs button span:not(.aac-mic-dot) {
-    font-size: 10px !important;
-  }
-  .aac-navigation .aac-tabs button svg {
-    width: 18px !important;
-    height: 18px !important;
-  }
-  .aac-conversation .aac-reply-speak {
-    font-size: 12px !important;
-    padding: 4px 6px !important;
-  }
-  .aac-quick-reply-btn {
-    padding: 2px 5px !important;
-    font-size: 11px !important;
-  }
-  .aac-quick-reply-btn img {
-    width: 14px !important;
-    height: 14px !important;
-  }
+.aac-picto-cat-btn.is-active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
 }
 
-/* Agent system styles */
-.aac-light-tool {
+/* Pictogram Picker Grid */
+.aac-picto-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.aac-picto-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  min-height: 86px;
+  background: white;
+  border: 2px solid #dce2ed;
+  border-radius: 12px;
+  cursor: pointer;
   position: relative;
-  transition: all 0.25s ease;
+  transition: all 0.14s ease;
 }
-.aac-light-tool.is-lit {
-  border-color: #22c55e !important;
-  color: #15803d !important;
-  background: #f0fdf4 !important;
+
+.aac-picto-tile:hover {
+  border-color: #b7a9e6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(81, 70, 189, 0.08);
 }
-.aac-light-header-dot {
+
+.aac-picto-tile.is-picked {
+  background: #f6f5fe;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(81, 70, 189, 0.2);
+}
+
+.aac-picto-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.aac-picto-name {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.aac-tile-picked-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-left: -2px;
-  box-shadow: 0 0 8px currentColor;
-  animation: aac-pulse 2s infinite;
+  background: var(--accent);
 }
 
-.aac-agent-action-banner {
+/* AI Continuations Grid */
+.aac-continuations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.aac-continuation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #fafbfe;
+  border: 1px solid #d9dfea;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+}
+
+.aac-continuation-card:hover {
+  background: white;
+  border-color: #b9ace8;
+  box-shadow: 0 4px 14px rgba(81, 70, 189, 0.08);
+}
+
+.aac-continuation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aac-continuation-index {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.aac-continuation-listen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #d4dae6;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.aac-continuation-listen-btn:hover {
+  background: #f1f3f9;
+  color: var(--accent);
+}
+
+.aac-continuation-text {
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink);
+  font-weight: 550;
+  flex: 1;
+}
+
+.aac-continuation-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #eef1f6;
+}
+
+.aac-continuation-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.aac-continuation-add-btn:hover {
+  filter: brightness(1.1);
+}
+
+.aac-continuation-speak-now-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  background: #f0f2f8;
+  border: 1px solid #d5dce8;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3e4759;
+  cursor: pointer;
+}
+
+.aac-continuation-speak-now-btn:hover {
+  background: #e4e8f3;
+  color: var(--ink);
+}
+
+/* Planned Script Sidebar */
+.aac-planned-script-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.aac-script-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.aac-script-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.aac-script-header p {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.aac-script-toast {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
+  padding: 8px 12px;
+  background: #ebfbee;
+  border: 1px solid #b2f2bb;
+  color: #2b8a3e;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  animation: aac-pulse 1.5s ease;
+}
+
+.aac-guided-toast {
+  margin-bottom: 12px;
+}
+
+.aac-script-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--muted);
+  gap: 8px;
+}
+
+.aac-script-empty h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.aac-script-empty p {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.aac-script-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.aac-script-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #fafbfe;
+  border: 1px solid #e1e6f0;
   border-radius: 10px;
-  padding: 6px 12px;
+  transition: all 0.12s ease;
+}
+
+.aac-script-item:hover {
+  background: white;
+  border-color: #c7d2e7;
+}
+
+.aac-script-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aac-script-num {
+  font-size: 11px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: #e9ecf5;
+  color: #4b5568;
+  display: grid;
+  place-items: center;
+}
+
+.aac-script-rec-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.aac-script-reorder-tools {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.aac-script-reorder-tools button {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+.aac-script-reorder-tools button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.aac-script-text {
+  font-size: 13.5px;
+  font-weight: 550;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.aac-script-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed #e8edf5;
+}
+
+.aac-script-speak-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aac-script-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f1f4fa;
+  border: 1px solid #d6deeb;
+  color: #475569;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aac-script-remove-btn {
+  margin-left: auto;
+  color: #94a3b8;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.aac-script-remove-btn:hover {
+  color: #e03131;
+  background: #ffe3e3;
+}
+
+.aac-speak-all-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #5146bd, #6d5ce8);
+  color: white;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ==============================================================================
+   GUIDED PLANNER (TECHNIQUE 2): STORYBOARD & LIVE PRESENTER
+   ============================================================================== */
+
+.aac-goal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aac-goal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #f7f9fd;
+  border: 1px solid #d8e0ee;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 8px;
+  color: #3b4457;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.14s ease;
 }
-.aac-agent-action-banner:hover {
-  background: #d1fae5;
+
+.aac-goal-chip:hover {
+  background: #edf1fa;
+  border-color: #b8c7e4;
+  transform: translateY(-1px);
 }
-.aac-agent-action-text {
+
+.aac-goal-chip.is-active {
+  background: #eef3ff;
+  border-color: #4263eb;
+  color: #2b4acb;
+  box-shadow: 0 2px 8px rgba(66, 99, 235, 0.15);
+}
+
+.aac-goal-chip-icon {
+  font-size: 15px;
+}
+
+.aac-custom-goal-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.aac-custom-goal-input {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #cfd7e6;
+  border-radius: 10px;
+  background: #fafbfe;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.aac-custom-goal-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(81, 70, 189, 0.15);
+}
+
+.aac-goal-apply-btn {
+  background: var(--accent);
+  color: white;
+  padding-inline: 16px;
+  font-weight: 650;
+  border-radius: 10px;
+}
+
+.aac-storyboard-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.aac-storyboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aac-add-all-plan-btn {
+  background: #f1f4fb;
+  border: 1px solid #d2dbe9;
+  color: #3b4559;
+  font-weight: 650;
+}
+
+.aac-live-mode-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #12b886 0%, #0ca678 100%);
+  color: white;
+  border: 1px solid #099268;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(18, 184, 134, 0.3);
+  cursor: pointer;
+}
+
+.aac-live-mode-trigger:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.aac-storyboard-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.aac-stage-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #fcfdfe;
+  border: 1px solid #e2e7f2;
+  border-radius: 14px;
+}
+
+.aac-stage-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aac-stage-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2b4acb;
+  background: #edf2ff;
+  border: 1px solid #bac8ff;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.aac-stage-title-row h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
   flex: 1;
 }
-.aac-agent-action-link {
+
+.aac-stage-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid #d4dae6;
+  border-radius: 6px;
+  background: white;
   font-size: 11px;
-  color: #047857;
-  text-decoration: underline;
+  color: #556075;
+  cursor: pointer;
 }
 
-@keyframes aac-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.15); }
+.aac-stage-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
+.aac-stage-option-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border: 2px solid #e1e6f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.aac-stage-option-card:hover {
+  border-color: #b5c4e0;
+  transform: translateY(-1px);
+}
+
+.aac-stage-option-card.is-chosen {
+  background: #f8fafc;
+  border-color: #4263eb;
+  box-shadow: 0 4px 12px rgba(66, 99, 235, 0.12);
+}
+
+.aac-stage-option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aac-stage-tone-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.aac-stage-option-card.is-chosen .aac-stage-tone-badge {
+  background: #dbe4ff;
+  color: #364fc7;
+}
+
+.aac-stage-option-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aac-stage-listen-tool {
+  color: #64748b;
+  padding: 3px;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.aac-stage-listen-tool:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.aac-stage-chosen-icon {
+  color: #4263eb;
+}
+
+.aac-stage-option-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  font-weight: 550;
+  flex: 1;
+}
+
+.aac-stage-option-footer {
+  padding-top: 6px;
+  border-top: 1px solid #f1f4f9;
+}
+
+.aac-stage-pick-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: #94a3b8;
+}
+
+.aac-stage-option-card.is-chosen .aac-stage-pick-label {
+  color: #4263eb;
+}
+
+/* ==============================================================================
+   LIVE PRESENTATION RUNNER ("MODO EN DIRECTO")
+   ============================================================================== */
+
+.aac-live-presentation-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(180deg, #1a2035 0%, #111524 100%);
+  color: white;
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+}
+
+.aac-live-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.aac-live-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.aac-live-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #20c997;
+  animation: aac-pulse 1.2s infinite;
+}
+
+.aac-live-exit-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.aac-live-exit-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.aac-live-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 4px;
+}
+
+.aac-live-step-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.aac-live-step-node.is-current {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  color: white;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
+}
+
+.aac-live-step-node.is-done {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #6ee7b7;
+}
+
+.aac-live-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aac-live-card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px 16px;
+  max-width: 820px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.aac-live-card-step-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aac-live-card-speech-bubble {
+  width: 100%;
+  padding: 28px 24px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.aac-live-speech-text {
+  font-size: 26px;
+  line-height: 1.45;
+  font-weight: 650;
+  color: #ffffff;
+}
+
+.aac-live-giant-speak-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  min-height: 72px;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  border: 2px solid #818cf8;
+  border-radius: 16px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aac-live-giant-speak-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.55);
+}
+
+.aac-live-giant-speak-btn:active {
+  transform: translateY(0);
+}
+
+.aac-live-speaking-wave {
+  font-size: 14px;
+  font-weight: 600;
+  color: #a5b4fc;
+}
+
+.aac-live-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 480px;
+  gap: 12px;
+}
+
+.aac-live-nav-prev, .aac-live-nav-next {
+  flex: 1;
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: white;
+  font-size: 14px;
+  font-weight: 650;
+  border-radius: 12px;
+}
+
+.aac-live-nav-prev:hover:not(:disabled), .aac-live-nav-next:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.aac-live-nav-prev:disabled, .aac-live-nav-next:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Emergency & Interruption Bar in Live Mode */
+.aac-live-emergency-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+}
+
+.aac-emergency-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aac-emergency-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aac-emergency-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.aac-emergency-btn:active {
+  transform: translateY(1px);
+}
+
+.aac-em-wait {
+  background: #334155;
+  color: #f8fafc;
+  border-color: #475569;
+}
+
+.aac-em-repeat {
+  background: #3b4252;
+  color: #eceff4;
+  border-color: #4c566a;
+}
+
+.aac-em-yes {
+  background: #064e3b;
+  color: #6ee7b7;
+  border-color: #047857;
+}
+
+.aac-em-no {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border-color: #b91c1c;
+}
+
+/* Responsive adjustments for Planning modes */
+@media (max-width: 1080px) {
+  .aac-planner-layout {
+    grid-template-columns: 1fr;
+  }
+  .aac-planned-script-panel {
+    position: static;
+    max-height: none;
+  }
+  .aac-stage-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .aac-tabs {
+    display: flex;
+    overflow-x: auto;
+    padding: 6px 4px;
+    gap: 6px;
+    scrollbar-width: none;
+  }
+  .aac-tabs button {
+    flex: 0 0 auto;
+    min-width: 72px;
+    padding: 6px 8px;
+  }
+  .aac-recipient-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .aac-live-speech-text {
+    font-size: 20px;
+  }
+  .aac-live-giant-speak-btn {
+    font-size: 16px;
+    min-height: 60px;
+  }
+}

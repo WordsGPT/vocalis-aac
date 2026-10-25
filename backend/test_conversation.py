@@ -59,10 +59,18 @@ class ConversationTests(unittest.TestCase):
         return patch('backend.conversation.requests.post', return_value=response)
 
     def test_suggestions_provided_for_statements(self):
-        with self.decision('{"should_suggest": true, "reason": "natural_opening", "suggestions": ["¡Qué bien!", "¿A qué hora?"]}'):
+        with self.decision('{"should_suggest": true, "reason": "natural_opening", "direct_yes": "Sí, me parece bien.", "direct_no": "No, prefiero que no.", "suggestions": ["¡Qué bien!", "¿A qué hora?"]}'):
             result = conversation_suggestions('Yo voy al cine mañana.', api_key='test')
         self.assertTrue(result['should_suggest'])
         self.assertEqual(len(result['suggestions']), 2)
+        self.assertEqual(result['direct_yes'], 'Sí, me parece bien.')
+        self.assertEqual(result['direct_no'], 'No, prefiero que no.')
+
+    def test_direct_yes_and_no_extracted_and_formatted(self):
+        with self.decision('{"should_suggest": true, "reason": "natural_opening", "direct_yes": "Sí, estoy listo.", "direct_no": "No, aún no estoy listo.", "suggestions": ["Dame un momento.", "¿A qué hora?"]}'):
+            result = conversation_suggestions('¿Estás listo?', grammatical_form='feminine', api_key='test')
+        self.assertEqual(result['direct_yes'], 'Sí, estoy lista.')
+        self.assertEqual(result['direct_no'], 'No, aún no estoy lista.')
 
     def test_context_preserves_aac_user_and_distinct_speakers(self):
         history = [{'role': 'partner', 'content': '¿Vienes?', 'speaker_label': 'Persona 1'},

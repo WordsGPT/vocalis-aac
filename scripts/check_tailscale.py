@@ -93,6 +93,24 @@ def main():
             print(f"❌ ERROR: {data['error']}", file=sys.stderr)
         sys.exit(2)
 
+    backend_state = data.get("BackendState", "")
+    if backend_state == "NeedsLogin":
+        auth_url = data.get("AuthURL", "")
+        if args.json:
+            print(json.dumps({"ok": False, "needs_login": True, "auth_url": auth_url}))
+        elif args.url_only:
+            sys.exit(2)
+        else:
+            print("\n" + "=" * 76, file=sys.stderr)
+            print("🔑 TAILSCALE REQUIERE INICIAR SESIÓN / AUTORIZACIÓN", file=sys.stderr)
+            print("=" * 76, file=sys.stderr)
+            print("La sesión de Tailscale no está activa en este contenedor.", file=sys.stderr)
+            print("Abre el siguiente enlace en tu navegador para autorizar este equipo:", file=sys.stderr)
+            print(f"\n   👉 {auth_url}\n", file=sys.stderr)
+            print("Una vez autorices el dispositivo en Tailscale, vuelve a ejecutar el reinicio.", file=sys.stderr)
+            print("=" * 76 + "\n", file=sys.stderr)
+        sys.exit(2)
+
     result = inspect_node_and_collision(data)
 
     if args.json:

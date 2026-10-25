@@ -36,6 +36,8 @@ def fallback_decision(text, history=None, count=6, tone="natural", grammatical_f
             "should_suggest": True,
             "reason": "topic_pivot",
             "suggestions": pivot_suggestions,
+            "direct_yes": "Sí, me parece bien retomar eso.",
+            "direct_no": "No, prefiero hablar de otra cosa ahora.",
             "topics": [ft],
             "engine": "heuristic"
         }
@@ -56,6 +58,8 @@ def fallback_decision(text, history=None, count=6, tone="natural", grammatical_f
             "should_suggest": True,
             "reason": "speak_initiative",
             "suggestions": [personal_form(s, grammatical_form) for s in speak_suggestions],
+            "direct_yes": personal_form("Sí, totalmente de acuerdo con eso.", grammatical_form),
+            "direct_no": personal_form("No, no lo veo de esa forma.", grammatical_form),
             "topics": topics,
             "engine": "heuristic"
         }
@@ -75,6 +79,8 @@ def fallback_decision(text, history=None, count=6, tone="natural", grammatical_f
         "should_suggest": True,
         "reason": "natural_opening",
         "suggestions": res.get("suggestions", []),
+        "direct_yes": res.get("direct_yes", "Sí, me parece bien."),
+        "direct_no": res.get("direct_no", "No, ahora mismo no."),
         "topics": topics,
         "engine": res.get("engine", "heuristic")
     }
@@ -159,22 +165,27 @@ PAUTAS PARA MODO HABLAR:
    - Ofrece saludos cálidos, devoluciones de saludo, agradecimiento o comentarios casuales según el estado de ánimo."""
 
     prompt = f"""Eres el sistema de sugerencias de un comunicador aumentativo (AAC) para una persona no verbal en una conversación real en directo.
-Tu misión es generar {count} opciones de respuesta COHERENTES, ÚTILES y NATURALES para lo que se acaba de escuchar, ofreciendo VARIEDAD REAL DE POSTURAS CONVERSACIONALES sin caer en plantillas forzadas ni respuestas repetitivas.
+Tu misión es generar opciones de respuesta COHERENTES, ÚTILES y NATURALES para lo que se acaba de escuchar.
+La interfaz del comunicador cuenta con dos botones fijos dedicados para respuestas directas de Sí y No: 'direct_yes' y 'direct_no'.
+Por tanto, las {count} opciones principales en 'suggestions' NO deben ser un simple sí o no; deben ser más ricas, variadas y diversas (matices, contrapropuestas, preguntas de vuelta, comentarios o alternativas).
 Los turnos de 'Yo' son frases que la persona ya dijo. Las etiquetas 'Persona N' son quién habla.{user_info}{topic_instruction}
 Acaba de escucharse: "{text}".
 
 {guidance}
 
 REGLAS GENERALES:
-- Genera exactamente {count} opciones.
-- Cada opción debe representar una intención conversacional diferente (afinidad, matiz, curiosidad, alternativa o empatía), pero SIEMPRE adaptada con sentido común a la situación real.
+- Genera exactamente {count} opciones en 'suggestions'.
+- Ninguna de las opciones en 'suggestions' debe ser un simple sí o no.
+- Genera 'direct_yes' con una respuesta afirmativa directa contextualizada a lo que acaban de decir (ej: "Sí, me parece una gran idea", "Sí, me encantaría").
+- Genera 'direct_no' con una respuesta negativa directa contextualizada a lo que acaban de decir (ej: "No, prefiero no hacerlo ahora", "No, hoy no me apetece, gracias").
+- Cada opción en 'suggestions' debe representar una intención conversacional diferente (afinidad, matiz, curiosidad, alternativa o empatía), pero SIEMPRE adaptada con sentido común a la situación real.
 - Primera persona, frases en español natural y fluido, listas para ser habladas por sintetizador de voz.
 - Prohibido repetir la misma idea con palabras similares o hacer múltiples preguntas redundantes.
 - Tono: {tone}.
 - No repitas lo que 'Yo' ya dijo recientemente.
 - Si la pregunta o mensaje se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL proporcionada arriba de forma exacta y coherente.
 
-Devuelve exclusivamente JSON con el formato: {{"should_suggest": true, "reason": "natural_opening", "suggestions": ["...", ...], "topics": ["Tema1", "Tema2"]}}.
+Devuelve exclusivamente JSON con el formato: {{"should_suggest": true, "reason": "natural_opening", "direct_yes": "...", "direct_no": "...", "suggestions": ["...", ...], "topics": ["Tema1", "Tema2"]}}.
 "topics" debe ser una lista de 1 a 3 sustantivos o conceptos clave principales de los que se está hablando en esta conversación (sustantivos concisos en español, con mayúscula inicial, ej: ["Mercado", "Queso", "Cine"]).
 {grammatical_instruction(grammatical_form)}"""
     try:
@@ -195,6 +206,8 @@ Devuelve exclusivamente JSON con el formato: {{"should_suggest": true, "reason":
         if not suggestions:
             return fallback_decision(text, history, count, tone, grammatical_form, user_context=user_context, focus_topic=focus_topic, mode=mode, topic_context=topic_context)
         reason = data.get("reason", "natural_opening" if mode != "speak" else "speak_initiative")
+        direct_yes = personal_form(data.get("direct_yes") or "Sí, me parece bien.", grammatical_form)
+        direct_no = personal_form(data.get("direct_no") or "No, ahora mismo no.", grammatical_form)
         raw_topics = data.get("topics", [])
         topics = []
         if isinstance(raw_topics, list):
@@ -208,7 +221,8 @@ Devuelve exclusivamente JSON con el formato: {{"should_suggest": true, "reason":
             if clean_ft not in topics:
                 topics.insert(0, clean_ft)
         return {"should_suggest": True, "reason": reason,
-                "suggestions": suggestions, "topics": topics, "engine": "groq-conversation"}
+                "suggestions": suggestions, "direct_yes": direct_yes, "direct_no": direct_no,
+                "topics": topics, "engine": "groq-conversation"}
     except Exception as exc:
         logger.warning(f"Conversation suggestions unavailable via Groq: {exc}")
         return fallback_decision(text, history, count, tone, grammatical_form, user_context=user_context, focus_topic=focus_topic, mode=mode, topic_context=topic_context)

@@ -222,13 +222,17 @@ def sanitize_sentence(text: Any, default: str) -> str:
 def clean_and_parse_responses(
     raw_text: str,
     default_fallback: List[str] = DEFAULT_FALLBACK,
-    target_count: int = 6
-) -> Optional[List[str]]:
-    """Extracts up to target_count concise, complete response strings from LLM output."""
+    target_count: int = 6,
+    return_dict: bool = False
+) -> Any:
+    """Extracts up to target_count concise, complete response strings from LLM output.
+    If return_dict is True, returns {'suggestions': [...], 'direct_yes': str, 'direct_no': str}."""
     if not raw_text:
         return None
 
     cleaned_raw = raw_text.replace('“', '"').replace('”', '"').replace('’', "'").replace('‘', "'")
+    direct_yes = None
+    direct_no = None
 
     # 1. First, try finding a JSON object
     match_obj = re.search(r'\{.*?\}', cleaned_raw, re.DOTALL)
@@ -236,6 +240,11 @@ def clean_and_parse_responses(
         try:
             data = json.loads(match_obj.group(0))
             if isinstance(data, dict):
+                if "direct_yes" in data and isinstance(data["direct_yes"], str) and data["direct_yes"].strip():
+                    direct_yes = data["direct_yes"].strip().strip('"\'')
+                if "direct_no" in data and isinstance(data["direct_no"], str) and data["direct_no"].strip():
+                    direct_no = data["direct_no"].strip().strip('"\'')
+
                 # Check list keys like suggestions, responses, options, choices
                 for key in ["suggestions", "responses", "options", "answers", "choices"]:
                     if key in data and isinstance(data[key], list) and len(data[key]) > 0:
@@ -244,11 +253,16 @@ def clean_and_parse_responses(
                         if len(valid) >= 2:
                             while len(valid) < target_count and len(valid) < len(default_fallback):
                                 valid.append(default_fallback[len(valid)])
-                            return valid[:target_count]
+                            res_list = valid[:target_count]
+                            if return_dict:
+                                return {"suggestions": res_list, "direct_yes": direct_yes, "direct_no": direct_no}
+                            return res_list
 
                 # Plain dict values or named stances
                 valid_vals = []
-                for val in data.values():
+                for k, val in data.items():
+                    if k in ["direct_yes", "direct_no", "topics", "should_suggest", "reason"]:
+                        continue
                     if isinstance(val, str) and val.strip():
                         s = sanitize_sentence(val, "")
                         if s:
@@ -261,7 +275,10 @@ def clean_and_parse_responses(
                 if len(valid_vals) >= 2:
                     while len(valid_vals) < target_count and len(valid_vals) < len(default_fallback):
                         valid_vals.append(default_fallback[len(valid_vals)])
-                    return valid_vals[:target_count]
+                    res_list = valid_vals[:target_count]
+                    if return_dict:
+                        return {"suggestions": res_list, "direct_yes": direct_yes, "direct_no": direct_no}
+                    return res_list
         except Exception:
             pass
 
@@ -275,7 +292,10 @@ def clean_and_parse_responses(
                 valid = [x for x in items if x]
                 while len(valid) < target_count and len(valid) < len(default_fallback):
                     valid.append(default_fallback[len(valid)])
-                return valid[:target_count]
+                res_list = valid[:target_count]
+                if return_dict:
+                    return {"suggestions": res_list, "direct_yes": direct_yes, "direct_no": direct_no}
+                return res_list
         except Exception:
             pass
 
@@ -291,7 +311,10 @@ def clean_and_parse_responses(
     if len(cleaned_items) >= 2:
         while len(cleaned_items) < target_count and len(cleaned_items) < len(default_fallback):
             cleaned_items.append(default_fallback[len(cleaned_items)])
-        return cleaned_items[:target_count]
+        res_list = cleaned_items[:target_count]
+        if return_dict:
+            return {"suggestions": res_list, "direct_yes": direct_yes, "direct_no": direct_no}
+        return res_list
 
     return None
 
@@ -482,20 +505,24 @@ En el historial de mensajes:
 - 'assistant' representa lo que la persona no verbal eligió previamente decir en voz alta.
 {user_info}
 El interlocutor acaba de decir el último mensaje.
-Tu objetivo principal es ofrecer {count} opciones de respuesta COHERENTES, ÚTILES y NATURALES, con VARIEDAD REAL DE POSTURAS CONVERSACIONALES sin forzar plantillas fijas de "sí/no".
+La interfaz del comunicador cuenta con dos botones fijos dedicados para respuestas directas de Sí y No: 'direct_yes' y 'direct_no'.
+Por tanto, las {count} opciones principales en 'suggestions' NO deben ser un simple sí o no; deben ser más ricas, variadas y diversas (matices, contrapropuestas, preguntas de vuelta, comentarios o alternativas).
 
 {guidance}
 
 Tono: {tone_instruction}
 {grammatical_instruction(grammatical_form)}
 Reglas estrictas:
-- Genera exactamente {count} respuestas en primera persona, en ESPAÑOL natural y fluido.
-- Cada opción debe tener una postura conversacional distinta (afinidad, matiz, curiosidad, alternativa o empatía), adaptada con sentido común al tema.
+- Genera exactamente {count} respuestas en 'suggestions' en primera persona, en ESPAÑOL natural y fluido.
+- Ninguna de las opciones en 'suggestions' debe ser un simple sí o no.
+- Genera 'direct_yes' con una respuesta afirmativa directa contextualizada a lo que acaban de decir (ej: "Sí, me parece perfecto", "Sí, me encantaría").
+- Genera 'direct_no' con una respuesta negativa directa contextualizada a lo que acaban de decir (ej: "No, prefiero no hacerlo ahora", "No, no me apetece, gracias").
+- Cada opción en 'suggestions' debe tener una postura conversacional distinta (afinidad, matiz, curiosidad, alternativa o empatía), adaptada con sentido común al tema.
 - Si la pregunta se refiere a la identidad, nombre, gustos o datos del usuario, utiliza SIEMPRE la INFORMACIÓN PERSONAL de arriba de forma exacta.
 - Frases completas, naturales y listas para voz artificial.
 - Prohibido repetir la misma idea con palabras similares o generar múltiples preguntas redundantes.
 - No incluyas etiquetas, explicaciones, numeración ni texto como "opción 1".
-Devuelve JSON con la clave "suggestions"."""
+Devuelve exclusivamente un objeto JSON con las claves "direct_yes", "direct_no" y "suggestions"."""
 
     messages = [{"role": "system", "content": system_prompt}]
 
@@ -541,8 +568,8 @@ Devuelve JSON con la clave "suggestions"."""
             if res.status_code == 200:
                 data = res.json()
                 content = data["choices"][0]["message"]["content"]
-                parsed = clean_and_parse_responses(content, target_count=count)
-                if parsed:
+                parsed = clean_and_parse_responses(content, target_count=count, return_dict=True)
+                if parsed and parsed.get("suggestions"):
                     if attempt > 1:
                         logger.info(f"Groq succeeded on retry attempt {attempt} using {curr_model}")
                     return parsed
@@ -602,19 +629,29 @@ def get_smart_suggestions(
             ]
         return {
             "suggestions": presets[:target_count],
+            "direct_yes": "Sí, me parece bien.",
+            "direct_no": "No, ahora mismo no.",
             "engine": "preset"
         }
 
     # 1. Try Groq (Default / Primary)
     if preferred_engine in ["groq", "auto"]:
-        responses = generate_responses_groq(
+        res_data = generate_responses_groq(
             partner_text, groq_api_key, history, tone,
             count=target_count, grammatical_form=grammatical_form,
             user_context=user_context, mode=mode,
             focus_topic=focus_topic, topic_context=topic_context
         )
-        if responses:
-            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "groq"}
+        if res_data:
+            suggestions = [personal_form(text, grammatical_form) for text in res_data.get("suggestions", [])]
+            direct_yes = personal_form(res_data.get("direct_yes") or "Sí, me parece bien.", grammatical_form)
+            direct_no = personal_form(res_data.get("direct_no") or "No, ahora mismo no.", grammatical_form)
+            return {
+                "suggestions": suggestions,
+                "direct_yes": direct_yes,
+                "direct_no": direct_no,
+                "engine": "groq"
+            }
 
     # 2. Try Gemini if specifically requested
     if preferred_engine == "gemini" and gemini_api_key:
@@ -625,13 +662,23 @@ def get_smart_suggestions(
             focus_topic=focus_topic, topic_context=topic_context
         )
         if responses:
-            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "gemini"}
+            return {
+                "suggestions": [personal_form(text, grammatical_form) for text in responses],
+                "direct_yes": "Sí, por supuesto.",
+                "direct_no": "No, gracias.",
+                "engine": "gemini"
+            }
 
     # 3. Try Ollama (local gemma3)
     if preferred_engine in ["auto", "ollama"]:
         responses = generate_responses_ollama(partner_text, history, tone, count=target_count, grammatical_form=grammatical_form)
         if responses:
-            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "ollama"}
+            return {
+                "suggestions": [personal_form(text, grammatical_form) for text in responses],
+                "direct_yes": "Sí, por supuesto.",
+                "direct_no": "No, gracias.",
+                "engine": "ollama"
+            }
 
     # 4. If Gemini key was provided in auto mode
     if preferred_engine == "auto" and gemini_api_key:
@@ -642,8 +689,404 @@ def get_smart_suggestions(
             focus_topic=focus_topic, topic_context=topic_context
         )
         if responses:
-            return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "gemini"}
+            return {
+                "suggestions": [personal_form(text, grammatical_form) for text in responses],
+                "direct_yes": "Sí, por supuesto.",
+                "direct_no": "No, gracias.",
+                "engine": "gemini"
+            }
 
     # 5. Instant heuristic fallback
     responses = generate_heuristic_responses(partner_text, count=target_count, mode=mode)
-    return {"suggestions": [personal_form(text, grammatical_form) for text in responses], "engine": "heuristic"}
+    return {
+        "suggestions": [personal_form(text, grammatical_form) for text in responses],
+        "direct_yes": "Sí, por supuesto.",
+        "direct_no": "No, gracias.",
+        "engine": "heuristic"
+    }
+
+
+RECIPIENT_DESCRIPTIONS = {
+    "medico": "Médico, enfermero/a o personal sanitario en una consulta clínica.",
+    "familia": "Miembro cercano de la familia, pareja o conviviente en casa.",
+    "amigo": "Amigo/a o compañero/a en un ambiente social y distendido.",
+    "tienda": "Dependiente, camarero/a o personal de atención al público en comercio o servicios.",
+    "trabajo": "Profesor/a, tutor/a, jefe o compañero de trabajo en un entorno formal.",
+    "general": "Cualquier persona en una conversación cotidiana."
+}
+
+
+def generate_plan_continuations(
+    recipient: str = "general",
+    pictograms: Optional[List[str]] = None,
+    tone: str = "natural",
+    grammatical_form: str = "masculine",
+    user_context: Optional[str] = None,
+    count: int = 5,
+    groq_api_key: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Generates natural sentence continuations expanding selected pictograms for a specific recipient."""
+    recipient_key = (recipient or "general").lower()
+    recipient_desc = RECIPIENT_DESCRIPTIONS.get(recipient_key, RECIPIENT_DESCRIPTIONS["general"])
+    picto_list = [p.strip() for p in (pictograms or []) if p and p.strip()]
+    picto_str = ", ".join(picto_list) if picto_list else "conversación general"
+
+    target_count = max(3, min(count, 8))
+    key = (groq_api_key or "").strip() or get_server_groq_api_key()
+
+    if key:
+        user_info = ""
+        if user_context and user_context.strip():
+            user_info = f"\nDATOS PERSONALES DEL USUARIO:\n\"\"\"\n{user_context.strip()[:1500]}\n\"\"\"\n"
+
+        prompt = f"""Eres el motor de planificación anticipada de un comunicador aumentativo (AAC) para una persona con dificultades motoras o del habla.
+El usuario no puede escribir fácilmente con teclado, por lo que planifica lo que quiere decir seleccionando:
+- Destinatario: {recipient_desc}
+- Ideas / conceptos elegidos mediante pictogramas: {picto_str}
+{user_info}
+Genera {target_count} frases completas, en primera persona, listas para ser habladas con voz artificial.
+Cada frase debe desarrollar de forma natural y respetuosa esas ideas en el contexto del destinatario.
+{grammatical_instruction(grammatical_form)}
+Tono: {tone}
+Reglas:
+- Frases completas, naturales, expresivas y en ESPAÑOL.
+- Cada opción debe ofrecer un matiz o intención diferente (ej. pregunta, afirmación con detalle, petición de ayuda, propuesta).
+- No uses numeración ni viñetas en los textos.
+Devuelve EXCLUSIVAMENTE un objeto JSON: {{"suggestions": ["frase 1", "frase 2", ...]}}"""
+
+        try:
+            res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={
+                    "model": DEFAULT_GROQ_MODEL,
+                    "messages": [{"role": "system", "content": prompt}],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.65,
+                    "max_tokens": 600,
+                },
+                timeout=3.5,
+            )
+            if res.status_code == 200:
+                data = res.json()
+                raw = json.loads(data["choices"][0]["message"]["content"])
+                suggestions = raw.get("suggestions", [])
+                if isinstance(suggestions, list) and len(suggestions) > 0:
+                    clean = [personal_form(str(s).strip(), grammatical_form) for s in suggestions if s][:target_count]
+                    if clean:
+                        return {"suggestions": clean, "engine": "groq", "recipient": recipient_key}
+        except Exception as e:
+            logger.warning(f"Groq plan continuations error: {e}")
+
+    # Rich heuristic fallback
+    heuristics = []
+    has_dolor = any(w in picto_str.lower() for w in ["dolor", "mal", "cansado", "salud"])
+    has_medicina = any(w in picto_str.lower() for w in ["medicina", "pastilla", "receta", "duda"])
+    has_necesidad = any(w in picto_str.lower() for w in ["necesito", "quiero", "ayuda", "favor"])
+    has_comida = any(w in picto_str.lower() for w in ["comida", "agua", "beber", "comer", "cena"])
+    has_sentimiento = any(w in picto_str.lower() for w in ["contento", "preocupado", "nervioso", "triste", "miedo"])
+
+    if recipient_key == "medico":
+        if has_dolor:
+            heuristics.extend([
+                "Tengo dolor y molestias en esta zona desde hace unos días.",
+                "El dolor aumenta por las noches y no me deja descansar bien.",
+                "¿Podría comprobar de dónde puede venir este dolor?",
+                "La medicación actual no parece aliviar la molestia.",
+                "Quisiera saber qué prueba o tratamiento me recomienda hacer."
+            ])
+        elif has_medicina:
+            heuristics.extend([
+                "Quería consultar si puedo ajustar el horario o la dosis de la medicación.",
+                "Creo que una de las pastillas me provoca algo de malestar.",
+                "¿Podría renovar mi receta para el próximo mes?",
+                "Tengo dudas sobre cómo tomar este tratamiento correctamente."
+            ])
+        else:
+            heuristics.extend([
+                f"Quería consultar sobre {picto_str} y saber su valoración.",
+                "He preparado estas notas con mi comunicador para explicarle mi situación.",
+                "Me gustaría saber qué pautas me aconseja seguir a partir de ahora.",
+                "Tengo algunas preguntas sobre mi evolución y bienestar."
+            ])
+    elif recipient_key == "familia":
+        if has_necesidad:
+            heuristics.extend([
+                "¿Podéis ayudarme con una cosa cuando tengáis un momento libre?",
+                "Necesito descansar un poco tranquilo en casa, por favor.",
+                "Quería hablar con vosotros sobre cómo organizar mejor las cosas hoy.",
+                "Agradezco mucho vuestra paciencia y apoyo."
+            ])
+        elif has_comida:
+            heuristics.extend([
+                "Me apetece comer algo ligero y beber agua fresca.",
+                "¿Qué tenemos planeado para la comida hoy?",
+                "Me gustaría elegir lo que vamos a cenar juntos."
+            ])
+        else:
+            heuristics.extend([
+                f"Quería comentaros algo sobre {picto_str}.",
+                "Me hace mucha ilusión pasar un rato tranquilo en familia.",
+                "¿Podemos planear algo juntos para este fin de semana?",
+                "Hoy me siento con ganas de charlar un poco con vosotros."
+            ])
+    elif recipient_key == "amigo":
+        heuristics.extend([
+            f"¡Hola! Quería contarte algo sobre {picto_str} que me pasó.",
+            "¿Te apetece que quedemos un rato a tomar algo y charlar?",
+            "Me apetecía mucho saber cómo te van las cosas últimamente.",
+            "¡Qué buena idea! Me alegro mucho de hablar contigo hoy.",
+            "Dame un segundo para preparar lo que quiero decirte."
+        ])
+    elif recipient_key == "tienda":
+        heuristics.extend([
+            f"Buenos días. Quisiera pedir información sobre {picto_str}.",
+            "¿Podría decirme cuánto cuesta esto, por favor?",
+            "¿Tiene otra talla o una opción diferente disponible?",
+            "Voy a pagar con tarjeta, muchas gracias por su ayuda."
+        ])
+    elif recipient_key == "trabajo":
+        heuristics.extend([
+            f"Buenos días. He preparado estos puntos sobre {picto_str} para revisarlos.",
+            "Quería consultar esta duda para coordinarme mejor con el equipo.",
+            "Agradezco su atención y el tiempo dedicado a esta reunión.",
+            "¿Podríamos acordar el siguiente paso para este proyecto?"
+        ])
+    else:
+        heuristics.extend([
+            f"Quiero comentar algo importante sobre {picto_str}.",
+            "Uso este comunicador para hablar, gracias por tu paciencia.",
+            "¿Podemos hablar de esto con calma un momento?",
+            "Me parece una propuesta interesante y quiero participar.",
+            "Tengo una pregunta que me gustaría hacerte."
+        ])
+
+    clean = [personal_form(h, grammatical_form) for h in heuristics][:target_count]
+    return {"suggestions": clean, "engine": "heuristic", "recipient": recipient_key}
+
+
+def generate_guided_storyboard(
+    recipient: str = "general",
+    goal: Optional[str] = None,
+    tone: str = "natural",
+    grammatical_form: str = "masculine",
+    user_context: Optional[str] = None,
+    groq_api_key: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Generates a 4-stage conversational storyboard (Apertura -> Núcleo -> Seguimiento -> Cierre)."""
+    recipient_key = (recipient or "general").lower()
+    recipient_desc = RECIPIENT_DESCRIPTIONS.get(recipient_key, RECIPIENT_DESCRIPTIONS["general"])
+    goal_str = (goal or "").strip() or "Conversación guiada"
+
+    key = (groq_api_key or "").strip() or get_server_groq_api_key()
+    if key:
+        user_info = ""
+        if user_context and user_context.strip():
+            user_info = f"\nDATOS PERSONALES DEL USUARIO:\n\"\"\"\n{user_context.strip()[:1500]}\n\"\"\"\n"
+
+        prompt = f"""Eres un asistente de comunicación aumentativa (AAC) que ayuda a una persona no verbal a planificar y guiar una conversación por etapas.
+- Destinatario: {recipient_desc}
+- Objetivo de la conversación: {goal_str}
+{user_info}
+{grammatical_instruction(grammatical_form)}
+Tono: {tone}
+
+Estructura la conversación en 4 etapas lógicas:
+1. "apertura": Saludo y encuadre inicial (saludo cordial y aviso respetuoso de que usa un comunicador).
+2. "nucleo": Mensaje o petición central de forma clara.
+3. "seguimiento": Respuesta prevista a posibles preguntas o detalles adicionales.
+4. "cierre": Cierre, agradecimiento y despedida cordial.
+
+Para CADA una de las 4 etapas, proporciona exactamente 3 opciones de frases en primera persona en español (con variaciones: directa, amable, detallada).
+Devuelve EXCLUSIVAMENTE este formato JSON:
+{{
+  "stages": [
+    {{ "id": "apertura", "title": "1. Saludo y Encuadre", "options": ["opcion1", "opcion2", "opcion3"] }},
+    {{ "id": "nucleo", "title": "2. Mensaje Principal", "options": ["opcion1", "opcion2", "opcion3"] }},
+    {{ "id": "seguimiento", "title": "3. Si me preguntan detalles", "options": ["opcion1", "opcion2", "opcion3"] }},
+    {{ "id": "cierre", "title": "4. Cierre y Agradecimiento", "options": ["opcion1", "opcion2", "opcion3"] }}
+  ]
+}}"""
+
+        try:
+            res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={
+                    "model": DEFAULT_GROQ_MODEL,
+                    "messages": [{"role": "system", "content": prompt}],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.6,
+                    "max_tokens": 800,
+                },
+                timeout=4.0,
+            )
+            if res.status_code == 200:
+                data = res.json()
+                raw = json.loads(data["choices"][0]["message"]["content"])
+                stages = raw.get("stages", [])
+                if isinstance(stages, list) and len(stages) >= 4:
+                    return {"stages": stages, "engine": "groq", "recipient": recipient_key, "goal": goal_str}
+        except Exception as e:
+            logger.warning(f"Groq guided storyboard error: {e}")
+
+    # Comprehensive heuristic storyboard
+    if recipient_key == "medico":
+        stages = [
+            {
+                "id": "apertura",
+                "title": "1. Saludo y Encuadre",
+                "options": [
+                    personal_form("Hola doctor/a. Uso este comunicador para hablar y he preparado lo que quiero consultarle.", grammatical_form),
+                    personal_form("Buenos días. Gracias por atenderme; le explicaré con mi comunicador lo que me ocurre.", grammatical_form),
+                    personal_form("Hola. Por favor, deme un momento mientras selecciono mis frases.", grammatical_form)
+                ]
+            },
+            {
+                "id": "nucleo",
+                "title": "2. Mensaje Principal",
+                "options": [
+                    personal_form(f"Vengo por este motivo: {goal_str}. Empezó hace unos días y me preocupa.", grammatical_form),
+                    personal_form(f"Quería pedirle su opinión médica sobre {goal_str} porque me genera molestias.", grammatical_form),
+                    personal_form(f"Necesito que valoremos {goal_str} y ver si podemos hacer alguna prueba o ajuste.", grammatical_form)
+                ]
+            },
+            {
+                "id": "seguimiento",
+                "title": "3. Si me preguntan detalles",
+                "options": [
+                    personal_form("El malestar es continuo, sobre todo al final del día o al hacer esfuerzo.", grammatical_form),
+                    personal_form("No tengo fiebre, pero noto que la medicación habitual no está haciendo efecto.", grammatical_form),
+                    personal_form("Comenzó la semana pasada de forma gradual y no ha mejorado.", grammatical_form)
+                ]
+            },
+            {
+                "id": "cierre",
+                "title": "4. Cierre y Agradecimiento",
+                "options": [
+                    personal_form("¿Qué pauta o tratamiento me recomienda seguir ahora? Muchas gracias.", grammatical_form),
+                    personal_form("Muchas gracias por su atención y por escucharme con paciencia.", grammatical_form),
+                    personal_form("Entendido. Seguiré sus indicaciones y pediré cita si no mejoro.", grammatical_form)
+                ]
+            }
+        ]
+    elif recipient_key == "familia":
+        stages = [
+            {
+                "id": "apertura",
+                "title": "1. Saludo y Encuadre",
+                "options": [
+                    personal_form("Hola. Quería comentaros algo importante con calma.", grammatical_form),
+                    personal_form("Buenas. ¿Tenéis un momento para escuchar lo que he preparado?", grammatical_form),
+                    personal_form("Hola familia. Me gustaría hablar un momento con vosotros.", grammatical_form)
+                ]
+            },
+            {
+                "id": "nucleo",
+                "title": "2. Mensaje Principal",
+                "options": [
+                    personal_form(f"El tema es: {goal_str}. Me gustaría que me ayudarais con esto.", grammatical_form),
+                    personal_form(f"He estado pensando en {goal_str} y quería compartir mi punto de vista.", grammatical_form),
+                    personal_form(f"Necesito vuestro apoyo con respecto a {goal_str}.", grammatical_form)
+                ]
+            },
+            {
+                "id": "seguimiento",
+                "title": "3. Si me preguntan detalles",
+                "options": [
+                    personal_form("Lo he pensado bien y creo que es lo mejor para todos.", grammatical_form),
+                    personal_form("Podemos hacerlo paso a paso, sin prisa.", grammatical_form),
+                    personal_form("Si no es posible ahora, podemos buscar otra alternativa.", grammatical_form)
+                ]
+            },
+            {
+                "id": "cierre",
+                "title": "4. Cierre y Agradecimiento",
+                "options": [
+                    personal_form("Gracias por escucharme y por comprender mi situación.", grammatical_form),
+                    personal_form("Me alegra mucho que lo hayamos hablado tranquilamente.", grammatical_form),
+                    personal_form("Os quiero mucho, gracias por vuestra paciencia.", grammatical_form)
+                ]
+            }
+        ]
+    elif recipient_key == "amigo":
+        stages = [
+            {
+                "id": "apertura",
+                "title": "1. Saludo y Encuadre",
+                "options": [
+                    personal_form("¡Hola! Me alegro mucho de verte. Quería comentarte algo chulo.", grammatical_form),
+                    personal_form("¡Qué tal! Tenía muchas ganas de hablar contigo hoy.", grammatical_form),
+                    personal_form("Hola amigo/a, dame un segundo para poner mis frases.", grammatical_form)
+                ]
+            },
+            {
+                "id": "nucleo",
+                "title": "2. Mensaje Principal",
+                "options": [
+                    personal_form(f"Quería proponerte esto: {goal_str}.", grammatical_form),
+                    personal_form(f"Te quería contar lo que me ha pasado con {goal_str}.", grammatical_form),
+                    personal_form(f"¿Qué opinas sobre {goal_str}? Me interesa tu opinión.", grammatical_form)
+                ]
+            },
+            {
+                "id": "seguimiento",
+                "title": "3. Si me preguntan detalles",
+                "options": [
+                    personal_form("Sería para hacerlo tranquilamente cuando te venga bien.", grammatical_form),
+                    personal_form("Me pareció muy curioso y quería compartirlo contigo.", grammatical_form),
+                    personal_form("Tú decides, yo me adapto a lo que prefieras.", grammatical_form)
+                ]
+            },
+            {
+                "id": "cierre",
+                "title": "4. Cierre y Agradecimiento",
+                "options": [
+                    personal_form("¡Genial! Hablamos pronto y seguimos en contacto.", grammatical_form),
+                    personal_form("Muchas gracias por el rato, me lo he pasado muy bien.", grammatical_form),
+                    personal_form("¡Un abrazo fuerte y hasta la próxima!", grammatical_form)
+                ]
+            }
+        ]
+    else:
+        stages = [
+            {
+                "id": "apertura",
+                "title": "1. Saludo y Encuadre",
+                "options": [
+                    personal_form("Hola, buenos días. Uso un comunicador asistido para expresarme.", grammatical_form),
+                    personal_form("Buenas. He preparado unas notas para hablar de forma ordenada.", grammatical_form),
+                    personal_form("Hola. Gracias por su tiempo y paciencia.", grammatical_form)
+                ]
+            },
+            {
+                "id": "nucleo",
+                "title": "2. Mensaje Principal",
+                "options": [
+                    personal_form(f"El motivo de mi consulta es: {goal_str}.", grammatical_form),
+                    personal_form(f"Quisiera solicitar información o ayuda con respecto a {goal_str}.", grammatical_form),
+                    personal_form(f"Me gustaría plantearle una duda sobre {goal_str}.", grammatical_form)
+                ]
+            },
+            {
+                "id": "seguimiento",
+                "title": "3. Si me preguntan detalles",
+                "options": [
+                    personal_form("Tengo aquí todos los datos necesarios si necesita consultarlos.", grammatical_form),
+                    personal_form("Cualquier opción que me facilite la gestión me parecerá bien.", grammatical_form),
+                    personal_form("Prefiero hacerlo de la manera más sencilla y directa.", grammatical_form)
+                ]
+            },
+            {
+                "id": "cierre",
+                "title": "4. Cierre y Agradecimiento",
+                "options": [
+                    personal_form("Muchas gracias por su atención y excelente trato.", grammatical_form),
+                    personal_form("Que tenga un buen día y gracias por su paciencia.", grammatical_form),
+                    personal_form("Quedo a la espera de sus indicaciones. Muchas gracias.", grammatical_form)
+                ]
+            }
+        ]
+
+    return {"stages": stages, "engine": "heuristic", "recipient": recipient_key, "goal": goal_str}
+

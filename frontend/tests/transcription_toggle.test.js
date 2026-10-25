@@ -50,10 +50,9 @@ test('CommunicationBoard source includes transcription toggle button and accessi
 
   // Must support hiding transcription section
   assert.ok(content.includes('id="conversation-hearing"'), 'Must have conversation-hearing ID');
-  assert.ok(content.includes('hidden={!showTranscript}'), 'Must have hidden attribute bound to showTranscript state');
+  assert.ok(content.includes('hidden={!showTranscript && !tutorialStep}'), 'Must have hidden attribute bound to showTranscript state');
 
-  // Must have inline close and reopen triggers
-  assert.ok(content.includes('aac-hearing-close'), 'Must have header close button');
+  // The persistent toolbar has one toggle; collapsed content offers a reopen action.
   assert.ok(content.includes('aac-show-hearing-btn'), 'Must have collapsed show button');
 });
 
@@ -64,7 +63,6 @@ test('communication.css includes necessary rules for hidden hearing section and 
   assert.ok(css.includes('.aac-hearing[hidden]'), 'Must have rule for [hidden] attribute');
   assert.ok(css.includes('display: none !important'), 'Hidden section must be display: none !important');
   assert.ok(css.includes('.aac-hearing-header'), 'Must have hearing header styles');
-  assert.ok(css.includes('.aac-hearing-close'), 'Must have hearing close styles');
   assert.ok(css.includes('.aac-hearing-collapsed'), 'Must have collapsed state styles');
   assert.ok(css.includes('.aac-show-hearing-btn'), 'Must have show button styles');
   assert.ok(css.includes('.aac-transcript-btn-extra'), 'Must have responsive label hiding');

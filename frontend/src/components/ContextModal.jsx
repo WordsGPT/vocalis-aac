@@ -118,7 +118,7 @@ export function ContextModal({
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-blue-400" />
             <h2 id="context-modal-title" className="text-lg font-bold text-white m-0">
-              Sobre mí (contexto para la IA)
+              Sobre mí
             </h2>
           </div>
           <button
@@ -136,7 +136,7 @@ export function ContextModal({
         <div className="settings-body flex-1 min-h-0 p-5 sm:p-6 overflow-y-auto space-y-4 text-sm">
           <p className="text-xs text-slate-400 m-0 leading-relaxed">
             Añade tu nombre, gustos, alergias o situación para ayudar a personalizar las respuestas.
-            El agente IA también puede <strong className="text-slate-200">actualizar su memoria</strong> automáticamente al aprender sobre ti. Puedes modificar o corregir cualquier dato aquí siempre que lo desees.
+            Puedes modificar o corregir cualquier dato aquí siempre que lo desees.
           </p>
 
 

@@ -18,7 +18,7 @@ test('AgentPanel.jsx renders smart light demo, calendar demo, and editable memor
   // 1. Smart light demo
   assert.ok(content.includes('agent-smart-light-bulb'), 'Must render smart light bulb element');
   assert.ok(content.includes('agent-toggle-light-btn'), 'Must render light toggle button');
-  assert.ok(content.includes('turn the light on'), 'Must include turn the light on test prompt');
+  assert.ok(content.includes('enciende la luz'), 'Must include a Spanish example command');
   assert.ok(content.includes('green'), 'Must support green light state');
 
   // 2. Calendar demo
@@ -38,7 +38,7 @@ test('CommunicationBoard.jsx includes agent tab, header light button, and action
   const content = fs.readFileSync(boardPath, 'utf8');
 
   // Agent tab in tabs
-  assert.ok(content.includes("['agent', Sparkles, 'Agente']"), 'Must register agent tab');
+  assert.ok(content.includes("AGENT_ENABLED ? [['agent', Sparkles, 'Agente']] : []"), 'Agent tab stays gated while shelved');
   assert.ok(content.includes("<AgentPanel"), 'Must render AgentPanel component');
 
   // Header light indicator button

@@ -66,7 +66,12 @@ export function getOfflineSuggestions(count = 6, grammaticalForm = 'masculine', 
       'Cambiando un poco de rumbo, quería comentarte algo.',
       '¿Qué te parecería si tomamos la iniciativa nosotros?',
     ];
-    return { suggestions: speakSuggestions.slice(0, count).map(text => personalForm(text, grammaticalForm)), engine: 'client-offline' };
+    return {
+      suggestions: speakSuggestions.slice(0, count).map(text => personalForm(text, grammaticalForm)),
+      direct_yes: personalForm('Sí, totalmente de acuerdo con eso.', grammaticalForm),
+      direct_no: personalForm('No, no lo veo de esa forma.', grammaticalForm),
+      engine: 'client-offline',
+    };
   }
   const suggestions = [
     '¡Sí, suena genial!',
@@ -76,7 +81,12 @@ export function getOfflineSuggestions(count = 6, grammaticalForm = 'masculine', 
     'No podré en esta ocasión, muchas gracias.',
     'Dame un momento para pensarlo con calma.',
   ];
-  return { suggestions: suggestions.slice(0, count).map(text => personalForm(text, grammaticalForm)), engine: 'client-offline' };
+  return {
+    suggestions: suggestions.slice(0, count).map(text => personalForm(text, grammaticalForm)),
+    direct_yes: 'Sí, me parece bien.',
+    direct_no: 'No, ahora mismo no.',
+    engine: 'client-offline',
+  };
 }
 
 export async function getSmartSuggestions({ 
@@ -315,5 +325,158 @@ export async function updateAgentContext(context, action = 'replace', currentCon
     return { status: 'error' };
   }
 }
+
+// ==============================================================================
+// Planning Mode API Services (Visual & Guided Techniques)
+// ==============================================================================
+
+export async function fetchPlanContinuations({
+  recipient = 'general',
+  pictograms = [],
+  tone = 'natural',
+  grammaticalForm = 'masculine',
+  userContext = '',
+  count = 5,
+  signal,
+}) {
+  try {
+    const res = await fetch(`${API_BASE}/plan/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({
+        type: 'continuations',
+        recipient,
+        pictograms,
+        tone,
+        grammatical_form: grammaticalForm,
+        count,
+        user_context: userContext || null,
+      }),
+    });
+    if (!res.ok) throw new Error(`Plan continuations failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    console.warn('Backend plan continuations failed, using client fallback:', err);
+    // Offline client fallback
+    const pictoStr = pictograms.join(', ');
+    let fallback = [
+      `Quiero hablar sobre ${pictoStr || 'este asunto'} con calma.`,
+      `¿Podrías ayudarme con esto cuando tengas un momento?`,
+      `Me parece importante comentarte lo que necesito ahora.`,
+      `He preparado estas ideas con mi comunicador.`,
+      `Tengo una pregunta sobre cómo podemos hacer esto.`,
+    ];
+    if (recipient === 'medico') {
+      fallback = [
+        `Tengo dolor o molestia relacionada con ${pictoStr || 'mi salud'} desde hace días.`,
+        `¿Podría revisar si mi medicación actual es la adecuada?`,
+        `Noto que el malestar empeora por las noches y me impide descansar.`,
+        `Quisiera saber qué tratamiento o prueba me recomienda.`,
+        `He preparado estas notas para explicarle mis síntomas con claridad.`,
+      ];
+    } else if (recipient === 'familia') {
+      fallback = [
+        `Quería comentaros algo sobre ${pictoStr || 'las cosas de casa'}.`,
+        `¿Podéis ayudarme con una cosa cuando tengáis un momento libre?`,
+        `Necesito descansar un poco tranquilo en casa, por favor.`,
+        `Me gustaría que organizáramos un plan juntos.`,
+        `Muchas gracias por vuestra ayuda y por estar conmigo.`,
+      ];
+    } else if (recipient === 'amigo') {
+      fallback = [
+        `¡Hola! Quería contarte algo sobre ${pictoStr || 'lo que he estado pensando'}.`,
+        `¿Te apetece que quedemos un rato y charlemos tranquilos?`,
+        `Tenía muchas ganas de saber cómo te van las cosas últimamente.`,
+        `¡Qué buena idea, me alegro mucho de hablar contigo!`,
+        `Dame un momento mientras preparo lo siguiente que te quiero decir.`,
+      ];
+    } else if (recipient === 'tienda') {
+      fallback = [
+        `Buenos días. Quisiera pedir información sobre ${pictoStr || 'este producto'}.`,
+        `¿Podría decirme cuánto cuesta esto, por favor?`,
+        `¿Tiene otra opción o talla diferente disponible?`,
+        `Voy a pagar con tarjeta, muchas gracias por su ayuda.`,
+      ];
+    }
+    return {
+      suggestions: fallback.map(text => personalForm(text, grammaticalForm)),
+      engine: 'client-offline',
+      recipient,
+    };
+  }
+}
+
+export async function fetchGuidedStoryboard({
+  recipient = 'general',
+  goal = 'Conversación guiada',
+  tone = 'natural',
+  grammaticalForm = 'masculine',
+  userContext = '',
+  signal,
+}) {
+  try {
+    const res = await fetch(`${API_BASE}/plan/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({
+        type: 'storyboard',
+        recipient,
+        goal,
+        tone,
+        grammatical_form: grammaticalForm,
+        user_context: userContext || null,
+      }),
+    });
+    if (!res.ok) throw new Error(`Guided storyboard failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    console.warn('Backend guided storyboard failed, using client fallback:', err);
+    // Offline client fallback
+    const stages = [
+      {
+        id: 'apertura',
+        title: '1. Saludo y Encuadre',
+        options: [
+          personalForm('Hola, buenos días. Uso un comunicador asistido para expresarme.', grammaticalForm),
+          personalForm('Buenas. He preparado unas notas para hablar de forma ordenada.', grammaticalForm),
+          personalForm('Hola. Gracias por tu tiempo y por tu paciencia.', grammaticalForm),
+        ],
+      },
+      {
+        id: 'nucleo',
+        title: '2. Mensaje Principal',
+        options: [
+          personalForm(`El motivo de hablar es: ${goal}.`, grammaticalForm),
+          personalForm(`Quería consultarte y pedirte ayuda con respecto a: ${goal}.`, grammaticalForm),
+          personalForm(`He estado pensando en ${goal} y quería saber qué opinas.`, grammaticalForm),
+        ],
+      },
+      {
+        id: 'seguimiento',
+        title: '3. Si me preguntan detalles',
+        options: [
+          personalForm('Tengo los detalles preparados por si necesitas saber más.', grammaticalForm),
+          personalForm('Podemos hacerlo de la manera más sencilla y directa.', grammaticalForm),
+          personalForm('Si no es posible ahora, podemos buscar otra alternativa con calma.', grammaticalForm),
+        ],
+      },
+      {
+        id: 'cierre',
+        title: '4. Cierre y Agradecimiento',
+        options: [
+          personalForm('Muchas gracias por tu atención y comprensión.', grammaticalForm),
+          personalForm('Me alegro mucho de que lo hayamos hablado tranquilamente.', grammaticalForm),
+          personalForm('Quedamos así entonces. ¡Hasta pronto y gracias!', grammaticalForm),
+        ],
+      },
+    ];
+    return { stages, engine: 'client-offline', recipient, goal };
+  }
+}
+
 
 

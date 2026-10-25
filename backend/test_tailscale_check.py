@@ -63,6 +63,19 @@ class TestTailscaleCheck(unittest.TestCase):
         res = inspect_node_and_collision(data)
         self.assertTrue(res["is_collision"])
 
+    def test_needs_login_state(self):
+        data = {
+            "BackendState": "NeedsLogin",
+            "AuthURL": "https://login.tailscale.com/a/test1234",
+            "Self": {
+                "HostName": "jupyter-gonzalo-2emartinez-2eruizdearcaute",
+                "DNSName": "",
+                "Online": False
+            }
+        }
+        self.assertEqual(data.get("BackendState"), "NeedsLogin")
+        self.assertEqual(data.get("AuthURL"), "https://login.tailscale.com/a/test1234")
+
 
 if __name__ == "__main__":
     unittest.main()

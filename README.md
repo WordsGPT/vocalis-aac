@@ -166,3 +166,5 @@ uv pip install --python ../faster-qwen3-tts/.venv/bin/python \
 `run.sh` detects that environment and starts the private worker on
 `127.0.0.1:8002`. Both engines read the same device-scoped cloned voice files;
 the worker is never exposed directly through Tailscale.
+
+Agent tools are shelved: navigation, tutorial steps, automatic tool execution, and agent API endpoints are disabled. The implementation and saved agent data are retained. To revisit, review `frontend/src/features.js` and `AGENT_ENABLED` in `backend/app.py`.

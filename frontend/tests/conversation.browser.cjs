@@ -12,6 +12,7 @@ const speakerLabels = process.env.VOCALIS_TEST_SPEAKER_LABELS !== 'false';
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(() => {
+        localStorage.setItem('vocalis_onboarding_v1', JSON.stringify({ status: 'completed' }));
       localStorage.setItem('vocalis_settings', JSON.stringify({ ttsMode: 'browser', autoTriggerDelay: 300 }));
       localStorage.removeItem('vocalis_history');
       window.testStreams = [];
@@ -82,7 +83,7 @@ const speakerLabels = process.env.VOCALIS_TEST_SPEAKER_LABELS !== 'false';
     await speak();
     await waitRequests(2);
     if (speakerLabels) {
-      await page.getByText('Persona 2', { exact: true }).waitFor();
+      await page.locator('.aac-speaker-turns').getByText('Persona 2', { exact: true }).waitFor();
     } else {
       await page.locator('.aac-heard').filter({ hasText: '¿Qué te apetece hacer?' }).waitFor();
       assert.equal(await page.locator('.aac-speaker-turns').count(), 0);

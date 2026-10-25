@@ -1,0 +1,44 @@
+.onboarding-tour { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+.onboarding-spotlight { position: fixed; border: 3px solid #0e9caa; border-radius: 12px; box-shadow: 0 0 0 9999px rgb(15 23 42 / 55%); pointer-events: none; }
+.onboarding-pointer { position: fixed; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.onboarding-pointer path { stroke: #0e9caa; stroke-width: 3; fill: none; stroke-linecap: round; }
+.onboarding-dialog { position: fixed; pointer-events: auto; width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; padding: 16px 20px; border: 1px solid #cadde1; border-radius: 16px; box-shadow: 0 8px 32px #0f172a35; background: #fff; color: #263449; text-align: left; }
+.onboarding-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.onboarding-dialog header > span { color: #086879; font-size: 11px; font-weight: 750; letter-spacing: .04em; }
+.onboarding-dialog h2 { font-size: 21px; line-height: 1.25; margin: 0 0 10px; color: #162f42; }
+.onboarding-dialog p { margin: 0 0 12px; line-height: 1.5; font-size: 14px; color: #46596c; }
+.onboarding-dialog .onboarding-hint { color: #086879; font-weight: 650; font-size: 12px; }
+.onboarding-dialog button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #334155; cursor: pointer; font: inherit; font-size: 14px; font-weight: 600; }
+.onboarding-dialog button:hover { background: #edf5fa; }
+.onboarding-dialog button:disabled { opacity: .45; cursor: default; }
+.onboarding-dialog :focus-visible { outline: 3px solid #007f94; outline-offset: 2px; }
+.onboarding-dialog footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+.onboarding-dialog footer > div { display: flex; gap: 6px; }
+.onboarding-dialog .onboarding-primary { background: #08798a; border-color: #08798a; color: #fff; }
+.onboarding-dialog .onboarding-primary:hover { background: #056272; }
+.onboarding-dialog .onboarding-skip { border-color: transparent; color: #546477; }
+.tour-active .settings-body, .tour-active .aac-tab-content { padding-bottom: 340px; scroll-behavior: auto; }
+.tour-active [data-tour-active] { scroll-margin: 18px; }
+@media (max-height: 500px) { .onboarding-dialog { width: min(320px, calc(100vw - 24px)); padding: 12px 16px; } .onboarding-dialog p { font-size: 13px; } .onboarding-dialog h2 { font-size: 18px; } }
+
+@media (max-width: 360px) {
+  .onboarding-dialog { padding: 12px 14px; }
+  .onboarding-dialog h2 { font-size: 19px; margin-bottom: 8px; }
+  .onboarding-dialog p { font-size: 13px; line-height: 1.4; margin-bottom: 8px; }
+}
+
+@media (max-width: 360px), (max-height: 500px) {
+  .onboarding-dialog header { min-height: 22px; padding-right: 44px; }
+  .onboarding-dialog header button { position: absolute; top: 8px; right: 10px; }
+  .onboarding-dialog h2 { padding-right: 28px; }
+}
+
+@media (max-height: 500px) and (min-width: 640px) {
+  /* A short landscape viewport needs room beside the live workspace. */
+  .tour-active .aac-app { width: calc(100vw - 280px); }
+  .tour-active .settings-backdrop { justify-content: flex-start; padding-left: 12px; }
+  .tour-active .settings-dialog { width: calc(100vw - 380px); max-width: 672px; }
+  .onboarding-dialog[data-settings="false"] { width: 250px; padding: 12px; }
+  .onboarding-dialog[data-settings="false"] footer > .onboarding-skip { display: none; }
+  .onboarding-dialog[data-settings="false"] footer > div { width: 100%; justify-content: space-between; }
+}
