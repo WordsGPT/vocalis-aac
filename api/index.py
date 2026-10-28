@@ -285,6 +285,50 @@ async def tts_stream(body: TTS, request: Request):
     return await tts(body, request)
 
 
+WHISPER_CONVERSATION_PROMPT = "Conversación espontánea en español sin subtítulos ni despedidas de vídeo."
+
+
+def is_whisper_hallucination(text: str, segments: Optional[List[Dict[str, Any]]] = None) -> bool:
+    """Filter out common Whisper training artifacts and YouTube outro hallucinations triggered by noise."""
+    if not text or not text.strip():
+        return False
+    norm = re.sub(r"[^\w\sáéíóúüñ]", "", text.lower()).strip()
+    norm = re.sub(r"\s+", " ", norm)
+
+    pure_hallucinations = {
+        "gracias por ver", "gracias por ver el video", "gracias por ver este video",
+        "gracias por ver el vídeo", "gracias por ver este vídeo", "muchas gracias por ver",
+        "muchas gracias por ver el video", "muchas gracias por ver este video",
+        "muchas gracias por ver el vídeo", "muchas gracias por ver este vídeo",
+        "gracias por escuchar", "gracias por su atencion", "gracias por su atención",
+        "subtitulos por la comunidad de amara org", "subtítulos por la comunidad de amara org",
+        "subtitulos realizados por la comunidad de amara org", "subtítulos realizados por la comunidad de amara org",
+        "subtitulos por", "subtítulos por", "suscribete al canal", "suscríbete al canal",
+        "suscribete a mi canal", "suscríbete a mi canal", "suscribete", "suscríbete",
+        "like y suscribete", "like y suscríbete", "amara org", "thanks for watching",
+        "thank you for watching",
+    }
+    if norm in pure_hallucinations:
+        return True
+
+    if segments:
+        avg_no_speech = sum(s.get("no_speech_prob", 0) for s in segments) / max(len(segments), 1)
+        if avg_no_speech > 0.6:
+            return True
+
+    ambiguous_hallucinations = {
+        "gracias", "muchas gracias", "chau", "chau chau", "adios", "adiós", "you", "thank you",
+    }
+    if norm in ambiguous_hallucinations:
+        if segments:
+            avg_no_speech = sum(s.get("no_speech_prob", 0) for s in segments) / max(len(segments), 1)
+            avg_logprob = sum(s.get("avg_logprob", 0) for s in segments) / max(len(segments), 1)
+            if avg_no_speech > 0.15 or avg_logprob < -0.7:
+                return True
+
+    return False
+
+
 @app.post("/api/transcribe")
 async def transcribe(file: UploadFile = File(...), language: str = Form("es"),
                      session_id: str = Form("")):
@@ -302,11 +346,21 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("es"),
             result = await client.post(
                 "https://api.groq.com/openai/v1/audio/transcriptions",
                 headers={"Authorization": f"Bearer {groq_key}"},
-                data={"model": "whisper-large-v3-turbo", "language": language.split("-")[0].lower()},
+                data={
+                    "model": "whisper-large-v3-turbo",
+                    "language": language.split("-")[0].lower(),
+                    "temperature": "0.0",
+                    "prompt": WHISPER_CONVERSATION_PROMPT,
+                    "response_format": "verbose_json",
+                },
                 files={"file": (file.filename or "recording.webm", data, mime)},
             )
             result.raise_for_status()
-            text = result.json().get("text", "").strip()
+            res_json = result.json()
+            text = res_json.get("text", "").strip()
+            segments = res_json.get("segments", [])
+            if is_whisper_hallucination(text, segments):
+                return {"text": "", "engine": "groq-whisper", "diarization": "unavailable", "turns": []}
             # Stateless hosting has no local speaker encoder; preserve the turn
             # contract without guessing speaker identities.
             return {"text": text, "engine": "groq-whisper", "diarization": "unavailable",

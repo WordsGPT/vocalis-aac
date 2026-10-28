@@ -53,6 +53,22 @@ class HostedConversationTests(unittest.TestCase):
         self.assertEqual(response.json()['turns'], [{"text": "Hola", "speaker": None,
                                                    "speaker_label": "Voz sin identificar"}])
 
+    def test_transcription_filters_whisper_noise_hallucination(self):
+        upstream = Mock()
+        upstream.json.return_value = {
+            "text": " Gracias. ",
+            "segments": [{"no_speech_prob": 0.48, "avg_logprob": -0.88}]
+        }
+        with patch('api.index.get_server_groq_api_key', return_value='test'), \
+             patch('api.index.httpx.AsyncClient') as client:
+            client.return_value.__aenter__.return_value.post = AsyncMock(return_value=upstream)
+            response = self.client.post('/api/transcribe',
+                data={"session_id": "conversation-1", "language": "es-ES"},
+                files={"file": ("audio.webm", b'audio', 'audio/webm')})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['text'], "")
+        self.assertEqual(response.json()['turns'], [])
+
     def test_health_indicates_vercel_and_gemini_tts(self):
         response = self.client.get('/api/health')
         self.assertEqual(response.status_code, 200)

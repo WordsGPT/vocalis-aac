@@ -496,6 +496,49 @@ async def generate_plan(req: PlanGenerateRequest):
     return res
 
 
+WHISPER_CONVERSATION_PROMPT = "Conversación espontánea en español sin subtítulos ni despedidas de vídeo."
+
+def is_whisper_hallucination(text: str, segments: Optional[List[Dict[str, Any]]] = None) -> bool:
+    """Filter out common Whisper training artifacts and YouTube outro hallucinations triggered by noise."""
+    if not text or not text.strip():
+        return False
+    norm = re.sub(r"[^\w\sáéíóúüñ]", "", text.lower()).strip()
+    norm = re.sub(r"\s+", " ", norm)
+
+    pure_hallucinations = {
+        "gracias por ver", "gracias por ver el video", "gracias por ver este video",
+        "gracias por ver el vídeo", "gracias por ver este vídeo", "muchas gracias por ver",
+        "muchas gracias por ver el video", "muchas gracias por ver este video",
+        "muchas gracias por ver el vídeo", "muchas gracias por ver este vídeo",
+        "gracias por escuchar", "gracias por su atencion", "gracias por su atención",
+        "subtitulos por la comunidad de amara org", "subtítulos por la comunidad de amara org",
+        "subtitulos realizados por la comunidad de amara org", "subtítulos realizados por la comunidad de amara org",
+        "subtitulos por", "subtítulos por", "suscribete al canal", "suscríbete al canal",
+        "suscribete a mi canal", "suscríbete a mi canal", "suscribete", "suscríbete",
+        "like y suscribete", "like y suscríbete", "amara org", "thanks for watching",
+        "thank you for watching",
+    }
+    if norm in pure_hallucinations:
+        return True
+
+    if segments:
+        avg_no_speech = sum(s.get("no_speech_prob", 0) for s in segments) / max(len(segments), 1)
+        if avg_no_speech > 0.6:
+            return True
+
+    ambiguous_hallucinations = {
+        "gracias", "muchas gracias", "chau", "chau chau", "adios", "adiós", "you", "thank you",
+    }
+    if norm in ambiguous_hallucinations:
+        if segments:
+            avg_no_speech = sum(s.get("no_speech_prob", 0) for s in segments) / max(len(segments), 1)
+            avg_logprob = sum(s.get("avg_logprob", 0) for s in segments) / max(len(segments), 1)
+            if avg_no_speech > 0.15 or avg_logprob < -0.7:
+                return True
+
+    return False
+
+
 @app.post("/api/transcribe")
 async def transcribe_audio(file: UploadFile = File(...), language: str = Form("es"),
                            session_id: str = Form("")):
@@ -521,16 +564,27 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = Form("e
                     response = await client.post(
                         "https://api.groq.com/openai/v1/audio/transcriptions",
                         headers={"Authorization": f"Bearer {key}"},
-                        data={"model": "whisper-large-v3-turbo", "language": short_language,
-                              "response_format": "verbose_json", "timestamp_granularities[]": "word"},
+                        data={
+                            "model": "whisper-large-v3-turbo",
+                            "language": short_language,
+                            "temperature": "0.0",
+                            "prompt": WHISPER_CONVERSATION_PROMPT,
+                            "response_format": "verbose_json",
+                            "timestamp_granularities[]": "word",
+                        },
                         files={"file": (file.filename or f"recording{suffix}", audio, file.content_type or "audio/webm")},
                     )
             if response.is_error:
                 logger.error("Groq transcription failed with status %s", response.status_code)
                 raise HTTPException(status_code=502, detail="El servicio de transcripción no respondió correctamente.")
             result = response.json()
+            raw_text = result.get("text", "").strip()
+            segments = result.get("segments", [])
+            if is_whisper_hallucination(raw_text, segments):
+                logger.info("Filtered Whisper noise hallucination: '%s'", raw_text)
+                return {"text": "", "engine": "groq-whisper", "turns": [], "diarization": "unavailable"}
             speakers = await asyncio.to_thread(diarizer.annotate, tmp_path, result, session_id[:128])
-            return {"text": result.get("text", "").strip(), "engine": "groq-whisper", **speakers}
+            return {"text": raw_text, "engine": "groq-whisper", **speakers}
 
         model = get_whisper_model()
         result = await asyncio.to_thread(
@@ -539,9 +593,16 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = Form("e
             fp16=torch.cuda.is_available(),
             language=short_language,
             word_timestamps=True,
+            temperature=0.0,
+            initial_prompt=WHISPER_CONVERSATION_PROMPT,
         )
+        raw_text = result.get("text", "").strip()
+        segments = result.get("segments", [])
+        if is_whisper_hallucination(raw_text, segments):
+            logger.info("Filtered Whisper noise hallucination: '%s'", raw_text)
+            return {"text": "", "engine": "local-whisper", "turns": [], "diarization": "unavailable"}
         speakers = await asyncio.to_thread(diarizer.annotate, tmp_path, result, session_id[:128])
-        return {"text": result.get("text", "").strip(), "engine": "local-whisper", **speakers}
+        return {"text": raw_text, "engine": "local-whisper", **speakers}
     except HTTPException:
         raise
     except Exception as e:

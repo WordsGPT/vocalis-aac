@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { transcribeAudioBlob } from '../services/api';
 
-const VOICE_LEVEL = 8;
-const QUIET_LEVEL = 5;
+const VOICE_LEVEL = 10;
+const QUIET_LEVEL = 6;
+const MIN_VOICE_DURATION_MS = 250;
 const MAX_RECORDING_MS = 12000;
 const newSession = () => globalThis.crypto?.randomUUID?.() || `conversation-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -57,6 +58,10 @@ export function useSpeechRecognition({ onSpeechCompleted, onSpeechActivity, auto
   const deliver = useCallback((result, metadata = {}) => {
     const text = (result.text || '').trim();
     if (!text) return;
+    const norm = text.toLowerCase().replace(/[^\w\sáéíóúüñ]/g, '').trim();
+    if (/^(gracias por ver( este)? vi[de]o|subt[ií]tulos por|suscr[ií]bete|amara org)$/i.test(norm)) {
+      return;
+    }
     setError(null);
     const nextTurns = result.turns?.length ? result.turns : [{ text, speaker: null, speaker_label: 'Voz sin identificar' }];
     setTranscript(text);
@@ -175,8 +180,9 @@ export function useSpeechRecognition({ onSpeechCompleted, onSpeechActivity, auto
           const hasVoice = current.voice;
           const reason = current.reason;
           const discard = current.discard;
+          const voiceDuration = current.lastVoice - (current.voiceStart || 0);
           if (!current.closed) record();
-          if (hasVoice && !discard) {
+          if (hasVoice && !discard && voiceDuration >= MIN_VOICE_DURATION_MS) {
             if (pending.current >= 4) {
               setError('La conexión no sigue el ritmo. Se ha pausado la escucha; vuelve a activarla.');
               desired.current = false;
@@ -204,7 +210,7 @@ export function useSpeechRecognition({ onSpeechCompleted, onSpeechActivity, auto
         if (level >= VOICE_LEVEL) {
           if (!current.voiceStart) current.voiceStart = now;
           current.lastVoice = now;
-          if (now - current.voiceStart >= 120) {
+          if (now - current.voiceStart >= MIN_VOICE_DURATION_MS) {
             current.voice = true;
             if (!current.active) {
               current.active = true;
