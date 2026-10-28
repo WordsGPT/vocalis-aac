@@ -1,5 +1,6 @@
-"""Exercise conversation integration through the deployed API entry point."""
+"""Exercise conversation and serverless endpoints through the deployed API entry point."""
 import unittest
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
@@ -51,6 +52,78 @@ class HostedConversationTests(unittest.TestCase):
         self.assertEqual(response.json()['diarization'], 'unavailable')
         self.assertEqual(response.json()['turns'], [{"text": "Hola", "speaker": None,
                                                    "speaker_label": "Voz sin identificar"}])
+
+    def test_health_indicates_vercel_and_gemini_tts(self):
+        response = self.client.get('/api/health')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data.get("status"), "healthy")
+        self.assertEqual(data.get("platform"), "vercel")
+        self.assertEqual(data.get("tts"), "gemini")
+        self.assertFalse(data.get("cuda"))
+        self.assertFalse(data.get("qwen_voice", {}).get("available"))
+
+    def test_voices_returns_gemini_catalog(self):
+        response = self.client.get('/api/voices')
+        self.assertEqual(response.status_code, 200)
+        voices = response.json()
+        voice_ids = [v["id"] for v in voices]
+        self.assertIn("Puck", voice_ids)
+        self.assertIn("Kore", voice_ids)
+        self.assertIn("Aoede", voice_ids)
+
+    def test_plan_generate_storyboard_and_continuations(self):
+        storyboard_mock = {"stages": [{"id": "apertura", "title": "1. Saludo", "options": ["Hola"]}], "engine": "test"}
+        with patch('api.index.generate_guided_storyboard', return_value=storyboard_mock):
+            res = self.client.post('/api/plan/generate', json={"type": "storyboard", "recipient": "medico", "goal": "Dolor"})
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.json(), storyboard_mock)
+
+        continuations_mock = {"suggestions": ["Necesito ayuda."], "engine": "test"}
+        with patch('api.index.generate_plan_continuations', return_value=continuations_mock):
+            res = self.client.post('/api/plan/generate', json={"type": "continuations", "recipient": "familia", "pictograms": ["casa"]})
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.json(), continuations_mock)
+
+    def test_audit_endpoints_on_vercel_api(self):
+        import tempfile
+        import shutil
+        temp_dir = tempfile.mkdtemp(prefix="vocalis_hosted_audit_")
+        try:
+            with patch("backend.audit.AUDIT_LOG_DIR", Path(temp_dir)):
+                # Log a turn
+                res = self.client.post('/api/audit/log', json={"sender": "user", "text": "Hola mundo", "speaker_label": "Yo"},
+                                       headers={"X-Vocalis-Client": "test-device"})
+                self.assertEqual(res.status_code, 200)
+
+                # Retrieve logs
+                res = self.client.get('/api/audit/logs', headers={"X-Vocalis-Client": "test-device"})
+                self.assertEqual(res.status_code, 200)
+                self.assertEqual(res.json().get("status"), "success")
+
+                # Export logs
+                res = self.client.get('/api/audit/export', headers={"X-Vocalis-Client": "test-device"})
+                self.assertEqual(res.status_code, 200)
+                self.assertIn("text/plain", res.headers.get("content-type", ""))
+
+                # Clear logs
+                res = self.client.delete('/api/audit/logs', headers={"X-Vocalis-Client": "test-device"})
+                self.assertEqual(res.status_code, 200)
+                self.assertTrue(res.json().get("deleted"))
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_agent_endpoints_on_vercel_api(self):
+        res = self.client.get('/api/agent/state')
+        self.assertEqual(res.status_code, 200)
+        state = res.json()
+        self.assertIn("light", state)
+        self.assertIn("calendar_events", state)
+
+        # Test light control
+        res = self.client.post('/api/agent/light', json={"state": "on", "color": "green", "brightness": 100})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json().get("status"), "success")
 
 
 if __name__ == '__main__':

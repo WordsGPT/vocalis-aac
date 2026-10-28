@@ -23,8 +23,20 @@ AUDIT_LOG_DIR = Path(os.environ.get("VOCALIS_AUDIT_LOG_DIR", str(DEFAULT_AUDIT_D
 
 def get_audit_dir() -> Path:
     """Ensure the audit log directory exists with safe permissions."""
-    AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    return AUDIT_LOG_DIR
+    if AUDIT_LOG_DIR != DEFAULT_AUDIT_DIR:
+        AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        return AUDIT_LOG_DIR
+    if os.environ.get("VERCEL") == "1":
+        path = Path("/tmp/vocalis_audit_logs")
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    try:
+        AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        return AUDIT_LOG_DIR
+    except OSError:
+        path = Path("/tmp/vocalis_audit_logs")
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
 
 def sanitize_client_id(client_id: Optional[str]) -> str:

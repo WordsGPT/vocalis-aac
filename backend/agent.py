@@ -42,17 +42,23 @@ DEFAULT_STATE = {
 }
 
 
-def _ensure_data_dir():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+def _get_agent_state_file() -> Path:
+    if os.environ.get("VERCEL") == "1":
+        return Path("/tmp/vocalis_agent_state.json")
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        return AGENT_STATE_FILE
+    except OSError:
+        return Path("/tmp/vocalis_agent_state.json")
 
 
 def load_agent_state() -> Dict[str, Any]:
-    _ensure_data_dir()
-    if not AGENT_STATE_FILE.exists():
+    state_file = _get_agent_state_file()
+    if not state_file.exists():
         save_agent_state(DEFAULT_STATE)
         return json.loads(json.dumps(DEFAULT_STATE))
     try:
-        with open(AGENT_STATE_FILE, "r", encoding="utf-8") as f:
+        with open(state_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             # Ensure essential keys exist
             if "light" not in data:
@@ -68,9 +74,9 @@ def load_agent_state() -> Dict[str, Any]:
 
 
 def save_agent_state(state: Dict[str, Any]) -> None:
-    _ensure_data_dir()
+    state_file = _get_agent_state_file()
     try:
-        with open(AGENT_STATE_FILE, "w", encoding="utf-8") as f:
+        with open(state_file, "w", encoding="utf-8") as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logger.error(f"Error saving agent state: {e}")

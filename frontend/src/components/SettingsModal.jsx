@@ -79,6 +79,7 @@ export function SettingsModal({
   };
 
   const pictogramSize = Math.min(160, Math.max(70, Number(settings.pictogramSize) || 100));
+  const isQwen = edgeVoices.some(v => v.id === 'qwen-clone') || (!authRequired && !edgeVoices.some(v => v.id === 'Puck'));
   const preparePhrases = async (scope) => {
     setPreparing(true);
     setPreparingScope(scope);
@@ -177,7 +178,7 @@ export function SettingsModal({
                 type="button"
                 id="tts-mode-qwen"
                 aria-pressed={settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen'}
-                onClick={() => onUpdateSettings({ ttsMode: 'edge-tts', edgeVoiceId: settings.edgeVoiceId || 'qwen-clone' })}
+                onClick={() => onUpdateSettings({ ttsMode: 'edge-tts', edgeVoiceId: settings.edgeVoiceId || (isQwen ? 'qwen-clone' : 'Puck') })}
                 disabled={authRequired && !voiceAuthenticated}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                   settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen'
@@ -186,10 +187,16 @@ export function SettingsModal({
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span className="font-semibold text-xs text-blue-300">Qwen3-TTS</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">GPU · Servidor</span>
+                  <span className="font-semibold text-xs text-blue-300">
+                    {isQwen ? 'Qwen3-TTS' : 'Voz de Gemini'}
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isQwen ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                    {isQwen ? 'GPU · Servidor' : 'Gemini · Servidor'}
+                  </span>
                 </div>
-                <div className="text-[11px] text-slate-400 leading-snug">Voz clonada de alta calidad en servidor GPU</div>
+                <div className="text-[11px] text-slate-400 leading-snug">
+                  {isQwen ? 'Voz clonada de alta calidad en servidor GPU' : 'Voz personal o catálogo de Gemini'}
+                </div>
               </button>
 
               <button
@@ -233,15 +240,20 @@ export function SettingsModal({
             {/* Voice dropdown */}
             {(settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen') && (
               <div className="mb-3">
-                <label htmlFor="server-voice" className="block text-xs text-slate-400 mb-1">Voz del servidor seleccionada:</label>
+                <label htmlFor="server-voice" className="block text-xs text-slate-400 mb-1">
+                  {isQwen ? 'Voz del servidor seleccionada:' : 'Voz de Gemini seleccionada:'}
+                </label>
                 <select
                   id="server-voice"
-                  value={settings.edgeVoiceId || 'qwen-clone'}
+                  value={settings.edgeVoiceId || (isQwen ? 'qwen-clone' : 'Puck')}
                   onChange={(e) => onUpdateSettings({ edgeVoiceId: e.target.value })}
                   className="w-full bg-slate-950 text-white rounded-lg p-2.5 border border-slate-700 text-xs focus:outline-none focus:border-blue-500 font-medium"
                 >
-                  <option value="qwen-clone">⭐ Mi voz clonada con Qwen3-TTS (GPU)</option>
-                  {edgeVoices.filter(v => v.id !== 'qwen-clone').map((v) => (
+                  {isQwen && <option value="qwen-clone">⭐ Mi voz clonada con Qwen3-TTS (GPU)</option>}
+                  {settings.edgeVoiceId?.startsWith('voice_') && (
+                    <option value={settings.edgeVoiceId}>Mi voz personal (Gemini)</option>
+                  )}
+                  {edgeVoices.filter(v => isQwen ? v.id !== 'qwen-clone' : true).map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name} ({v.lang})
                     </option>
@@ -354,12 +366,13 @@ export function SettingsModal({
             {(settings.ttsMode === 'edge-tts' || settings.ttsMode === 'qwen') && (
               <VoiceCloner
                 onCloned={(voiceId) => {
-                  onUpdateSettings({ edgeVoiceId: voiceId || 'qwen-clone' });
-                  onVoiceCloned?.(voiceId || 'qwen-clone');
+                  const newId = voiceId || (isQwen ? 'qwen-clone' : 'Puck');
+                  onUpdateSettings({ edgeVoiceId: newId });
+                  onVoiceCloned?.(newId);
                 }}
                 authenticated={voiceAuthenticated}
                 authRequired={authRequired}
-                isQwen={true}
+                isQwen={isQwen}
               />
             )}
 

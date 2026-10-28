@@ -358,6 +358,14 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     fetchCuratedVoices().then((voices) => {
       if (voices && voices.length > 0) {
         setEdgeVoices(voices);
+        setSettings((prev) => {
+          const hasQwen = voices.some((v) => v.id === 'qwen-clone');
+          if (!hasQwen && prev.edgeVoiceId === 'qwen-clone') {
+            const defaultVoice = voices.find((v) => v.id === 'Puck') || voices[0];
+            return { ...prev, edgeVoiceId: defaultVoice ? defaultVoice.id : 'Puck' };
+          }
+          return prev;
+        });
       }
     });
   }, []);

@@ -10,21 +10,35 @@ import secrets
 import time
 import wave
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, Response, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend.engine import get_smart_suggestions, get_server_groq_api_key
+from backend.engine import (
+    get_smart_suggestions,
+    get_server_groq_api_key,
+    generate_plan_continuations,
+    generate_guided_storyboard,
+)
 from backend.conversation import conversation_suggestions
+from backend import agent, audit
 
 API = "https://generativelanguage.googleapis.com/v1beta"
 VOICE_MODEL = "gemini-3.8-flash-tts"
 COOKIE = "vocalis_session"
 SESSION_SECONDS = 60 * 60 * 24 * 7
+VOCALIS_ENABLE_AGENT = os.environ.get("VOCALIS_ENABLE_AGENT", "1") == "1"
+
 app = FastAPI(title="Vocalis API", docs_url=None, redoc_url=None, openapi_url=None)
+
+
+def require_agent_enabled():
+    if not VOCALIS_ENABLE_AGENT:
+        raise HTTPException(status_code=404, detail="Agent system is currently shelved/disabled.")
 
 
 def config(name: str) -> str:
@@ -93,7 +107,11 @@ async def login(body: Login, response: Response):
 
 @app.get("/api/session")
 async def session(request: Request):
-    return {"authenticated": valid_session(request.cookies.get(COOKIE, ""))}
+    auth_req = bool(os.environ.get("AUTH_PASSWORD", "").strip())
+    return {
+        "authenticated": valid_session(request.cookies.get(COOKIE, "")),
+        "auth_required": auth_req,
+    }
 
 
 @app.post("/api/logout")
@@ -139,16 +157,41 @@ async def suggest(body: Suggest, request: Request):
 
 
 @app.get("/api/health")
-async def health():
-    return {"status": "healthy", "groq_ready": bool(get_server_groq_api_key()),
-            "gemini_ready": bool(os.environ.get("GEMINI_API_KEY"))}
+async def health(request: Request):
+    groq_ok = bool(get_server_groq_api_key())
+    gemini_ok = bool(os.environ.get("GEMINI_API_KEY", "").strip())
+    auth_ok = bool(os.environ.get("AUTH_USERNAME") and os.environ.get("AUTH_PASSWORD")
+                   and os.environ.get("AUTH_SECRET"))
+    is_auth = valid_session(request.cookies.get(COOKIE, ""))
+    return {
+        "status": "healthy",
+        "platform": "vercel",
+        "tts": "gemini",
+        "cuda": False,
+        "qwen_voice": {"available": False, "loaded": False},
+        "groq_ready": groq_ok,
+        "gemini_ready": gemini_ok,
+        "auth_configured": auth_ok,
+        "authenticated": is_auth,
+        "whisper_ready": groq_ok,
+    }
 
 
 @app.get("/api/voices")
-async def voices():
-    return [{"id": "Puck", "name": "Puck (Gemini)", "lang": "es-ES"},
-            {"id": "Kore", "name": "Kore (Gemini)", "lang": "es-ES"},
-            {"id": "Aoede", "name": "Aoede (Gemini)", "lang": "es-ES"}]
+async def voices(request: Request):
+    voice_list = [
+        {"id": "Puck", "name": "Puck (Gemini)", "lang": "es-ES", "gender": "male"},
+        {"id": "Kore", "name": "Kore (Gemini)", "lang": "es-ES", "gender": "female"},
+        {"id": "Aoede", "name": "Aoede (Gemini)", "lang": "es-ES", "gender": "female"},
+    ]
+    if valid_session(request.cookies.get(COOKIE, "")):
+        voice_list.insert(0, {
+            "id": "gemini-personal",
+            "name": "Mi voz personal (Gemini)",
+            "lang": "es-ES",
+            "gender": "neutral",
+        })
+    return voice_list
 
 
 async def google_post(path: str, payload: dict, timeout: float = 45) -> dict:
@@ -177,8 +220,18 @@ def wav_duration(data: bytes, lower: float, upper: float) -> None:
 
 
 @app.post("/api/voice/clone")
-async def clone_voice(reference: UploadFile = File(...), consent: UploadFile = File(...)):
-    source = await reference.read(2_000_001)
+async def clone_voice(
+    reference: Optional[UploadFile] = File(None),
+    file: Optional[UploadFile] = File(None),
+    consent: Optional[UploadFile] = File(None),
+):
+    upload = reference or file
+    if not upload:
+        raise HTTPException(400, "Falta la muestra de referencia para la voz.")
+    if not consent:
+        raise HTTPException(400, "Falta la grabación de consentimiento para la voz en Gemini.")
+
+    source = await upload.read(2_000_001)
     permission = await consent.read(2_000_001)
     if len(source) > 2_000_000 or len(permission) > 2_000_000:
         raise HTTPException(413, "Los audios son demasiado grandes.")
@@ -199,6 +252,7 @@ async def clone_voice(reference: UploadFile = File(...), consent: UploadFile = F
 class TTS(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     voice: str = "Puck"
+    language: str | None = "Spanish"
 
 
 @app.post("/api/tts")
@@ -223,6 +277,12 @@ async def tts(body: TTS, request: Request):
     if len(audio) > 4_000_000:
         raise HTTPException(502, "El audio generado supera el límite de entrega.")
     return StreamingResponse(io.BytesIO(audio), media_type="audio/wav")
+
+
+@app.post("/api/tts/stream")
+async def tts_stream(body: TTS, request: Request):
+    """Fallback streaming TTS handler for Vercel: delegates to tts generation."""
+    return await tts(body, request)
 
 
 @app.post("/api/transcribe")
@@ -254,6 +314,206 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("es"),
                                "speaker_label": "Voz sin identificar"}] if text else []}
         except (httpx.HTTPStatusError, httpx.RequestError):
             raise HTTPException(502, "No se pudo transcribir el audio con Groq.") from None
+
+
+# ------------------------------------------------------------------------------
+# Planning endpoints
+# ------------------------------------------------------------------------------
+class PlanGenerateRequest(BaseModel):
+    type: str = "continuations"  # "continuations" or "storyboard"
+    recipient: str = "general"
+    pictograms: list[str] = Field(default_factory=list)
+    goal: str | None = None
+    tone: str = "natural"
+    grammatical_form: str = "masculine"
+    user_context: str | None = None
+    count: int = 5
+    groq_api_key: str | None = None
+
+
+@app.post("/api/plan/generate")
+async def generate_plan(req: PlanGenerateRequest):
+    """Generates planned conversation phrases or structured storyboards for a chosen recipient."""
+    plan_type = (req.type or "continuations").lower()
+    groq_key = req.groq_api_key or get_server_groq_api_key()
+    if plan_type == "storyboard":
+        res = await asyncio.to_thread(
+            generate_guided_storyboard,
+            recipient=req.recipient,
+            goal=req.goal,
+            tone=req.tone or "natural",
+            grammatical_form=req.grammatical_form or "masculine",
+            user_context=req.user_context,
+            groq_api_key=groq_key,
+        )
+    else:
+        res = await asyncio.to_thread(
+            generate_plan_continuations,
+            recipient=req.recipient,
+            pictograms=req.pictograms or [],
+            tone=req.tone or "natural",
+            grammatical_form=req.grammatical_form or "masculine",
+            user_context=req.user_context,
+            count=req.count or 5,
+            groq_api_key=groq_key,
+        )
+    return res
+
+
+# ------------------------------------------------------------------------------
+# Audit logging endpoints
+# ------------------------------------------------------------------------------
+class AuditTurnRequest(BaseModel):
+    sender: str
+    text: str
+    speaker_label: Optional[str] = None
+    time: Optional[str] = None
+    mode: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@app.post("/api/audit/log")
+async def audit_log(
+    body: AuditTurnRequest,
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    target_client = audit.sanitize_client_id(x_vocalis_client)
+    res = await asyncio.to_thread(
+        audit.log_conversation_turn,
+        target_client,
+        body.sender,
+        body.text,
+        body.speaker_label,
+        body.time,
+        body.mode,
+        body.metadata,
+    )
+    return res
+
+
+@app.get("/api/audit/logs")
+async def audit_logs(
+    limit: int = 100,
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    target_client = audit.sanitize_client_id(x_vocalis_client)
+    entries = await asyncio.to_thread(audit.get_audit_logs, target_client, limit)
+    return {"status": "success", "client_id": target_client, "logs": entries}
+
+
+@app.get("/api/audit/sessions")
+async def audit_sessions():
+    sessions = await asyncio.to_thread(audit.list_audit_sessions)
+    return {"status": "success", "sessions": sessions}
+
+
+@app.get("/api/audit/export")
+async def audit_export(
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    target_client = audit.sanitize_client_id(x_vocalis_client)
+    transcript = await asyncio.to_thread(audit.export_audit_transcript, target_client)
+    return Response(
+        content=transcript,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={target_client}_audit.txt"},
+    )
+
+
+@app.delete("/api/audit/logs")
+async def audit_delete(
+    x_vocalis_client: Optional[str] = Header(None, alias="X-Vocalis-Client"),
+):
+    target_client = audit.sanitize_client_id(x_vocalis_client)
+    deleted = await asyncio.to_thread(audit.clear_client_audit_logs, target_client)
+    return {"status": "success", "deleted": deleted, "client_id": target_client}
+
+
+# ------------------------------------------------------------------------------
+# Agent endpoints
+# ------------------------------------------------------------------------------
+class AgentLightRequest(BaseModel):
+    state: str
+    color: Optional[str] = "green"
+    brightness: Optional[int] = 100
+
+
+class AgentCalendarRequest(BaseModel):
+    title: str
+    date: Optional[str] = None
+    time: Optional[str] = None
+    description: Optional[str] = ""
+
+
+class AgentProcessRequest(BaseModel):
+    text: str
+    user_context: Optional[str] = None
+    history: Optional[List[Dict[str, Any]]] = None
+
+
+class AgentContextRequest(BaseModel):
+    context: str
+    action: Optional[str] = "replace"
+    current_context: Optional[str] = ""
+
+
+@app.get("/api/agent/state", dependencies=[Depends(require_agent_enabled)])
+async def get_agent_state():
+    return await asyncio.to_thread(agent.load_agent_state)
+
+
+@app.post("/api/agent/process", dependencies=[Depends(require_agent_enabled)])
+async def process_agent_message_endpoint(req: AgentProcessRequest):
+    tools, updated_context = await asyncio.to_thread(
+        agent.detect_and_execute_tools,
+        req.text,
+        req.user_context,
+        req.history,
+    )
+    current_state = await asyncio.to_thread(agent.load_agent_state)
+    return {
+        "status": "success",
+        "tool_calls": tools,
+        "updated_context": updated_context,
+        "state": current_state,
+    }
+
+
+@app.post("/api/agent/light", dependencies=[Depends(require_agent_enabled)])
+async def control_agent_light(req: AgentLightRequest):
+    return await asyncio.to_thread(
+        agent.execute_control_light,
+        req.state,
+        req.color,
+        req.brightness,
+    )
+
+
+@app.post("/api/agent/calendar", dependencies=[Depends(require_agent_enabled)])
+async def add_agent_calendar(req: AgentCalendarRequest):
+    return await asyncio.to_thread(
+        agent.execute_add_calendar_event,
+        req.title,
+        req.date,
+        req.time,
+        req.description,
+        source="user",
+    )
+
+
+@app.delete("/api/agent/calendar/{event_id}", dependencies=[Depends(require_agent_enabled)])
+async def remove_agent_calendar_event(event_id: str):
+    return await asyncio.to_thread(agent.execute_delete_calendar_event, event_id)
+
+
+@app.post("/api/agent/context", dependencies=[Depends(require_agent_enabled)])
+async def update_agent_context(req: AgentContextRequest):
+    return await asyncio.to_thread(
+        agent.execute_update_user_context,
+        req.context,
+        req.action or "replace",
+        req.current_context or "",
+    )
 
 
 # Serve the built app if Vercel routes the root path to this FastAPI function.
