@@ -497,7 +497,6 @@ export function App({ voiceAuthenticated = true, authRequired = false, onVoiceLo
     addToHistory('partner', heardText.trim(), metadata.turns);
     const isAutoSpeech = metadata.automatic !== false;
     if (settings.responseGenerationMode === 'manual' && isAutoSpeech) {
-      clearSuggestions();
       setConversationStatus('Mensaje recibido. Pulsa «Generar respuestas» para ver opciones.');
       return;
     }

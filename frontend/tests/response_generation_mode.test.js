@@ -32,4 +32,7 @@ test('Response generation mode defaults to manual and includes auto toggle and p
   assert.match(cssSrc, /\.aac-auto-toggle-btn/);
   assert.match(cssSrc, /\.aac-generate-prominent/);
   assert.match(cssSrc, /\.aac-auto-toggle-switch/);
+
+  // 7. In manual mode, incoming partner speech must NOT clear previous suggestions
+  assert.doesNotMatch(appSrc, /if\s*\(\s*settings\.responseGenerationMode\s*===\s*'manual'\s*&&\s*isAutoSpeech\s*\)\s*\{\s*clearSuggestions\(\);/);
 });
